@@ -67,9 +67,6 @@ if ($FrontendOrigin) { $settings.Cors = @{ AllowedOrigins = @($FrontendOrigin) }
 $settingsFile = Join-Path $InstallDir 'appsettings.Production.json'
 $settings | ConvertTo-Json -Depth 5 | Set-Content -Path $settingsFile -Encoding UTF8
 
-# Chỉ Administrators, SYSTEM và tài khoản service đọc được file bí mật.
-icacls $settingsFile /inheritance:r /grant:r 'Administrators:F' 'SYSTEM:F' "${account}:R" | Out-Null
-
 $logs = Join-Path $InstallDir 'logs'
 New-Item -ItemType Directory -Force -Path $logs | Out-Null
 
@@ -83,14 +80,23 @@ if (-not $existing) {
 sc.exe config $ServiceName obj= $account start= delayed-auto | Out-Null
 # Lỗi thì tự chạy lại sau 5s, 5s, 30s; đếm lại sau 1 ngày.
 sc.exe failure $ServiceName reset= 86400 actions= restart/5000/restart/5000/restart/30000 | Out-Null
+
+# Tài khoản "NT SERVICE\..." chỉ tồn tại SAU khi tạo service → cấp quyền file ở bước này.
+# File bí mật: chỉ Administrators, SYSTEM và tài khoản service đọc được.
+icacls $settingsFile /inheritance:r /grant:r 'Administrators:F' 'SYSTEM:F' "${account}:R" | Out-Null
+if ($LASTEXITCODE -ne 0) { throw "Không cấp được quyền đọc $settingsFile cho $account" }
 icacls $logs /grant "${account}:(OI)(CI)M" | Out-Null
+if ($LASTEXITCODE -ne 0) { throw "Không cấp được quyền ghi $logs cho $account" }
 
 # ---------- 5. Quyền trên SQL Server cho tài khoản service ----------
 Step "Cấp quyền database cho $account"
+# Lưu ý: SqlConnectionStringBuilder là dictionary — trong PowerShell phải dùng tên khoá chuẩn ('Initial Catalog'),
+# viết $builder.InitialCatalog sẽ bị hiểu thành khoá "InitialCatalog" không tồn tại.
 $builder = New-Object System.Data.SqlClient.SqlConnectionStringBuilder $secrets['ConnectionStrings:Default']
-$database = $builder.InitialCatalog
-$builder.InitialCatalog = 'master'
-$builder.IntegratedSecurity = $true
+$database = $builder['Initial Catalog']
+if (-not $database) { throw 'Connection string không có tên database (Database=...)' }
+$builder['Initial Catalog'] = 'master'
+$builder['Integrated Security'] = $true
 $conn = New-Object System.Data.SqlClient.SqlConnection $builder.ConnectionString
 $conn.Open()
 try {
