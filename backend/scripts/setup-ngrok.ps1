@@ -49,7 +49,8 @@ if ($LASTEXITCODE -ne 0) { throw 'Cấu hình ngrok không hợp lệ' }
 # và sau khi khởi động lại máy ngrok không tự chạy nữa.
 if (Get-Service -Name ngrok -ErrorAction SilentlyContinue) {
     Write-Host 'Gỡ service ngrok cũ…'
-    Stop-Service -Name ngrok -Force -ErrorAction SilentlyContinue
+    # Service đang "chờ xoá" thì không mở được để dừng → tắt thẳng tiến trình, Windows sẽ xoá service.
+    try { Stop-Service -Name ngrok -Force -ErrorAction Stop } catch { Get-Process ngrok -ErrorAction SilentlyContinue | Stop-Process -Force }
     & $NgrokExe service uninstall 2>$null | Out-Null
     for ($i = 0; $i -lt 30 -and (Get-Service -Name ngrok -ErrorAction SilentlyContinue); $i++) { Start-Sleep -Seconds 1 }
     if (Get-Service -Name ngrok -ErrorAction SilentlyContinue) {
