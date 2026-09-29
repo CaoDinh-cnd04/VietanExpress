@@ -8,13 +8,16 @@ export { COUNTRIES } from '@/shared/config/domain';
 export const MULTI_CATEGORY = 'Nhiều loại hàng';
 
 export const PACKAGING_TYPES = ['Thùng carton', 'Bao / túi', 'Pallet', 'Kiện gỗ'] as const;
-export const UNITS = ['PCS', 'BOX', 'SET', 'PR', 'KG'] as const;
-export const CURRENCIES = [
-  { value: 'USD', label: 'USD ($)' },
-  { value: 'EUR', label: 'EUR (€)' },
-  { value: 'VND', label: 'VND (₫)' }
+/** Quy cách (đơn vị) mặt hàng — theo hệ thống cũ. */
+export const UNITS = ['Bag', 'PCS', 'SET', 'BOX', 'Khác'] as const;
+/** Đơn vị tiền tệ của invoice — lưu mã vào MaVanDon.Loai_Tien. */
+export const CURRENCIES = ['USD', 'SGD', 'EUR', 'GBP', 'AUD'] as const;
+/** Hình thức xuất khẩu — lưu mã vào MaVanDon.Ly_Do_Xuat_Hang (dữ liệu cũ: GIFT, SAMPLE). */
+export const EXPORT_TYPES = [
+  { value: 'GIFT', label: 'gift (no commercial value)' },
+  { value: 'SAMPLE', label: 'sample' },
+  { value: 'OTHER', label: 'khác' }
 ] as const;
-export const EXPORT_TYPES = ['Kinh doanh', 'Phi mậu dịch (biếu tặng)', 'Hàng mẫu'] as const;
 
 export const ADDONS = [
   { name: 'Phát có chữ ký người nhận', description: 'Người nhận ký xác nhận khi giao (Signature Required)' },

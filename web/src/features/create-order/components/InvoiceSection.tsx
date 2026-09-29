@@ -36,8 +36,8 @@ export function InvoiceSection() {
             }}
           />
           <FormGrid columns={3}>
-            <SelectField label="Hình thức xuất khẩu" options={EXPORT_TYPES} {...bind('invoice.exportType')} />
-            <SelectField label="Tiền tệ" options={CURRENCIES} {...bind('invoice.currency')} />
+            <SelectField label="Hình thức xuất khẩu" required placeholder="Chọn hình thức xuất khẩu" options={EXPORT_TYPES} {...bind('invoice.exportType')} />
+            <SelectField label="Đơn vị tiền tệ" required placeholder="Đơn vị tiền tệ" options={CURRENCIES} {...bind('invoice.currency')} />
           </FormGrid>
 
           <div className={cx(styles.tableScroll, styles.spaced)}>

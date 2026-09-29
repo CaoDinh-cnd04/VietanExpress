@@ -36,8 +36,8 @@ export function parseInvoiceCsv(text: string): InvoiceImportResult {
     if (!item.descEn) return skipped.push(`Dòng ${line}: thiếu DescriptionEN`);
     if (!(Number(item.qty) > 0)) return skipped.push(`Dòng ${line}: Qty không hợp lệ`);
     if (item.price === '' || !(Number(item.price) >= 0)) return skipped.push(`Dòng ${line}: UnitPrice không hợp lệ`);
-    const unit = item.unit.toUpperCase();
-    items.push({ ...item, origin: item.origin || 'VN', unit: (UNITS as readonly string[]).includes(unit) ? unit : 'PCS' });
+    const unit = UNITS.find(u => u.toUpperCase() === item.unit.toUpperCase());
+    items.push({ ...item, origin: item.origin || 'VN', unit: unit ?? 'PCS' });
   });
 
   return { items, skipped };

@@ -110,6 +110,8 @@ export const createOrderSchema = z
       if (!isNumber(p.qty) || Number(p.qty) < 1 || !Number.isInteger(Number(p.qty))) issue(['packages', i, 'qty'], 'SL ≥ 1');
       if (!p.packaging) issue(['packages', i, 'packaging'], 'Chọn bao bì');
     });
+    if (!v.invoice.exportType) issue(['invoice', 'exportType'], 'Chọn hình thức xuất khẩu');
+    if (!v.invoice.currency) issue(['invoice', 'currency'], 'Chọn đơn vị tiền tệ');
     if (!v.invoice.items.length) issue(['invoice', 'items'], 'Cần ít nhất 1 mặt hàng');
     v.invoice.items.forEach((it, i) => {
       if (!it.descEn.trim()) issue(['invoice', 'items', i, 'descEn'], 'Nhập tên hàng (EN)');
@@ -140,5 +142,5 @@ export const defaultValues = (): CreateOrderValues => ({
   goods: { category: '', description: '', docContent: '', multi: [] },
   packages: [emptyPackage()],
   addons: [],
-  invoice: { exportType: 'Kinh doanh', currency: 'USD', shippingFee: '', items: [emptyInvoiceItem()] }
+  invoice: { exportType: 'GIFT', currency: 'USD', shippingFee: '', items: [emptyInvoiceItem()] }
 });

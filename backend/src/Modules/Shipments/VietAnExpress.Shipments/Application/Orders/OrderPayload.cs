@@ -69,8 +69,10 @@ internal sealed class OrderPayload
 
     internal sealed class PackagePart
     {
-        /// <summary>Loại bao bì (CARTON, BAG…) — trống thì ghi CARTON.</summary>
+        /// <summary>Loại bao bì dạng mã (CARTON, BAG…) — file Excel (Pack_Type_n).</summary>
         public string Type { get; init; } = "";
+        /// <summary>Loại bao bì chọn trên form tạo đơn: "Thùng carton", "Bao / túi", "Pallet", "Kiện gỗ".</summary>
+        public string Packaging { get; init; } = "";
         public string Qty { get; init; } = "";
         public string Length { get; init; } = "";
         public string Width { get; init; } = "";

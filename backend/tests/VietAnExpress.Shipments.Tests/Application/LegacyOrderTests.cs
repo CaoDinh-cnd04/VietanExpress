@@ -91,6 +91,15 @@ public class LegacyOrderFactoryTests
         Assert.Equal(LegacyOrderFactory.DefaultPackType, lines[1].PackType);
     }
 
+    [Theory]
+    [InlineData("", "Thùng carton", "CARTON")]
+    [InlineData("", "Bao / túi", "BAG")]
+    [InlineData("", "Kiện gỗ", "WOODEN CASE")]
+    [InlineData("pallet", "Thùng carton", "PALLET")] // mã từ Excel được ưu tiên
+    [InlineData("", "", "CARTON")]
+    public void Loai_bao_bi_ghi_ma_vao_PCS_DIM(string type, string packaging, string expected) =>
+        Assert.Equal(expected, LegacyOrderFactory.PackTypeCode(new OrderPayload.PackagePart { Type = type, Packaging = packaging }));
+
     [Fact]
     public void Chung_tu_khong_ghi_dong_kien()
     {

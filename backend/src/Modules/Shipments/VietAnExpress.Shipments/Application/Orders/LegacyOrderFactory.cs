@@ -95,7 +95,7 @@ internal static class LegacyOrderFactory
                 {
                     OrderId = orderId,
                     Quantity = k.Qty,
-                    PackType = Clip(k.Part.Type.ToUpperInvariant(), 50) ?? DefaultPackType,
+                    PackType = Clip(PackTypeCode(k.Part), 50) ?? DefaultPackType,
                     LengthCm = (int)Math.Ceiling(k.L),
                     WidthCm = (int)Math.Ceiling(k.W),
                     HeightCm = (int)Math.Ceiling(k.H),
@@ -106,6 +106,19 @@ internal static class LegacyOrderFactory
             })
             .ToList();
     }
+
+    /// <summary>Mã loại bao bì ghi vào MaVanDon_PCS_DIM.Loai: mã từ Excel, hoặc đổi từ lựa chọn trên form.</summary>
+    public static string PackTypeCode(OrderPayload.PackagePart part) =>
+        !string.IsNullOrWhiteSpace(part.Type) ? part.Type.Trim().ToUpperInvariant()
+        : part.Packaging.Trim() switch
+        {
+            "" => DefaultPackType,
+            "Thùng carton" => "CARTON",
+            "Bao / túi" => "BAG",
+            "Pallet" => "PALLET",
+            "Kiện gỗ" => "WOODEN CASE",
+            var other => other.ToUpperInvariant()
+        };
 
     /// <summary>Dòng hàng invoice (dbo.MaVanDon_ChiTietHang) cho vận đơn <paramref name="orderId"/>.</summary>
     public static List<LegacyInvoiceLine> InvoiceLines(OrderPayload p, int orderId)
