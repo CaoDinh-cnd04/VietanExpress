@@ -58,6 +58,11 @@ public class OrderDocumentRendererTests
 
         Assert.Contains("size: A4 landscape", html);
         Assert.Equal(2, html.Split("class=\"page sheet\"").Length - 1);
+        Assert.Equal(1, html.Split("class=\"page sheet marks\"").Length - 1); // 2 kiện → 2 nhãn trên 1 trang
+        Assert.Contains("SHIPPING MARK", html);
+        Assert.Contains("90000001/2", html);
+        Assert.Contains(">GB<", html);
+        Assert.Contains("29/09/2026", html);
         Assert.Contains("Liên 1: người gửi lưu", html);
         Assert.Contains("Liên 2: lưu bưu cục gốc", html);
         Assert.Contains("Liên 3: lưu bưu cục Phát", html);
@@ -70,6 +75,25 @@ public class OrderDocumentRendererTests
         Assert.Contains(">24<", html);  // Vol.W = 2 × 50×40×30 / 5000
         Assert.Contains("data:image/webp;base64,", html);
         Assert.Contains("viewBox", html); // QR tracking
+    }
+
+    [Theory]
+    [InlineData("Singapore", "SG")]
+    [InlineData("United Kingdom", "GB")]
+    [InlineData("Vietnam", "VN")]
+    [InlineData("us", "US")]
+    [InlineData("Atlantis", "ATLANTIS")]
+    public void Ma_nuoc_den_tren_shipping_mark(string country, string expected) =>
+        Assert.Equal(expected, BillA4.CountryCode(country));
+
+    [Fact]
+    public void Moi_kien_mot_shipping_mark()
+    {
+        var list = BillA4.PieceList([new PrintPackage(2, 40, 30, 20, 4), new PrintPackage(1, 10, 10, 10, 1)], 0);
+        Assert.Equal(3, list.Count);
+        Assert.Equal(4, list[1]!.WeightKg);
+        Assert.Equal(1, list[2]!.WeightKg);
+        Assert.Equal(3, BillA4.PieceList([], 3).Count(p => p is null));
     }
 
     [Theory]

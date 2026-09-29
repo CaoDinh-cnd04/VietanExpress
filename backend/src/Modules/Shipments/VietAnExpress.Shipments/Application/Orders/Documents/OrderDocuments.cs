@@ -66,7 +66,7 @@ internal static class OrderDocumentRenderer
         {
             switch (doc)
             {
-                case PrintDocs.BillA4: pages.Append(BillA4.Render(o, company)); break;
+                case PrintDocs.BillA4: pages.Append(BillA4.Render(o, company, printedAtVn)); break;
                 case PrintDocs.Invoice: pages.Append(Invoice(o, company)); break;
                 case PrintDocs.Cvck: pages.Append(Cvck(o, company, printedAtVn)); break;
                 default: pages.Append(Labels(o, company)); break;

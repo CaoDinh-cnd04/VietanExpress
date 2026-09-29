@@ -16,7 +16,8 @@ internal sealed record PrintPackage(int Qty, decimal Length, decimal Width, deci
 
 /// <summary>
 /// Bill A4 theo mẫu hệ thống cũ (VietAnExpress - Bill Online.pdf): A4 ngang, mỗi đơn 2 trang —
-/// trang 1: liên 1 (người gửi lưu) + điều khoản dịch vụ; trang 2: liên 2 (bưu cục gốc) + liên 3 (bưu cục phát).
+/// trang 1: liên 1 (người gửi lưu) + điều khoản dịch vụ; trang 2: liên 2 (bưu cục gốc) + liên 3 (bưu cục phát);
+/// tiếp theo là shipping mark dán lên từng kiện (2 nhãn / trang).
 /// </summary>
 internal static class BillA4
 {
@@ -24,10 +25,117 @@ internal static class BillA4
 
     private enum Slip { Shipper = 1, Origin = 2, Destination = 3 }
 
-    public static string Render(OrderPrintModel m, CompanyInfo c) => $"""
+    public static string Render(OrderPrintModel m, CompanyInfo c, DateTime printedAt) => $"""
         <section class="page sheet">{SlipHtml(m, c, Slip.Shipper)}{Terms}</section>
         <section class="page sheet">{SlipHtml(m, c, Slip.Origin)}{SlipHtml(m, c, Slip.Destination)}</section>
+        {ShippingMarks(m, c, printedAt)}
         """;
+
+    /// <summary>
+    /// Cân / kích thước từng kiện theo thứ tự (mở rộng dòng kiện theo số lượng).
+    /// Đơn không có chi tiết kiện (hệ thống cũ) → <paramref name="pieces"/> kiện trống số liệu.
+    /// </summary>
+    public static IReadOnlyList<PrintPackage?> PieceList(IReadOnlyList<PrintPackage> packages, int pieces) =>
+        packages.Count > 0
+            ? packages.SelectMany(p => Enumerable.Repeat<PrintPackage?>(p with { Qty = 1 }, p.Qty)).ToList()
+            : Enumerable.Repeat<PrintPackage?>(null, Math.Max(1, pieces)).ToList();
+
+    /// <summary>Tên nước tiếng Anh → mã ISO 2 ký tự (vd "Singapore" → "SG"); không nhận ra thì trả tên viết hoa.</summary>
+    public static string CountryCode(string? country)
+    {
+        var name = (country ?? "").Trim();
+        if (name.Length == 2) return name.ToUpperInvariant();
+        return CountryCodes.Value.TryGetValue(name, out var code) ? code : name.ToUpperInvariant();
+    }
+
+    private static readonly Lazy<Dictionary<string, string>> CountryCodes = new(() =>
+    {
+        var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Vietnam"] = "VN", ["Viet Nam"] = "VN", ["USA"] = "US", ["United States of America"] = "US",
+            ["UK"] = "GB", ["England"] = "GB", ["South Korea"] = "KR", ["Korea"] = "KR", ["Taiwan"] = "TW"
+        };
+        foreach (var culture in CultureInfo.GetCultures(CultureTypes.SpecificCultures))
+        {
+            try
+            {
+                var region = new RegionInfo(culture.Name);
+                if (region.TwoLetterISORegionName.Length == 2) map.TryAdd(region.EnglishName, region.TwoLetterISORegionName);
+            }
+            catch (ArgumentException) { }
+        }
+        return map;
+    });
+
+    // ---------------- Shipping mark (1 nhãn / kiện, 2 nhãn / trang A4 ngang) ----------------
+
+    private static string ShippingMarks(OrderPrintModel m, CompanyInfo c, DateTime printedAt)
+    {
+        var pieces = PieceList(m.Packages, m.Order.Pieces ?? 1);
+        var marks = pieces.Select((p, i) => ShippingMark(m, c, printedAt, i + 1, pieces.Count, p)).ToList();
+        var sb = new StringBuilder();
+        for (var i = 0; i < marks.Count; i += 2)
+        {
+            // Trang lẻ cuối (hoặc đơn 1 kiện): nhãn nằm nửa phải như mẫu cũ.
+            var pair = i + 1 < marks.Count ? marks[i] + marks[i + 1] : "<div></div>" + marks[i];
+            sb.Append($"<section class=\"page sheet marks\">{pair}</section>");
+        }
+        return sb.ToString();
+    }
+
+    private static string ShippingMark(OrderPrintModel m, CompanyInfo c, DateTime printedAt, int index, int total, PrintPackage? piece)
+    {
+        var o = m.Order;
+        var pieceNo = $"{m.Bill}/{index}";
+        var gw = (piece?.WeightKg ?? 0).ToString("0.00", CultureInfo.InvariantCulture);
+        var dim = piece is null ? "<b>0</b>*<b>0</b>*<b>0</b>" : $"<b>{Kg(piece.Length)}</b>*<b>{Kg(piece.Width)}</b>*<b>{Kg(piece.Height)}</b>";
+        var cityLine = string.Join(", ", new[] { o.ConsigneeCity, o.ConsigneeState, o.ConsigneePostalCode, o.ConsigneeCountry }
+            .Select(s => s?.Trim()).Where(s => !string.IsNullOrEmpty(s)));
+        var address = string.Join(", ", new[] { o.ConsigneeAddress1, o.ConsigneeAddress2, o.ConsigneeAddress3 }
+            .Select(s => s?.Trim()).Where(s => !string.IsNullOrEmpty(s)));
+
+        return $"""
+            <div class="mark">
+              <div class="m-box">
+                <div class="s-head m-head">
+                  <img class="logo" src="{LogoDataUri.Value}" alt="Việt An Express">
+                  <div class="brand">
+                    <div class="brand-name">Viet An Express</div>
+                    <div><b class="k">Tel</b> : {H(c.Phone)}</div>
+                    <div><b class="k">Hotline</b> : <b>{H(c.Hotline)}</b></div>
+                    <div><b class="k">Website</b> : <i>{H(c.Website)}</i></div>
+                  </div>
+                  <div class="awb">{Code128.Svg(pieceNo, 40)}<div class="awb-no">{H(m.Bill)} <small>/{index}</small></div><div class="route">{H(RouteCode(o.ServiceName))}</div></div>
+                </div>
+                <div class="m-title">SHIPPING MARK</div>
+                <div class="m-hawb"><i>HAWB:</i> <b>{H(m.Bill)}</b></div>
+                <div class="bar m-bar center"><i>Ref no.:</i> {H(o.CustomerBill)}</div>
+                <div class="m-dest">
+                  <div class="qr-frame">{Qr(TrackingUrl(c, m.Bill))}</div>
+                  <div><div class="m-dest-lbl">DESTINATION</div><div class="m-dest-code">{H(CountryCode(o.ConsigneeCountry))}</div></div>
+                </div>
+                <div class="m-pcs"><i>Pcs no:</i> <b>{index} / {total}</b></div>
+                <div class="bar m-bar"><i>Sender</i>:</div>
+                <div class="m-party small">
+                  <div><i>Co.</i>: {H(o.SenderName)}</div>
+                  <div><i>Att</i>: {H(o.SenderContactName)}</div>
+                </div>
+                <div class="bar m-bar"><i>Consignee</i>:</div>
+                <div class="m-party">
+                  <div><i>Co.</i>: {H(o.ConsigneeName)}</div>
+                  <div><i>Add</i>: {H(address)}</div>
+                  <div>{H(cityLine)}</div>
+                  <div><i>Att</i>: {H(o.ConsigneeContactName)} | <i>Tel</i>: {H(PhoneWithCode(o.ConsigneePhoneCode, o.ConsigneePhone))}</div>
+                </div>
+              </div>
+              <div class="m-foot">
+                <div class="foot-awb">{Code128.Svg(pieceNo, 30)}<div>{H(pieceNo)}</div></div>
+                <div>G.W: <b class="m-big">{gw}kg</b> &nbsp; DIM: {dim} cm</div>
+              </div>
+              <div class="m-date">{Date(printedAt)}</div>
+            </div>
+            """;
+    }
 
     /// <summary>
     /// Mã tuyến in dưới số bill, vd "Chuyên tuyến|Singapore" → "CT-Sin", "DHL|Singapore" → "DHL-Sin".
@@ -347,6 +455,25 @@ internal static class BillA4
         .terms-col p { margin: 0 0 .55mm; }
         .terms-col .sub { padding-left: 3.5mm; }
         .t-title, .t-h { font-weight: 700; margin: .6mm 0 .3mm; }
+        .mark { display: flex; flex-direction: column; min-width: 0; }
+        .m-box { border: 1.5px solid #000; }
+        .m-head { border-bottom: 1.5px solid #000; }
+        .m-title { text-align: center; font-size: 30px; font-weight: 700; padding: 1.5mm 0; border-bottom: 1.5px solid #000; }
+        .m-hawb { text-align: center; padding: 1mm 0; font-size: 22px; }
+        .m-hawb b { font-size: 44px; margin-left: 3mm; }
+        .m-bar { font-size: 16px; font-weight: 700; padding: .5mm 3mm; }
+        .m-bar.center { text-align: center; }
+        .m-dest { display: grid; grid-template-columns: 50mm 1fr; align-items: center; padding: 2mm 3mm; border-bottom: 1.5px solid #000; min-height: 38mm; }
+        .m-dest .qr-frame { margin: 0 auto; width: 32mm; height: 32mm; }
+        .m-dest-lbl { font-weight: 700; font-size: 12px; }
+        .m-dest-code { font-size: 56px; font-weight: 700; line-height: 1.05; }
+        .m-pcs { display: grid; grid-template-columns: 38mm 1fr; align-items: center; padding: 1mm 6mm; font-size: 22px; font-weight: 700; }
+        .m-pcs b { font-size: 56px; line-height: 1; }
+        .m-party { padding: .8mm 3mm; font-weight: 700; font-size: 13px; line-height: 1.45; }
+        .m-party.small { font-size: 10px; line-height: 1.3; }
+        .m-foot { display: flex; justify-content: space-between; align-items: center; padding: 2mm 6mm 0; font-size: 13px; }
+        .m-big { font-size: 18px; }
+        .m-date { text-align: center; font-size: 30px; font-weight: 700; margin-top: 8mm; }
         @media print {
           body { background: #fff; }
           .toolbar { display: none; }
