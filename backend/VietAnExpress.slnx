@@ -1,0 +1,26 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/VietAnExpress.API/VietAnExpress.API.csproj" />
+  </Folder>
+  <Folder Name="/src/BuildingBlocks/">
+    <Project Path="src/BuildingBlocks/VietAnExpress.SharedKernel/VietAnExpress.SharedKernel.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/" />
+  <Folder Name="/src/Modules/Customers/">
+    <Project Path="src/Modules/Customers/VietAnExpress.Customers.Contracts/VietAnExpress.Customers.Contracts.csproj" />
+    <Project Path="src/Modules/Customers/VietAnExpress.Customers/VietAnExpress.Customers.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Identity/">
+    <Project Path="src/Modules/Identity/VietAnExpress.Identity.Contracts/VietAnExpress.Identity.Contracts.csproj" />
+    <Project Path="src/Modules/Identity/VietAnExpress.Identity/VietAnExpress.Identity.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Shipments/">
+    <Project Path="src/Modules/Shipments/VietAnExpress.Shipments.Contracts/VietAnExpress.Shipments.Contracts.csproj" />
+    <Project Path="src/Modules/Shipments/VietAnExpress.Shipments/VietAnExpress.Shipments.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/VietAnExpress.Architecture.Tests/VietAnExpress.Architecture.Tests.csproj" />
+    <Project Path="tests/VietAnExpress.Identity.Tests/VietAnExpress.Identity.Tests.csproj" />
+    <Project Path="tests/VietAnExpress.Shipments.Tests/VietAnExpress.Shipments.Tests.csproj" />
+  </Folder>
+</Solution>

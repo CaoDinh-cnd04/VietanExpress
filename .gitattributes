@@ -1,0 +1,8 @@
+# Thống nhất xuống dòng LF trong repo (CI chạy Linux); Windows vẫn mở bình thường.
+* text=auto eol=lf
+*.ps1 text eol=crlf
+*.png binary
+*.jpg binary
+*.webp binary
+*.xlsx binary
+*.ico binary

@@ -1,0 +1,134 @@
+using System.Globalization;
+using System.Linq.Expressions;
+using System.Text.RegularExpressions;
+using VietAnExpress.Shipments.Application.Dtos;
+using VietAnExpress.Shipments.Infrastructure.Legacy;
+
+namespace VietAnExpress.Shipments.Application.Orders;
+
+/// <summary>
+/// Trạng thái đơn suy ra từ dữ liệu dbo.MaVanDon (cột Status của hệ thống cũ không phân biệt trạng thái):
+/// POD có "deliver" → ok (đã phát) · POD khác rỗng → nd (chưa phát được) · quá ngày dự kiến POD_Est → late ·
+/// đã có Sent_Date → fly (đã đi) · còn lại → wait (chưa đi).
+/// <see cref="Is"/> (dịch ra SQL để lọc) và <see cref="Of"/> (tính trên bộ nhớ) PHẢI cùng logic.
+/// </summary>
+internal static class LegacyOrderStatus
+{
+    public const string Waiting = "wait";
+    public const string InTransit = "fly";
+    public const string NotDelivered = "nd";
+    public const string Delivered = "ok";
+    public const string Late = "late";
+
+    public static readonly string[] All = [Waiting, InTransit, NotDelivered, Delivered, Late];
+
+    public static Expression<Func<LegacyOrder, bool>> Is(string status, DateTime today) => status switch
+    {
+        Delivered => o => o.Pod != null && o.Pod.Contains("deliver"),
+        NotDelivered => o => o.Pod != null && o.Pod != "" && !o.Pod.Contains("deliver"),
+        Late => o => (o.Pod == null || o.Pod == "") && o.PodEstimate != null && o.PodEstimate < today,
+        InTransit => o => (o.Pod == null || o.Pod == "") && !(o.PodEstimate != null && o.PodEstimate < today) && o.SentDate != null,
+        Waiting => o => (o.Pod == null || o.Pod == "") && !(o.PodEstimate != null && o.PodEstimate < today) && o.SentDate == null,
+        _ => throw new ArgumentOutOfRangeException(nameof(status), status, null)
+    };
+
+    public static string Of(LegacyOrder o, DateTime today)
+    {
+        if (!string.IsNullOrWhiteSpace(o.Pod))
+            return o.Pod.Contains("deliver", StringComparison.OrdinalIgnoreCase) ? Delivered : NotDelivered;
+        if (o.PodEstimate is { } eta && eta < today) return Late;
+        return o.SentDate is null ? Waiting : InTransit;
+    }
+}
+
+/// <summary>Đổi dòng dbo.MaVanDon sang dạng <c>Order</c> của frontend (web/src/features/orders/types.ts). Hàm thuần.</summary>
+internal static partial class LegacyOrderView
+{
+    [GeneratedRegex(@"^\s*(\d{2}/\d{2}/\d{4})\s+(\d{2}:\d{2})[\s,]*(.*)$")]
+    private static partial Regex PodPattern();
+
+    [GeneratedRegex(@"^(delivered|signed for by:?)[\s,:]*", RegexOptions.IgnoreCase)]
+    private static partial Regex PodPrefix();
+
+    [GeneratedRegex(@"\b(document|documents|doc|docs|chứng từ|hồ sơ)\b", RegexOptions.IgnoreCase)]
+    private static partial Regex DocumentWords();
+
+    public static string BillOf(LegacyOrder o) =>
+        o.OrderNumber?.ToString(CultureInfo.InvariantCulture) ?? o.Id.ToString(CultureInfo.InvariantCulture);
+
+    public static OrderDto ToDto(LegacyOrder o, DateTime today)
+    {
+        var bill = BillOf(o);
+        var connect = o.BillConnect?.Trim();
+        return new OrderDto(
+            Id: o.Id.ToString(CultureInfo.InvariantCulture),
+            Seq: o.Id,
+            Bill: bill,
+            Ref: o.CustomerBill?.Trim() ?? "",
+            Connect: string.IsNullOrEmpty(connect) || connect == bill ? null : connect,
+            Cnee: o.ConsigneeName?.Trim() ?? "",
+            Ct: o.ConsigneeCountry?.Trim() ?? "",
+            Route: o.ServiceName?.Replace("|", " - ").Trim() ?? "",
+            Branch: "",
+            Created: Date(o.CreateDate) ?? "",
+            Sent: Date(o.SentDate),
+            Type: IsDocument(o.GoodsName) ? "DOC" : "PACK",
+            St: LegacyOrderStatus.Of(o, today),
+            Pcs: $"{o.Pieces ?? 1} kiện · {(o.WeightKg ?? 0).ToString("0.##", CultureInfo.InvariantCulture)} kg",
+            Content: o.GoodsName?.Trim() ?? "",
+            Pod: ParsePod(o.Pod),
+            Photos: 0,
+            PodEstimate: Date(o.PodEstimate));
+    }
+
+    /// <summary>Chi tiết đơn: thêm người gửi / người nhận đầy đủ để nhân bản đơn.</summary>
+    public static OrderDto ToDetailDto(LegacyOrder o, DateTime today) => ToDto(o, today) with
+    {
+        Shipper = new OrderShipperDto(S(o.SenderName), S(o.SenderContactName), S(o.SenderPhone), S(o.SenderAddress), S(o.SenderTax), S(o.SenderEmail)),
+        Receiver = new OrderReceiverDto(S(o.ConsigneeName), S(o.ConsigneeContactName), S(o.ConsigneePhone), S(o.ConsigneeCountry),
+            S(o.ConsigneeCity), S(o.ConsigneePostalCode), S(o.ConsigneeState), S(o.ConsigneeAddress1), S(o.ConsigneeAddress2),
+            S(o.ConsigneeAddress3), S(o.ConsigneeVatTax), S(o.ConsigneeEmail))
+    };
+
+    private static string S(string? value) => value?.Trim() ?? "";
+
+    /// <summary>"08/01/2026 16:28, DELIVERED LYNN TAN" → ngày, giờ, người ký. Chỉ trả khi đã giao.</summary>
+    public static OrderPodDto? ParsePod(string? pod)
+    {
+        if (string.IsNullOrWhiteSpace(pod) || !pod.Contains("deliver", StringComparison.OrdinalIgnoreCase)) return null;
+        var m = PodPattern().Match(pod);
+        if (!m.Success) return new OrderPodDto("", "", "");
+
+        // Bỏ các tiền tố "DELIVERED", "Signed for by:" để còn lại tên người ký.
+        var signer = m.Groups[3].Value.Trim();
+        for (var prev = ""; prev != signer;)
+        {
+            prev = signer;
+            signer = PodPrefix().Replace(signer, "").Trim();
+        }
+        return new OrderPodDto(m.Groups[1].Value, m.Groups[2].Value, signer);
+    }
+
+    /// <summary>Hành trình rút từ dữ liệu cũ (mới nhất trước). <paramref name="hideSigner"/> cho trang công khai.</summary>
+    public static IReadOnlyList<OrderEventDto> Events(LegacyOrder o, bool hideSigner)
+    {
+        var events = new List<OrderEventDto>();
+        if (!string.IsNullOrWhiteSpace(o.Pod))
+        {
+            var m = PodPattern().Match(o.Pod);
+            var time = m.Success ? $"{m.Groups[1].Value} {m.Groups[2].Value}" : "";
+            var pod = ParsePod(o.Pod);
+            var title = pod is null
+                ? (m.Success ? m.Groups[3].Value : o.Pod).Trim()
+                : hideSigner || string.IsNullOrEmpty(pod.Signer) ? "Đã giao hàng" : $"Đã giao hàng — người nhận: {pod.Signer}";
+            events.Add(new OrderEventDto(time, title, null));
+        }
+        if (o.SentDate is { } sent) events.Add(new OrderEventDto(Date(sent)!, "Hàng đã rời kho Việt An Express", null));
+        if (o.CreateDate is { } created) events.Add(new OrderEventDto(Date(created)!, "Đã tạo vận đơn", null));
+        return events;
+    }
+
+    public static bool IsDocument(string? goodsName) => goodsName is not null && DocumentWords().IsMatch(goodsName);
+
+    private static string? Date(DateTime? value) => value?.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture);
+}

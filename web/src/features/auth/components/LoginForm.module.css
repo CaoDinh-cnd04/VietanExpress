@@ -1,0 +1,23 @@
+.remember {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+.remember input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--color-brand);
+}
+
+.full {
+  width: 100%;
+}
+
+.foot {
+  color: var(--color-text-faint);
+  font-size: var(--text-xs);
+}

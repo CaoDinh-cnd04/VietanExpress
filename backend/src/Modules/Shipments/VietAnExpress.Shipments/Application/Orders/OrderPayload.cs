@@ -1,0 +1,126 @@
+namespace VietAnExpress.Shipments.Application.Orders;
+
+// Khớp form tạo đơn của frontend (web/src/features/create-order/schema.ts, CreateOrderValues).
+// Giá trị số giữ dạng chuỗi đúng như frontend gửi; đổi sang số trong LegacyOrderFactory.
+// Dùng class + giá trị mặc định để đọc được cả payload cũ thiếu trường.
+
+internal sealed class OrderPayload
+{
+    public ShipperPart Shipper { get; init; } = new();
+    public ServicePart Service { get; init; } = new();
+    public ShipmentPart Shipment { get; init; } = new();
+    public ReceiverPart Receiver { get; init; } = new();
+    public GoodsPart Goods { get; init; } = new();
+    public List<PackagePart> Packages { get; init; } = [];
+    public InvoicePart Invoice { get; init; } = new();
+
+    internal sealed class ShipperPart
+    {
+        public string Company { get; init; } = "";
+        public string Contact { get; init; } = "";
+        public string Tel { get; init; } = "";
+        public string Address { get; init; } = "";
+        public string TaxId { get; init; } = "";
+        public string Email { get; init; } = "";
+        public string Country { get; init; } = "";
+        public string Branch { get; init; } = "";
+    }
+
+    internal sealed class ServicePart
+    {
+        public string Carrier { get; init; } = "";
+        /// <summary>Vd "DHL - Singapore".</summary>
+        public string Hub { get; init; } = "";
+        public string Reference { get; init; } = "";
+    }
+
+    internal sealed class ShipmentPart
+    {
+        /// <summary>DOC | PACK.</summary>
+        public string Type { get; init; } = "PACK";
+        public string Pieces { get; init; } = "";
+        public string GrossWeight { get; init; } = "";
+    }
+
+    internal sealed class ReceiverPart
+    {
+        public string Country { get; init; } = "";
+        public string City { get; init; } = "";
+        public string Company { get; init; } = "";
+        public string Contact { get; init; } = "";
+        public string Tel { get; init; } = "";
+        public string TaxId { get; init; } = "";
+        public string Email { get; init; } = "";
+        public string Postal { get; init; } = "";
+        public string State { get; init; } = "";
+        public string Addr1 { get; init; } = "";
+        public string Addr2 { get; init; } = "";
+        public string Addr3 { get; init; } = "";
+    }
+
+    internal sealed class GoodsPart
+    {
+        public string Category { get; init; } = "";
+        public string Description { get; init; } = "";
+        public string DocContent { get; init; } = "";
+    }
+
+    internal sealed class PackagePart
+    {
+        public string Qty { get; init; } = "";
+        public string Length { get; init; } = "";
+        public string Width { get; init; } = "";
+        public string Height { get; init; } = "";
+        /// <summary>Cân 1 kiện (kg).</summary>
+        public string Weight { get; init; } = "";
+    }
+
+    internal sealed class InvoicePart
+    {
+        /// <summary>Lý do xuất hàng / loại hình: GIFT, SAMPLE, Kinh doanh…</summary>
+        public string ExportType { get; init; } = "";
+        public string Currency { get; init; } = "USD";
+        public string ShippingFee { get; init; } = "";
+        public List<InvoiceItemPart> Items { get; init; } = [];
+    }
+
+    internal sealed class InvoiceItemPart
+    {
+        public string DescEn { get; init; } = "";
+        public string DescVi { get; init; } = "";
+        public string Manufacturer { get; init; } = "";
+        public string Origin { get; init; } = "";
+        public string Hs { get; init; } = "";
+        public string Qty { get; init; } = "";
+        public string Unit { get; init; } = "";
+        public string Price { get; init; } = "";
+    }
+}
+
+/// <summary>1 dòng file Excel "Tạo đơn từ Excel" — POST /orders/batch (web/src/features/order-import).</summary>
+internal sealed class BatchOrderRow
+{
+    public string Ref { get; init; } = "";
+    public string Service { get; init; } = "";
+    public string Hub { get; init; } = "";
+    public string Branch { get; init; } = "";
+    public string Cnee { get; init; } = "";
+    public string Ct { get; init; } = "";
+    public BatchReceiver Receiver { get; init; } = new();
+    /// <summary>Vd "1 kiện · 2.5 kg".</summary>
+    public string Pcs { get; init; } = "";
+    public string Content { get; init; } = "";
+    public decimal? DeclaredValue { get; init; }
+
+    internal sealed class BatchReceiver
+    {
+        public string Company { get; init; } = "";
+        public string Contact { get; init; } = "";
+        public string Tel { get; init; } = "";
+        public string Country { get; init; } = "";
+        public string City { get; init; } = "";
+        public string Postal { get; init; } = "";
+        public string Addr1 { get; init; } = "";
+        public string Addr2 { get; init; } = "";
+    }
+}

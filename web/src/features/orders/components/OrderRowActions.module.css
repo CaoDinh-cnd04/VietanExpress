@@ -1,0 +1,12 @@
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.print {
+  gap: 4px;
+  color: var(--color-brand-strong);
+  border-color: var(--color-brand);
+}

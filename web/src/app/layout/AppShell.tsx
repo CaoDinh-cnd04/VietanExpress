@@ -1,0 +1,37 @@
+import { Suspense, useState } from 'react';
+import { Outlet } from 'react-router-dom';
+import { useLocalStorage } from '@/shared/lib/useLocalStorage';
+import { cx } from '@/shared/lib/cx';
+import { ImportantNoticeModal } from '@/features/notifications';
+import { Sidebar } from './Sidebar';
+import { Topbar } from './Topbar';
+import styles from './AppShell.module.css';
+
+const MOBILE_QUERY = '(max-width: 1040px)';
+
+/** Khung trang: sidebar + topbar + nội dung route. */
+export function AppShell() {
+  const [collapsed, setCollapsed] = useLocalStorage('va.nav.collapsed', false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  const toggleMenu = () => {
+    if (window.matchMedia(MOBILE_QUERY).matches) setMobileOpen(o => !o);
+    else setCollapsed(c => !c);
+  };
+
+  return (
+    <div className={cx(styles.shell, collapsed && styles.collapsed)}>
+      <Sidebar collapsed={collapsed} mobileOpen={mobileOpen} onNavigate={() => setMobileOpen(false)} onExpand={() => setCollapsed(false)} />
+      {mobileOpen && <div className={styles.scrim} onClick={() => setMobileOpen(false)} />}
+      <div className={styles.main}>
+        <Topbar onMenu={toggleMenu} />
+        <main className={styles.content}>
+          <Suspense fallback={<p className={styles.loading}>Đang tải…</p>}>
+            <Outlet />
+          </Suspense>
+        </main>
+        <ImportantNoticeModal />
+      </div>
+    </div>
+  );
+}

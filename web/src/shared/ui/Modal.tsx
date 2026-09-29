@@ -1,0 +1,54 @@
+import { useEffect, useRef, type ReactNode } from 'react';
+import { cx } from '@/shared/lib/cx';
+import { Icon } from './Icon';
+import styles from './Modal.module.css';
+
+interface ModalProps {
+  open: boolean;
+  title: string;
+  onClose: () => void;
+  footer?: ReactNode;
+  /** Ghi chú nhỏ bên trái thanh nút. */
+  footerNote?: ReactNode;
+  /** md 560px (mặc định) · lg 860px · xl 1120px */
+  size?: 'md' | 'lg' | 'xl';
+  children: ReactNode;
+}
+
+/** Hộp thoại dựa trên <dialog> gốc: tự giữ focus, Esc để đóng. */
+export function Modal({ open, title, onClose, footer, footerNote, size = 'md', children }: ModalProps) {
+  const ref = useRef<HTMLDialogElement>(null);
+
+  useEffect(() => {
+    const dlg = ref.current;
+    if (!dlg) return;
+    if (open && !dlg.open) dlg.showModal();
+    if (!open && dlg.open) dlg.close();
+  }, [open]);
+
+  return (
+    <dialog
+      ref={ref}
+      className={cx(styles.dialog, size !== 'md' && styles[size])}
+      onClose={onClose}
+      onClick={e => e.target === ref.current && onClose()}
+      aria-labelledby="modal-title"
+    >
+      <div className={styles.box}>
+        <header className={styles.header}>
+          <h2 id="modal-title" className={styles.title}>{title}</h2>
+          <button type="button" className={styles.close} onClick={onClose} aria-label="Đóng">
+            <Icon name="close" size={16} />
+          </button>
+        </header>
+        <div className={styles.body}>{children}</div>
+        {footer && (
+          <footer className={styles.footer}>
+            {footerNote && <span className={styles.footerNote}>{footerNote}</span>}
+            {footer}
+          </footer>
+        )}
+      </div>
+    </dialog>
+  );
+}

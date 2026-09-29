@@ -1,0 +1,22 @@
+import { Card, LinkButton, PageHeader } from '@/shared/ui';
+import { useDrafts } from '../api';
+import { DraftsTable } from '../components/DraftsTable';
+import styles from './DraftsPage.module.css';
+
+export default function DraftsPage() {
+  const { data: drafts = [] } = useDrafts();
+
+  return (
+    <>
+      <PageHeader
+        title="Đơn nháp & chưa in"
+        description="Đơn chỉ được cấp mã bill Việt An khi bấm In. Sau khi in, đơn được khóa và chuyển sang Đơn hàng của tôi."
+        actions={<LinkButton to="/orders/new" variant="primary" size="sm">Tạo đơn mới</LinkButton>}
+      />
+      <Card flush>
+        <DraftsTable />
+        <footer className={styles.footer}>{drafts.length} đơn nháp / chưa in</footer>
+      </Card>
+    </>
+  );
+}

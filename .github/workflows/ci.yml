@@ -1,0 +1,183 @@
+name: CI-CD
+
+on:
+  push:
+    branches: ["main", "master"]
+  pull_request:
+    branches: ["main", "master"]
+  workflow_dispatch:          # cho phép bấm chạy tay trong tab Actions
+
+# Push mới vào cùng nhánh thì huỷ lần chạy cũ đang dở.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ---------- CI frontend: cài, kiểm tra kiểu, test, build (web/) ----------
+  web:
+    name: Web — typecheck, test, build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./web
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22          # Vite 8 cần Node ≥ 20.19
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      # Lưu bản build để job deploy dùng lại (chỉ khi push, không chạy cho pull request)
+      - name: Upload artifact
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-dist
+          path: web/dist
+          retention-days: 7
+
+  # ---------- CI backend: build + toàn bộ test, kể cả test cần SQL Server ----------
+  backend:
+    name: Backend — build, test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./backend
+
+    services:
+      # SQL Server tạm cho test tích hợp (test tự tạo DB vietan_tests_xxx rồi xoá).
+      mssql:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: "Y"
+          MSSQL_SA_PASSWORD: ${{ secrets.CI_SQL_SA_PASSWORD || 'Ci_Only_Pa55word!' }}
+        ports:
+          - 1433:1433
+        options: >-
+          --health-cmd "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$MSSQL_SA_PASSWORD\" -C -Q 'SELECT 1' || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 12
+
+    env:
+      DOTNET_NOLOGO: "1"
+      DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+      # Mật khẩu chỉ dùng cho SQL Server tạm trong CI, không phải database thật.
+      VIETAN_TEST_SQLSERVER: "Server=localhost,1433;User Id=sa;Password=${{ secrets.CI_SQL_SA_PASSWORD || 'Ci_Only_Pa55word!' }};Encrypt=True;TrustServerCertificate=True"
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: backend/global.json
+
+      - name: Restore
+        run: dotnet restore VietAnExpress.slnx
+
+      - name: Build
+        run: dotnet build VietAnExpress.slnx -c Release --no-restore
+
+      - name: Test
+        run: dotnet test --solution VietAnExpress.slnx -c Release --no-build
+
+      - name: Publish API
+        if: github.event_name != 'pull_request'
+        run: dotnet publish src/VietAnExpress.API/VietAnExpress.API.csproj -c Release --no-build -o ../publish/api
+
+      - name: Upload artifact
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-publish
+          path: publish/api
+          retention-days: 7
+
+  # ---------- CD frontend: đưa bản build tĩnh lên server ----------
+  # Web server (nginx / IIS) phục vụ thư mục này như SPA (mọi đường dẫn trả index.html)
+  # và chuyển tiếp /api sang backend.
+  deploy-web:
+    name: Deploy web
+    needs: [web, backend]
+    # Chỉ deploy khi push vào main/master, và khi đã bật biến ENABLE_DEPLOY = true
+    if: >
+      github.event_name != 'pull_request' &&
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') &&
+      vars.ENABLE_DEPLOY == 'true'
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: web-dist
+          path: web-dist
+
+      - name: Copy files to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          source: "web-dist/*"
+          target: ${{ vars.SERVER_PATH }}
+          strip_components: 1
+
+  # ---------- CD backend: đưa bản publish lên server rồi khởi động lại dịch vụ ----------
+  # Trên server đặt sẵn biến môi trường (không để trong repo):
+  #   ConnectionStrings__Default, Jwt__Secret, Database__MigrateOnStartup=true, Cors__AllowedOrigins__0 …
+  deploy-api:
+    name: Deploy API
+    needs: [web, backend]
+    if: >
+      github.event_name != 'pull_request' &&
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master') &&
+      vars.ENABLE_DEPLOY == 'true' && vars.API_SERVER_PATH != ''
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: api-publish
+          path: api-publish
+
+      - name: Copy files to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          source: "api-publish/*"
+          target: ${{ vars.API_SERVER_PATH }}
+          strip_components: 1
+
+      - name: Restart API service
+        if: vars.API_RESTART_COMMAND != ''
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          script: ${{ vars.API_RESTART_COMMAND }}

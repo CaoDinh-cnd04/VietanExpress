@@ -1,0 +1,171 @@
+.header {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 50;
+  color: var(--color-on-hero);
+  transition: background 0.2s, box-shadow 0.2s, color 0.2s;
+}
+
+.solid {
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: 0 1px 0 var(--color-border), var(--shadow-sm);
+}
+
+.inner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  max-width: 1200px;
+  height: 64px;
+  margin: 0 auto;
+  padding: 0 var(--space-5);
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: inherit;
+  font-size: var(--text-lg);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.brand img {
+  border-radius: 50%;
+  background: #fff;
+}
+
+.nav {
+  display: flex;
+  gap: var(--space-1);
+  margin-right: auto;
+}
+
+.nav a {
+  padding: 6px var(--space-3);
+  border-radius: var(--radius-sm);
+  color: inherit;
+  font-size: var(--text-md);
+  font-weight: 500;
+  opacity: 0.9;
+}
+
+.nav a:hover {
+  opacity: 1;
+  background: color-mix(in srgb, currentColor 10%, transparent);
+}
+
+.navHotline {
+  display: none;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.hotline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: inherit;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.solid .hotline {
+  color: var(--color-brand-strong);
+}
+
+.header .themeButton {
+  color: inherit;
+}
+
+.header .themeButton:hover {
+  background: color-mix(in srgb, currentColor 12%, transparent);
+  color: inherit;
+}
+
+/* Trên nền hero xanh: nút chính đổi sang nền trắng cho nổi */
+.header:not(.solid) .cta {
+  background: #fff;
+  color: var(--color-hero-from);
+}
+
+.header:not(.solid) .cta:hover {
+  background: var(--color-brand-soft);
+}
+
+.header .menuButton {
+  display: none;
+  color: inherit;
+}
+
+@media (max-width: 960px) {
+  .hotline span {
+    display: none;
+  }
+}
+
+@media (max-width: 820px) {
+  .inner {
+    gap: var(--space-3);
+    padding: 0 var(--space-4);
+  }
+
+  .brand {
+    margin-right: auto;
+  }
+
+  /* Trên nền hero xanh: nút chính đổi sang nền trắng cho nổi */
+.header:not(.solid) .cta {
+  background: #fff;
+  color: var(--color-hero-from);
+}
+
+.header:not(.solid) .cta:hover {
+  background: var(--color-brand-soft);
+}
+
+.header .menuButton {
+    display: inline-flex;
+  }
+
+  .hotline {
+    display: none;
+  }
+
+  .nav {
+    position: absolute;
+    top: 64px;
+    left: 0;
+    right: 0;
+    display: none;
+    flex-direction: column;
+    margin: 0;
+    padding: var(--space-2) var(--space-4) var(--space-4);
+    background: var(--color-surface);
+    color: var(--color-text);
+    box-shadow: var(--shadow-lg);
+  }
+
+  .navOpen {
+    display: flex;
+  }
+
+  .nav a {
+    padding: var(--space-3);
+    font-size: var(--text-lg);
+  }
+
+  .navHotline {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--color-brand-strong) !important;
+    font-weight: 600 !important;
+  }
+}

@@ -1,0 +1,61 @@
+.wrap {
+  position: fixed;
+  right: var(--space-5);
+  bottom: var(--space-5);
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.zalo,
+.call {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  box-shadow: var(--shadow-lg);
+  transition: transform 0.15s;
+}
+
+.zalo:hover,
+.call:hover {
+  transform: scale(1.08);
+}
+
+.zalo {
+  background: #fff;
+}
+
+.call {
+  position: relative;
+  background: var(--color-brand);
+  color: #fff;
+}
+
+/* Vòng lan tỏa nhắc gọi */
+.call::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: var(--color-brand);
+  opacity: 0.4;
+  animation: pulse 2s ease-out infinite;
+  z-index: -1;
+}
+
+@keyframes pulse {
+  to {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .wrap {
+    right: var(--space-4);
+    bottom: var(--space-4);
+  }
+}

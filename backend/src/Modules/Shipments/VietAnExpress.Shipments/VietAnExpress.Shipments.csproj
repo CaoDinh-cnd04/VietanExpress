@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Module Shipments: mọi class để internal, chỉ ShipmentsModule (đăng ký DI) là public. -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\VietAnExpress.SharedKernel\VietAnExpress.SharedKernel.csproj" />
+    <ProjectReference Include="..\VietAnExpress.Shipments.Contracts\VietAnExpress.Shipments.Contracts.csproj" />
+    <ProjectReference Include="..\..\Customers\VietAnExpress.Customers.Contracts\VietAnExpress.Customers.Contracts.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ClosedXML" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="VietAnExpress.Shipments.Tests" />
+    <InternalsVisibleTo Include="DynamicProxyGenAssembly2" />
+  </ItemGroup>
+</Project>

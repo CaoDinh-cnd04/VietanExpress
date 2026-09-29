@@ -1,0 +1,229 @@
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--space-4);
+}
+
+.sortBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+}
+
+.sortBtn:hover {
+  color: var(--color-brand-strong);
+}
+
+.svcName {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: 600;
+}
+
+.total {
+  color: var(--color-brand-strong);
+  font-variant-numeric: tabular-nums;
+}
+
+.warn {
+  color: var(--color-warning);
+}
+
+.note {
+  padding: var(--space-3) var(--space-4) var(--space-4);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.chip {
+  height: 32px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  border-radius: 999px;
+  background: var(--color-surface);
+  font-size: var(--text-sm);
+  font-weight: 500;
+}
+
+.chip:hover {
+  border-color: var(--color-brand);
+}
+
+.chipOn {
+  border-color: var(--color-brand);
+  background: var(--color-brand-soft);
+  color: var(--color-brand-strong);
+  font-weight: 600;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-5);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.meta strong {
+  color: var(--color-text);
+}
+
+/* Bảng giá rộng: cột cân dính trái khi cuộn ngang */
+.gridScroll {
+  max-height: 560px;
+  overflow: auto;
+  border-top: 1px solid var(--color-border);
+}
+
+.grid {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.grid th,
+.grid td {
+  padding: 6px var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  text-align: right;
+  white-space: nowrap;
+  font-size: var(--text-sm);
+}
+
+.grid thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--color-surface-muted);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.grid th:first-child,
+.grid td:first-child {
+  position: sticky;
+  left: 0;
+  background: var(--color-surface);
+  text-align: left;
+  font-weight: 600;
+}
+
+.grid thead th:first-child {
+  z-index: 2;
+  background: var(--color-surface-muted);
+}
+
+.gridInput {
+  width: 96px;
+  height: 28px;
+  padding: 0 6px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 6px;
+  background: var(--color-surface);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.gridInput:focus {
+  outline: none;
+  border-color: var(--color-brand);
+  box-shadow: var(--focus-ring);
+}
+
+.sectionTitle {
+  margin: var(--space-5) 0 var(--space-3);
+  font-size: var(--text-md);
+  font-weight: 600;
+}
+
+.sectionTitle:first-child {
+  margin-top: 0;
+}
+
+.row {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.cardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--space-3);
+}
+
+.svcCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.svcCard h3 {
+  font-size: var(--text-md);
+  font-weight: 600;
+}
+
+.svcActions {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: auto;
+  padding-top: var(--space-2);
+}
+
+.editorHead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.editorHead h2 {
+  margin-right: auto;
+  font-size: var(--text-lg);
+  font-weight: 600;
+}
+
+.zoneList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.zoneList strong {
+  color: var(--color-text);
+}
+
+.spacedTop {
+  margin-top: var(--space-3);
+}
+
+.rowList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}

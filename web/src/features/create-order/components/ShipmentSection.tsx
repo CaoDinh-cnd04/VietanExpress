@@ -1,0 +1,56 @@
+import { Controller, useFormContext, useWatch } from 'react-hook-form';
+import { Card, FormGrid, SegmentedControl, TextField } from '@/shared/ui';
+import { RULES } from '../constants';
+import { useFieldBinder } from '../hooks/useFieldBinder';
+import type { CreateOrderValues } from '../schema';
+import styles from './form.module.css';
+
+interface ShipmentSectionProps {
+  onShipmentInput: () => void;
+  docConverted: boolean;
+}
+
+const TYPE_OPTIONS = [
+  { value: 'DOC', label: 'Chứng từ (DOC)' },
+  { value: 'PACK', label: 'Hàng hóa (PACK)' }
+] as const;
+
+export function ShipmentSection({ onShipmentInput, docConverted }: ShipmentSectionProps) {
+  const bind = useFieldBinder();
+  const { control } = useFormContext<CreateOrderValues>();
+  const type = useWatch({ control, name: 'shipment.type' });
+  const packageCount = useWatch({ control, name: 'packages' })?.length ?? 0;
+  // Nhiều dòng kiện → tổng lấy từ bảng kiện, không sửa tay ở đây
+  const derived = type === 'PACK' && packageCount > 1;
+
+  return (
+    <Card title="Thông tin đơn hàng" subtitle="(Info shipment)">
+      <div className={styles.typeRow}>
+        <span className={styles.typeLabel}>Loại hàng <span className={styles.required}>*</span></span>
+        <Controller
+          control={control}
+          name="shipment.type"
+          render={({ field }) => (
+            <SegmentedControl ariaLabel="Loại hàng" options={TYPE_OPTIONS} value={field.value} onChange={v => { field.onChange(v); onShipmentInput(); }} />
+          )}
+        />
+      </div>
+      <FormGrid>
+        <TextField label="Số kiện" required type="number" min={1} step={1} suffix="kiện" readOnly={derived} {...bind('shipment.pieces', { onChange: onShipmentInput })} />
+        <TextField label="Cân nặng (gross weight)" required type="number" min={0} step={0.1} suffix="kg" readOnly={derived} {...bind('shipment.grossWeight', { onChange: onShipmentInput })} />
+      </FormGrid>
+      <p className={styles.hint}>
+        {type === 'DOC'
+          ? `Chứng từ trên ${RULES.docMaxWeightKg}kg sẽ tự chuyển sang hàng hóa (PACK).`
+          : derived
+            ? 'Đơn có nhiều dòng kiện — tổng được tính từ bảng kiện ở bước 2.'
+            : 'Khai kích thước từng kiện ở bước 2 để tính trọng lượng quy đổi.'}
+      </p>
+      {docConverted && type === 'PACK' && (
+        <p className={styles.notice} role="status">
+          Tài liệu trên {RULES.docMaxWeightKg}kg được xem là hàng hóa. Hệ thống đã chuyển sang PACK — vui lòng khai Invoice đầy đủ.
+        </p>
+      )}
+    </Card>
+  );
+}

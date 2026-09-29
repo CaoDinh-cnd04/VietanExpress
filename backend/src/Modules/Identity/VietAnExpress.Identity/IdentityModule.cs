@@ -1,0 +1,100 @@
+using System.Reflection;
+using FluentValidation;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
+using VietAnExpress.Identity.Api;
+using VietAnExpress.Identity.Application;
+using VietAnExpress.Identity.Contracts;
+using VietAnExpress.Identity.Infrastructure;
+using VietAnExpress.SharedKernel.Authorization;
+using VietAnExpress.SharedKernel.Persistence;
+using VietAnExpress.SharedKernel.Web;
+
+namespace VietAnExpress.Identity;
+
+/// <summary>Điểm vào DUY NHẤT (public) của module Identity. Đăng ký cả xác thực JWT cho toàn hệ thống.</summary>
+public static class IdentityModule
+{
+    public static Assembly Assembly => typeof(IdentityModule).Assembly;
+
+    public static IServiceCollection AddIdentityModule(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddOptions<JwtOptions>()
+            .Bind(configuration.GetSection(JwtOptions.Section))
+            .ValidateDataAnnotations()
+            .Validate(o => System.Text.Encoding.UTF8.GetByteCount(o.Secret) >= 32,
+                "Jwt:Secret phải dài tối thiểu 32 byte. Dev: dotnet user-secrets set \"Jwt:Secret\" \"...\"")
+            .ValidateOnStart();
+        services.AddOptions<IdentityModuleOptions>()
+            .Bind(configuration.GetSection(IdentityModuleOptions.Section))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
+        services.AddModuleDbContext<IdentityDbContext>(configuration, IdentityDbContext.Schema);
+        services.AddSingleton<ITokenService, JwtTokenService>();
+        services.AddSingleton<IPasswordService, PasswordService>();
+        services.AddScoped<SessionService>();
+        services.AddScoped<Infrastructure.Legacy.ILegacyAccountSource, Infrastructure.Legacy.LegacyAccountSource>();
+        services.AddScoped<IModuleStartupTask, IdentitySeeder>();
+        services.AddSingleton<IPermissionProvider, IdentityPermissionProvider>();
+        services.AddValidatorsFromAssembly(Assembly, includeInternalTypes: true);
+
+        services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer();
+        services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
+            .Configure<IOptions<JwtOptions>>((bearer, jwtOptions) =>
+            {
+                var jwt = jwtOptions.Value;
+                bearer.MapInboundClaims = false; // giữ nguyên tên claim "sub", "permission"…
+                bearer.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidIssuer = jwt.Issuer,
+                    ValidAudience = jwt.Audience,
+                    IssuerSigningKey = JwtTokenService.SigningKey(jwt),
+                    NameClaimType = VaClaimTypes.Name,
+                    RoleClaimType = VaClaimTypes.Role,
+                    ClockSkew = TimeSpan.FromSeconds(30)
+                };
+                bearer.Events = new JwtBearerEvents
+                {
+                    // Web portal gửi token qua cookie HttpOnly; client khác gửi header Authorization.
+                    OnMessageReceived = ctx =>
+                    {
+                        if (string.IsNullOrEmpty(ctx.Token) && ctx.Request.Cookies.TryGetValue(AuthCookies.Access, out var token))
+                            ctx.Token = token;
+                        return Task.CompletedTask;
+                    },
+                    // 401 / 403 cũng trả ProblemDetails có "message" tiếng Việt như mọi lỗi khác.
+                    OnChallenge = async ctx =>
+                    {
+                        ctx.HandleResponse();
+                        await WriteProblemAsync(ctx.HttpContext, StatusCodes.Status401Unauthorized,
+                            "UNAUTHORIZED", "Bạn chưa đăng nhập hoặc phiên đăng nhập đã hết hạn");
+                    },
+                    OnForbidden = ctx => WriteProblemAsync(ctx.HttpContext, StatusCodes.Status403Forbidden,
+                        "FORBIDDEN", "Bạn không có quyền thực hiện thao tác này")
+                };
+            });
+
+        return services;
+    }
+
+    private static Task WriteProblemAsync(HttpContext http, int status, string code, string message)
+    {
+        http.Response.StatusCode = status;
+        return http.Response.WriteAsJsonAsync(
+            ProblemDetailsMapper.Create(http, status, code, message), (System.Text.Json.JsonSerializerOptions?)null, "application/problem+json");
+    }
+}
+
+internal sealed class IdentityPermissionProvider : IPermissionProvider
+{
+    public IEnumerable<PermissionDefinition> GetPermissions() =>
+    [
+        new(IdentityPermissions.UsersView, "Xem danh sách tài khoản"),
+        new(IdentityPermissions.UsersManage, "Tạo, khoá / mở khoá tài khoản")
+    ];
+}

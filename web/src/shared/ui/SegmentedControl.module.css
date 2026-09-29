@@ -1,0 +1,30 @@
+.group {
+  align-self: flex-start;
+  display: inline-flex;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-muted);
+}
+
+.option {
+  padding: 5px var(--space-3);
+  border-radius: 6px;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.option:focus-within {
+  outline: 2px solid var(--color-brand);
+}
+
+.checked {
+  background: var(--color-surface);
+  color: var(--color-brand-strong);
+  font-weight: 600;
+  box-shadow: var(--shadow-sm);
+}

@@ -1,0 +1,12 @@
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import { createOrderSchema, defaultValues, type CreateOrderValues } from '../schema';
+
+/** Khởi tạo form tạo đơn: zod làm validator, kiểm tra lại khi sửa sau lần submit đầu. */
+export function useCreateOrderForm(initial?: Partial<CreateOrderValues>) {
+  return useForm<CreateOrderValues>({
+    resolver: zodResolver(createOrderSchema),
+    defaultValues: { ...defaultValues(), ...initial },
+    mode: 'onTouched'
+  });
+}

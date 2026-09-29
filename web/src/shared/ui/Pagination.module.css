@@ -1,0 +1,31 @@
+.pager {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.pager button {
+  min-width: 32px;
+  height: 32px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 7px;
+  background: var(--color-surface);
+  font-size: var(--text-md);
+  font-weight: 600;
+}
+
+.pager button:hover:not(:disabled) {
+  border-color: var(--color-brand);
+  color: var(--color-brand-strong);
+}
+
+.pager button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.info {
+  padding: 0 var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}

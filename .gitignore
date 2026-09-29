@@ -1,0 +1,28 @@
+# ---------- Frontend (web/) ----------
+node_modules/
+web/dist/
+*.local
+*.tsbuildinfo
+
+# ---------- Backend (.NET) — bí mật dùng user-secrets / biến môi trường, không commit ----------
+bin/
+obj/
+logs/
+publish/
+*.user
+.vs/
+appsettings.*.local.json
+TestResults/
+
+# ---------- Biến môi trường ----------
+.env
+.env.*
+!.env.example
+
+# ---------- Editor / hệ điều hành ----------
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+.claude/settings.local.json

@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Hợp đồng PUBLIC của module Shipments: interface gọi đồng bộ, integration event, hằng số quyền. -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\VietAnExpress.SharedKernel\VietAnExpress.SharedKernel.csproj" />
+  </ItemGroup>
+</Project>

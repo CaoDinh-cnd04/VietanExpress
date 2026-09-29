@@ -1,0 +1,121 @@
+/*
+ * Design tokens — nguồn duy nhất cho màu, khoảng cách, bo góc, cỡ chữ.
+ * Component chỉ dùng biến ở đây, không viết mã màu cứng.
+ */
+:root {
+  /* Thương hiệu Việt An — xanh lá */
+  --color-brand: #2e8b3e;
+  --color-brand-strong: #1e6b2c;
+  --color-brand-deep: #145220;
+  --color-brand-soft: #e6f4ea;
+  --color-brand-softer: #f0f9f2;
+  /* Nền hero trang ngoài (luôn đậm, chữ trắng) */
+  --color-hero-from: #0f3d1a;
+  --color-hero-to: #2e8b3e;
+  --color-on-hero: #ffffff;
+  --color-on-hero-muted: rgba(255, 255, 255, 0.78);
+
+  /* Nền & chữ */
+  --color-bg: #f4f7f5;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f9fcfa;
+  --color-text: #152219;
+  --color-text-muted: #4d6456;
+  --color-text-faint: #7a9080;
+  --color-border: #dde9e1;
+  --color-border-strong: #ccddd3;
+
+  /* Trạng thái */
+  --color-info: #2b74c9;
+  --color-info-soft: #e9f1fb;
+  --color-warning: #b87508;
+  --color-warning-soft: #fdf3e0;
+  --color-danger: #d33a34;
+  --color-danger-soft: #fdeceb;
+
+  /* Kích thước */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --control-h: 38px;
+  --control-h-sm: 32px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+
+  /* Chữ */
+  --font-sans: 'Be Vietnam Pro', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-md: 14px;
+  --text-lg: 16px;
+  --text-xl: 20px;
+  --text-2xl: 28px; /* tiêu đề mục trang ngoài */
+  --text-3xl: 42px; /* tiêu đề chính trang ngoài */
+
+  --shadow-sm: 0 1px 2px rgba(14, 36, 21, 0.05);
+  --shadow-lg: 0 12px 36px -12px rgba(14, 36, 21, 0.28);
+  --focus-ring: 0 0 0 3px var(--color-brand-soft);
+
+  --sidebar-w: 248px;
+  --topbar-h: 56px;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --color-brand: #3fc06f;
+    --color-brand-strong: #34a860;
+    --color-brand-deep: #8fe0ad;
+    --color-brand-soft: #14281c;
+    --color-brand-softer: #101f16;
+  --color-hero-from: #07170d;
+  --color-hero-to: #14502a;
+    --color-bg: #0c130f;
+    --color-surface: #131c16;
+    --color-surface-muted: #182219;
+    --color-text: #e8f0ea;
+    --color-text-muted: #9fb0a4;
+    --color-text-faint: #71857a;
+    --color-border: #243029;
+    --color-border-strong: #2e3d33;
+    --color-info: #6aa6e8;
+    --color-info-soft: #132539;
+    --color-warning: #e5a93a;
+    --color-warning-soft: #2a2010;
+    --color-danger: #f0736c;
+    --color-danger-soft: #2c1614;
+    --shadow-lg: 0 16px 48px -14px rgba(0, 0, 0, 0.7);
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme='dark'] {
+  --color-brand: #3fc06f;
+  --color-brand-strong: #34a860;
+  --color-brand-deep: #8fe0ad;
+  --color-brand-soft: #14281c;
+  --color-brand-softer: #101f16;
+  --color-hero-from: #07170d;
+  --color-hero-to: #14502a;
+  --color-bg: #0c130f;
+  --color-surface: #131c16;
+  --color-surface-muted: #182219;
+  --color-text: #e8f0ea;
+  --color-text-muted: #9fb0a4;
+  --color-text-faint: #71857a;
+  --color-border: #243029;
+  --color-border-strong: #2e3d33;
+  --color-info: #6aa6e8;
+  --color-info-soft: #132539;
+  --color-warning: #e5a93a;
+  --color-warning-soft: #2a2010;
+  --color-danger: #f0736c;
+  --color-danger-soft: #2c1614;
+  --shadow-lg: 0 16px 48px -14px rgba(0, 0, 0, 0.7);
+  color-scheme: dark;
+}

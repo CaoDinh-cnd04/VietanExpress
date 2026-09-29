@@ -1,0 +1,138 @@
+.scroll {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  min-width: 1000px;
+  border-collapse: collapse;
+  transition: opacity 0.15s;
+}
+
+.loading {
+  opacity: 0.6;
+}
+
+.table th {
+  padding: 11px;
+  text-align: left;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--color-text-muted);
+  background: var(--color-surface-muted);
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+
+.table td {
+  padding: 13px 11px;
+  vertical-align: top;
+  border-bottom: 1px solid var(--color-border);
+  font-size: var(--text-sm);
+}
+
+.table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.row {
+  cursor: pointer;
+}
+
+.row:hover td {
+  background: var(--color-brand-softer);
+}
+
+.sortBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+}
+
+.sortBtn:hover {
+  color: var(--color-brand-strong);
+}
+
+.sortMark {
+  font-size: 9px;
+  color: var(--color-brand-strong);
+}
+
+.colCheck {
+  width: 36px;
+  padding-right: 0 !important;
+}
+
+.colNo {
+  width: 36px;
+  color: var(--color-text-faint);
+  font-size: var(--text-xs) !important;
+}
+
+.colCnee {
+  min-width: 150px;
+}
+
+.colCreated {
+  min-width: 150px;
+}
+
+.colActions {
+  width: 104px;
+}
+
+/* Cột thao tác ghim phải khi bảng phải cuộn ngang */
+.table th.colActions,
+.table td.colActions {
+  position: sticky;
+  right: 0;
+  background: var(--color-surface);
+  box-shadow: -1px 0 0 var(--color-border);
+}
+
+.table th.colActions {
+  background: var(--color-surface-muted);
+}
+
+.bill {
+  font-weight: 600;
+  margin-bottom: 5px;
+}
+
+.cnee {
+  font-weight: 600;
+}
+
+.route {
+  margin-top: 2px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--color-brand-strong);
+}
+
+.sub {
+  margin-top: 2px;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.content {
+  margin-top: 2px;
+  font-size: 12.5px;
+  max-width: 220px;
+}
+
+.nil {
+  color: var(--color-text-faint);
+}
+
+.empty {
+  padding: 40px !important;
+  text-align: center;
+  color: var(--color-text-muted);
+}

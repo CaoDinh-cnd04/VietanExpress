@@ -1,0 +1,77 @@
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { z } from 'zod';
+import { Button, Icon, LinkButton, Notice, TextField } from '@/shared/ui';
+import { useLogin, useLogout, useSession } from '../api';
+import { safeNextPath } from '../lib/session';
+import styles from './LoginForm.module.css';
+
+const schema = z.object({
+  username: z.string().trim().min(1, 'Nhập mã khách hàng hoặc email'),
+  password: z.string().min(1, 'Nhập mật khẩu'),
+  remember: z.boolean()
+});
+type FormValues = z.infer<typeof schema>;
+
+/** Form đăng nhập portal (không kèm khung). Đã đăng nhập thì hiện nút vào portal. */
+export function LoginForm({ autoFocus }: { autoFocus?: boolean }) {
+  const session = useSession();
+  const login = useLogin();
+  const logout = useLogout();
+  const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const next = safeNextPath(params.get('next'));
+
+  const { register, handleSubmit, formState } = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: { username: '', password: '', remember: true }
+  });
+  const err = (k: keyof FormValues) => formState.errors[k]?.message;
+  const submit = handleSubmit(values => login.mutate(values, { onSuccess: () => void navigate(next, { replace: true }) }));
+
+  const status = session.data?.status;
+  const user = session.data?.status === 'authenticated' ? session.data.user : undefined;
+
+  if (user) {
+    return (
+      <div className="page-stack">
+        <Notice tone="success" title={`Xin chào, ${user.companyName}`}>
+          Bạn đang đăng nhập với mã khách hàng {user.customerCode}.
+        </Notice>
+        <LinkButton to={next} variant="primary" className={styles.full}>
+          Vào portal <Icon name="chevronRight" size={16} />
+        </LinkButton>
+        <Button variant="ghost" className={styles.full} disabled={logout.isPending} onClick={() => logout.mutate()}>
+          Đăng nhập tài khoản khác
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={e => void submit(e)} noValidate className="page-stack">
+      {status === 'open' && (
+        <Notice title="Chưa kết nối máy chủ đăng nhập">Bạn có thể vào portal để dùng thử trong lúc chờ kết nối.</Notice>
+      )}
+      <TextField
+        label="Mã khách hàng hoặc email"
+        required
+        autoComplete="username"
+        autoFocus={autoFocus}
+        error={err('username')}
+        {...register('username')}
+      />
+      <TextField label="Mật khẩu" required type="password" autoComplete="current-password" error={err('password')} {...register('password')} />
+      <label className={styles.remember}>
+        <input type="checkbox" {...register('remember')} />
+        Ghi nhớ đăng nhập trên thiết bị này
+      </label>
+      <Button variant="primary" type="submit" className={styles.full} disabled={login.isPending}>
+        {login.isPending ? 'Đang đăng nhập…' : 'Đăng nhập'}
+      </Button>
+      {status === 'open' && <LinkButton to={next} className={styles.full}>Vào portal dùng thử</LinkButton>}
+      <p className={styles.foot}>Quên mật khẩu hoặc chưa có tài khoản? Liên hệ nhân viên kinh doanh Việt An để được cấp.</p>
+    </form>
+  );
+}

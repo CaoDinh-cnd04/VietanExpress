@@ -1,0 +1,34 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  padding: var(--space-6);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: var(--shadow-lg);
+  scroll-margin-top: 88px;
+}
+
+.panel > [role='radiogroup'] {
+  width: 100%;
+}
+
+.panel > [role='radiogroup'] > label {
+  flex: 1;
+  justify-content: center;
+  text-align: center;
+}
+
+.submit {
+  width: 100%;
+  height: 44px;
+  font-size: var(--text-lg);
+}
+
+@media (max-width: 480px) {
+  .panel {
+    padding: var(--space-4);
+  }
+}
