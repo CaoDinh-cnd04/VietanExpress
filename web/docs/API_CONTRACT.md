@@ -135,9 +135,9 @@ Body POST / PUT (`NewDraft`):
 |---|---|---|---|
 | GET | `/catalog/categories` | Có sẵn | 44 nhóm hàng + gợi ý mô tả / HS: `{ name, isFavorite, suggestions: [{ en, vi, hs }] }` |
 | POST | `/catalog/categories/:name/favorite` | Có sẵn | Ghim / bỏ ghim nhóm thường dùng |
-| GET | `/catalog/products` | **Mới** | Thư viện mặt hàng của khách: `SavedProduct[]` |
-| POST | `/catalog/products` | **Mới** | Lưu mặt hàng vào thư viện |
-| GET | `/invoices/recent?limit=20` | **Mới** | Invoice đơn gần đây để chép lại: `{ bill, cnee, date, currency, items: SavedProduct[] }[]` |
+| GET | `/catalog/products` | Có sẵn | Thư viện mặt hàng của khách: `SavedProduct[]` — lấy từ các dòng hàng đã khai trong `dbo.MaVanDon_ChiTietHang` (đơn của khách), mỗi mặt hàng 1 dòng, đơn giá lần gần nhất |
+| POST | `/catalog/products` | Không làm | Mặt hàng tự vào thư viện khi đơn được cấp bill (ghi `MaVanDon_ChiTietHang`) — bảng không có cột khách nên không lưu riêng được |
+| GET | `/invoices/recent?limit=20` | Có sẵn | Invoice đơn gần đây (≤ 50, từ `MaVanDon_ChiTietHang`) để chép lại: `{ bill, cnee, date, currency, items: SavedProduct[] }[]` |
 | GET | `/geo/countries` | Có sẵn | Quốc gia + mã điện thoại: `[{ code: "US", name: "United States", dialCode: "+1" }]` (backend lấy từ world-countries, cache 1 ngày) |
 | GET | `/geo/postal/:countryCode/:postalCode` | Có sẵn | Mã bưu chính → `{ countryCode, postalCode, city, state, stateCode }` (Zippopotam.us, ~60 nước); không tìm thấy / chưa hỗ trợ → 404 |
 | GET | `/addresses/senders` | Có sẵn | Hồ sơ người gửi: `{ id, n (tên), c (liên hệ), t (điện thoại), d (địa chỉ) }` |
