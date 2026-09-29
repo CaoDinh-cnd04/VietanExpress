@@ -111,10 +111,10 @@ dotnet test --solution VietAnExpress.slnx
 
 ## Deploy: Render (backend) + Vercel (frontend)
 
-- **Backend** chạy bằng Docker trên Render, theo  ở thư mục gốc repo (Render Dashboard → New → Blueprint). Render cấp cổng qua biến , kiểm tra sức khoẻ qua , và **chỉ deploy khi CI trên GitHub đạt**.
-- **Frontend** trên Vercel (thư mục gốc dự án: ). File  chuyển tiếp  sang Render. Nhờ vậy, với trình duyệt, API và web cùng tên miền và cookie đăng nhập hoạt động. **Không** đặt  trỏ thẳng sang Render: cookie  sẽ không được gửi sang tên miền khác.
-- **Biến môi trường cần nhập trên Render:**  (SQL Server truy cập được từ Internet), .  do Render tự sinh;  đã đặt sẵn trong .
-- Đổi tên dịch vụ trên Render thì sửa lại tên miền trong .
+- **Backend** chạy bằng Docker trên Render, theo `render.yaml` ở thư mục gốc repo (Render Dashboard → New → Blueprint). Render cấp cổng qua biến `PORT`, kiểm tra sức khoẻ qua `/health`, và **chỉ deploy khi CI trên GitHub đạt**.
+- **Frontend** trên Vercel (thư mục gốc dự án: `web/`). File `web/vercel.json` chuyển tiếp `/api/*` sang Render. Nhờ vậy, với trình duyệt, API và web cùng tên miền và cookie đăng nhập hoạt động. **Không** đặt `VITE_API_BASE_URL` trỏ thẳng sang Render: cookie `SameSite=Strict` sẽ không được gửi sang tên miền khác.
+- **Biến môi trường cần nhập trên Render:** `ConnectionStrings__Default` (SQL Server truy cập được từ Internet), `Identity__Seed__AdminPassword`. `Jwt__Secret` do Render tự sinh; `Database__MigrateOnStartup=true` đã đặt sẵn trong `render.yaml`.
+- Đổi tên dịch vụ trên Render thì sửa lại tên miền trong `web/vercel.json`.
 
 ## 6. Cầu nối dữ liệu hệ thống cũ (tạm thời)
 
