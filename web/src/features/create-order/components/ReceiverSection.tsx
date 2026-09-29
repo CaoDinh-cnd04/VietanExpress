@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useFormContext, useWatch } from 'react-hook-form';
 import { ApiError } from '@/shared/api/http';
 import { Button, Card, FormGrid, TextField, useToast } from '@/shared/ui';
@@ -6,7 +6,7 @@ import { useDebouncedCallback } from '@/shared/lib/useDebouncedCallback';
 import { useCountries, usePostalLookup, useReceivers, useSaveReceiver } from '../api';
 import { COUNTRIES, RULES } from '../constants';
 import { useFieldBinder, type FieldName } from '../hooks/useFieldBinder';
-import { canAutofill, findCountry, normalizePostal } from '../lib/geo';
+import { canAutofill, findCountry, normalizePostal, shouldResetAddress } from '../lib/geo';
 import type { CreateOrderValues } from '../schema';
 import { AddressPickerDialog } from './AddressPickerDialog';
 import styles from './form.module.css';
@@ -16,7 +16,7 @@ const MAX = RULES.receiverAddressMax;
 export function ReceiverSection() {
   const bind = useFieldBinder();
   const toast = useToast();
-  const { control, setValue, getValues } = useFormContext<CreateOrderValues>();
+  const { control, setValue, getValues, clearErrors } = useFormContext<CreateOrderValues>();
   const [addr1 = '', addr2 = '', addr3 = ''] = useWatch({ control, name: ['receiver.addr1', 'receiver.addr2', 'receiver.addr3'] });
   const [picking, setPicking] = useState(false);
   const receivers = useReceivers();
@@ -25,7 +25,12 @@ export function ReceiverSection() {
   // ---------- Nước đến → mã điện thoại ----------
   const countries = useCountries();
   const [countryText = '', postalText = ''] = useWatch({ control, name: ['receiver.country', 'receiver.postal'] });
-  const country = findCountry(countries.data ?? [], countryText);
+  // API lỗi → dùng danh sách tĩnh (không có mã điện thoại) để vẫn nhận ra nước, tự xoá địa chỉ khi đổi nước.
+  const countryList = useMemo(
+    () => (countries.data?.length ? countries.data : COUNTRIES.map(name => ({ code: name, name }))),
+    [countries.data]
+  );
+  const country = findCountry(countryList, countryText);
   const dialCode = country?.dialCode ?? '';
   useEffect(() => {
     if ((getValues('receiver.phoneCode') ?? '') !== dialCode) setValue('receiver.phoneCode', dialCode, { shouldDirty: true });
@@ -51,6 +56,28 @@ export function ReceiverSection() {
       autofilled.current.state = info.state;
     }
   }, [postal.data, getValues, setValue]);
+
+  // ---------- Khách đổi sang nước khác → xoá mã bưu chính, thành phố, tỉnh / bang của nước cũ ----------
+  /** Nước nhận ra gần nhất (cả khi điền bằng code: sổ địa chỉ, mở nháp) — chỉ để so sánh, không tự xoá. */
+  const lastCountryCode = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (country) lastCountryCode.current = country.code;
+  }, [country]);
+
+  /** Chỉ chạy khi khách tự gõ / chọn ở ô Nước đến (sự kiện nhập), không chạy khi form được điền sẵn. */
+  const onCountryInput = (e: { target: { value: string } }) => {
+    const next = findCountry(countryList, e.target.value)?.code;
+    if (shouldResetAddress(lastCountryCode.current, next)) {
+      const opts = { shouldDirty: true } as const;
+      setValue('receiver.postal', '', opts);
+      setValue('receiver.city', '', opts);
+      setValue('receiver.state', '', opts);
+      clearErrors(['receiver.postal', 'receiver.city', 'receiver.state']);
+      autofilled.current = {};
+      setPostalQuery(null);
+    }
+    if (next) lastCountryCode.current = next;
+  };
 
   const postalHint = !country || !postalQuery
     ? undefined
@@ -88,7 +115,7 @@ export function ReceiverSection() {
       actions={<Button size="sm" onClick={() => setPicking(true)}>Sổ địa chỉ</Button>}
     >
       <FormGrid>
-        <TextField label="Nước đến (country)" required list="va-countries" autoComplete="country-name" {...bind('receiver.country')} />
+        <TextField label="Nước đến (country)" required list="va-countries" autoComplete="country-name" {...bind('receiver.country', { onChange: onCountryInput })} />
         <TextField label="Mã bưu chính (postal code)" hint={postalHint} autoComplete="postal-code" {...bind('receiver.postal')} />
         <TextField label="Thành phố (city)" required {...bind('receiver.city')} />
         <TextField label="Tỉnh / bang (state)" {...bind('receiver.state')} />
@@ -102,7 +129,7 @@ export function ReceiverSection() {
         {addressField('addr3', 'Địa chỉ 3 (address 3)', addr3, false)}
       </FormGrid>
       <datalist id="va-countries">
-        {(countries.data?.length ? countries.data.map(c => c.name) : COUNTRIES).map(c => <option key={c} value={c} />)}
+        {countryList.map(c => <option key={c.code} value={c.name} />)}
       </datalist>
 
       <p className={styles.warning}>Hệ thống kiểm tra VSVX chỉ mang tính chất tham khảo. Vui lòng tự kiểm tra VSVX với hãng trước khi gửi hàng.</p>

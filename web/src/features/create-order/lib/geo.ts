@@ -35,3 +35,11 @@ export function canAutofill(current: string | undefined, lastAutofilled: string 
   const value = (current ?? '').trim();
   return value === '' || (lastAutofilled !== undefined && value === lastAutofilled);
 }
+
+/**
+ * Khách đổi nước đến → có xoá mã bưu chính / thành phố / tỉnh bang không.
+ * Chỉ khi đã nhận ra 1 nước trước đó VÀ nước mới khác nước đó; đang gõ dở (chưa ra nước nào) thì chưa xoá.
+ */
+export function shouldResetAddress(previousCode: string | undefined, nextCode: string | undefined): boolean {
+  return !!previousCode && !!nextCode && previousCode !== nextCode;
+}

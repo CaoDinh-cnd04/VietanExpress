@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canAutofill, findCountry, normalizePostal, type Country } from './geo';
+import { canAutofill, findCountry, normalizePostal, shouldResetAddress, type Country } from './geo';
 
 const countries: Country[] = [
   { code: 'US', name: 'United States', dialCode: '+1' },
@@ -37,4 +37,13 @@ describe('canAutofill', () => {
   it('ô trống thì điền', () => expect(canAutofill('', undefined)).toBe(true));
   it('giá trị do hệ thống điền trước đó thì được thay', () => expect(canAutofill('Danville', 'Danville')).toBe(true));
   it('khách đã tự gõ thì không ghi đè', () => expect(canAutofill('San Ramon', 'Danville')).toBe(false));
+});
+
+describe('shouldResetAddress', () => {
+  it('đổi sang nước khác thì xoá', () => expect(shouldResetAddress('US', 'GB')).toBe(true));
+  it('vẫn nước cũ, chọn nước lần đầu, hoặc đang gõ dở thì không xoá', () => {
+    expect(shouldResetAddress('US', 'US')).toBe(false);
+    expect(shouldResetAddress(undefined, 'US')).toBe(false);
+    expect(shouldResetAddress('US', undefined)).toBe(false);
+  });
 });
