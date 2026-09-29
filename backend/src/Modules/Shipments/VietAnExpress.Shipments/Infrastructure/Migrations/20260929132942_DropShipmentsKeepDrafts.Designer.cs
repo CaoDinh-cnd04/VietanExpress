@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using VietAnExpress.Shipments.Infrastructure;
 
@@ -11,9 +12,11 @@ using VietAnExpress.Shipments.Infrastructure;
 namespace VietAnExpress.Shipments.Infrastructure.Migrations
 {
     [DbContext(typeof(ShipmentsDbContext))]
-    partial class ShipmentsDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260929132942_DropShipmentsKeepDrafts")]
+    partial class DropShipmentsKeepDrafts
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

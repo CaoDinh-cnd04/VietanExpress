@@ -62,7 +62,6 @@ $settings = [ordered]@{
     Database          = @{ MigrateOnStartup = $true }
     Swagger           = @{ Enabled = $false }
 }
-if ($secrets['Identity:Seed:AdminPassword']) { $settings.Identity = @{ Seed = @{ AdminPassword = $secrets['Identity:Seed:AdminPassword'] } } }
 if ($FrontendOrigin) { $settings.Cors = @{ AllowedOrigins = @($FrontendOrigin) } }
 $settingsFile = Join-Path $InstallDir 'appsettings.Production.json'
 $settings | ConvertTo-Json -Depth 5 | Set-Content -Path $settingsFile -Encoding UTF8

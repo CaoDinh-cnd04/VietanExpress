@@ -15,14 +15,14 @@ internal sealed class OrderDraft : BaseEntity
 
     private OrderDraft() { } // EF Core
 
-    public OrderDraft(Guid? customerId, OrderDraftSummary summary, string payloadJson)
+    public OrderDraft(long customerId, OrderDraftSummary summary, string payloadJson)
     {
         CustomerId = customerId;
         Update(summary, payloadJson);
     }
 
-    /// <summary>Khách sở hữu nháp (Id module Customers); null = nhân viên tự tạo.</summary>
-    public Guid? CustomerId { get; private set; }
+    /// <summary>Khách sở hữu nháp — dbo.TCustomer.CustomerID.</summary>
+    public long CustomerId { get; private set; }
     public string Status { get; private set; } = StatusDraft;
     public string Consignee { get; private set; } = null!;
     public string Country { get; private set; } = null!;

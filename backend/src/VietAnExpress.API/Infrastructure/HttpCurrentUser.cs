@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Security.Claims;
 using VietAnExpress.SharedKernel.Application;
 using VietAnExpress.SharedKernel.Authorization;
@@ -10,13 +11,10 @@ internal sealed class HttpCurrentUser(IHttpContextAccessor accessor) : ICurrentU
     private ClaimsPrincipal? Principal => accessor.HttpContext?.User;
 
     public bool IsAuthenticated => Principal?.Identity?.IsAuthenticated == true;
-    public Guid? UserId => ReadGuid(VaClaimTypes.Subject);
     public string? UserName => Principal?.FindFirstValue(VaClaimTypes.Name);
-    public Guid? BranchId => ReadGuid(VaClaimTypes.BranchId);
-    public Guid? CustomerId => ReadGuid(VaClaimTypes.CustomerId);
+
+    public long? CustomerId =>
+        long.TryParse(Principal?.FindFirstValue(VaClaimTypes.CustomerId), NumberStyles.None, CultureInfo.InvariantCulture, out var id) ? id : null;
 
     public bool HasPermission(string permission) => Principal?.HasClaim(VaClaimTypes.Permission, permission) == true;
-
-    private Guid? ReadGuid(string claimType) =>
-        Guid.TryParse(Principal?.FindFirstValue(claimType), out var value) ? value : null;
 }

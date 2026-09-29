@@ -1,12 +1,11 @@
 namespace VietAnExpress.Identity.Application.Dtos;
 
 /// <summary>
-/// Người đang đăng nhập — GET /me. Khớp <c>SessionUser</c> của frontend (web/src/features/auth/types.ts):
+/// Khách đang đăng nhập — GET /me. Khớp <c>SessionUser</c> của frontend (web/src/features/auth/types.ts):
 /// customerCode, companyName, contactName, email, avatarUrl, defaultBranch; kèm quyền để UI ẩn/hiện chức năng.
-/// Với nhân viên: customerCode = tên đăng nhập, companyName = họ tên.
 /// </summary>
 internal sealed record SessionUserDto(
-    Guid UserId,
+    long CustomerId,
     string UserName,
     string FullName,
     string AccountType,
@@ -22,7 +21,6 @@ internal sealed record SessionUserDto(
 internal static class AccountTypes
 {
     public const string Customer = "customer";
-    public const string Staff = "staff";
 }
 
 /// <summary>Kết quả đăng nhập / làm mới phiên — controller quyết định trả qua cookie hay body.</summary>
@@ -33,15 +31,3 @@ internal sealed record AuthSession(
     string RefreshToken,
     DateTimeOffset RefreshTokenExpiresAt,
     bool IsPersistent);
-
-internal sealed record UserDto(
-    Guid Id,
-    string UserName,
-    string FullName,
-    string? Email,
-    bool IsActive,
-    Guid? CustomerId,
-    Guid? BranchId,
-    IReadOnlyList<string> Roles,
-    DateTimeOffset? LastLoginAt,
-    DateTimeOffset CreatedAt);

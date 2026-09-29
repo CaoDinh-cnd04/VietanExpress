@@ -46,6 +46,21 @@ public static class ModuleDatabase
         return services;
     }
 
+    /// <summary>
+    /// DbContext chỉ đọc / ghi bảng có sẵn của hệ thống cũ (dbo.*): KHÔNG migration, không tạo bảng lịch sử,
+    /// không tạo bảng mới. Mọi entity phải map bằng ToTable(..., t => t.ExcludeFromMigrations()).
+    /// </summary>
+    public static IServiceCollection AddLegacyDbContext<TContext>(this IServiceCollection services, IConfiguration configuration, string name)
+        where TContext : DbContext
+    {
+        var connectionString = configuration.GetConnectionString(ConnectionStringName);
+        services.AddDbContext<TContext>(options => options.UseSqlServer(
+            connectionString ?? throw MissingConnectionString(),
+            sql => sql.EnableRetryOnFailure(maxRetryCount: 3)));
+        services.AddHealthChecks().AddDbContextCheck<TContext>($"db-{name}");
+        return services;
+    }
+
     private static InvalidOperationException MissingConnectionString() => new(
         $"Thiếu ConnectionStrings:{ConnectionStringName}. Khi dev: dotnet user-secrets set \"ConnectionStrings:{ConnectionStringName}\" \"...\" " +
         $"trong src/VietAnExpress.API; khi deploy: biến môi trường ConnectionStrings__{ConnectionStringName}.");

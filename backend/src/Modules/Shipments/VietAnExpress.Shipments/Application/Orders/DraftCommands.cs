@@ -30,11 +30,9 @@ internal sealed record DraftInput(
 
 internal static class DraftScope
 {
-    /// <summary>Khách thấy nháp của khách mình; nhân viên thấy nháp do chính mình tạo.</summary>
+    /// <summary>Khách chỉ thấy nháp của mình.</summary>
     public static IQueryable<OrderDraft> VisibleTo(this IQueryable<OrderDraft> query, ICurrentUser user) =>
-        user.CustomerId is { } customerId
-            ? query.Where(d => d.CustomerId == customerId)
-            : query.Where(d => d.CustomerId == null && d.CreatedBy == user.UserId);
+        user.CustomerId is { } customerId ? query.Where(d => d.CustomerId == customerId) : query.Where(_ => false);
 
     public static DraftDto ToDto(OrderDraft d) => new(
         d.Id.ToString(), d.Status, d.Consignee, d.Country, d.ServiceName, d.Branch, d.Reference, d.PiecesText, d.Content,
@@ -74,7 +72,8 @@ internal sealed class DraftHandlers(ShipmentsDbContext db, ICurrentUser user) :
         }
         else
         {
-            draft = new OrderDraft(user.CustomerId, cmd.Draft.ToSummary(), cmd.Draft.PayloadJson);
+            if (user.CustomerId is not { } customerId) return OrderErrors.CustomerRequired;
+            draft = new OrderDraft(customerId, cmd.Draft.ToSummary(), cmd.Draft.PayloadJson);
             db.OrderDrafts.Add(draft);
         }
         await db.SaveChangesAsync(ct);

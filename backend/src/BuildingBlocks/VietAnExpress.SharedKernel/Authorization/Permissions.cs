@@ -7,25 +7,19 @@ public static class VaClaimTypes
     public const string Name = "name";
     public const string Role = "role";
     public const string Permission = "permission";
-    public const string BranchId = "branch_id";
     public const string CustomerId = "customer_id";
 }
 
-/// <summary>
-/// Vai trò hệ thống được seed sẵn. Chỉ dùng để gán quyền mặc định khi seed,
-/// KHÔNG dùng trong controller — controller luôn kiểm tra theo permission.
-/// </summary>
+/// <summary>Vai trò. Portal chỉ có khách hàng; controller luôn kiểm tra theo permission, không theo vai trò.</summary>
 public static class SystemRoles
 {
-    public const string Admin = "admin";
-    public const string Staff = "staff";
     public const string Customer = "customer";
 }
 
-/// <summary>1 quyền và các vai trò mặc định được cấp quyền này khi seed. Admin luôn có mọi quyền.</summary>
+/// <summary>1 quyền và các vai trò được cấp quyền này (khai báo trong code, không lưu DB).</summary>
 public sealed record PermissionDefinition(string Code, string Description, params string[] DefaultRoles);
 
-/// <summary>Mỗi module khai báo danh sách quyền của mình; Identity gom lại để seed.</summary>
+/// <summary>Mỗi module khai báo danh sách quyền của mình; Identity gom lại để cấp vào token.</summary>
 public interface IPermissionProvider
 {
     IEnumerable<PermissionDefinition> GetPermissions();

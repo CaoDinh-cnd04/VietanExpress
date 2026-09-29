@@ -9,12 +9,10 @@
     <PackageVersion Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.12" />
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="10.0.12" />
     <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.12" />
-    <PackageVersion Include="Microsoft.Extensions.Identity.Core" Version="10.0.12" />
     <!-- MediatR 12.5.0 là bản cuối cùng giấy phép Apache-2.0; từ 13.x cần license thương mại. -->
     <PackageVersion Include="MediatR" Version="12.5.0" />
     <PackageVersion Include="FluentValidation" Version="12.1.1" />
     <PackageVersion Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
-    <PackageVersion Include="Mapster" Version="10.0.13" />
     <!-- Xuất Excel bảng kê — giấy phép MIT. -->
     <PackageVersion Include="ClosedXML" Version="0.105.1" />
     <!-- Mã QR trên bill (xuất SVG, không cần thư viện đồ hoạ) — giấy phép MIT. -->

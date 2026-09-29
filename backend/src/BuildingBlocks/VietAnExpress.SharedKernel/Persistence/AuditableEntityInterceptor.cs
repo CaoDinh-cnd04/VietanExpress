@@ -1,15 +1,14 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
-using VietAnExpress.SharedKernel.Application;
 using VietAnExpress.SharedKernel.Domain;
 
 namespace VietAnExpress.SharedKernel.Persistence;
 
 /// <summary>
-/// Tự điền CreatedAt/By, UpdatedAt/By, BranchId và đổi lệnh xoá thành xoá mềm
-/// cho mọi <see cref="BaseEntity"/> trước khi lưu.
+/// Tự điền CreatedAt, UpdatedAt và đổi lệnh xoá thành xoá mềm cho mọi <see cref="BaseEntity"/> trước khi lưu.
+/// Người thao tác (CreatedBy…) để trống: tài khoản khách là mã số dbo.TCustomer, không phải Guid.
 /// </summary>
-public sealed class AuditableEntityInterceptor(ICurrentUser currentUser, TimeProvider clock) : SaveChangesInterceptor
+public sealed class AuditableEntityInterceptor(TimeProvider clock) : SaveChangesInterceptor
 {
     public override InterceptionResult<int> SavingChanges(DbContextEventData eventData, InterceptionResult<int> result)
     {
@@ -29,14 +28,14 @@ public sealed class AuditableEntityInterceptor(ICurrentUser currentUser, TimePro
         if (context is null) return;
 
         var now = clock.GetUtcNow();
-        var userId = currentUser.UserId;
+        Guid? userId = null;
 
         foreach (var entry in context.ChangeTracker.Entries<BaseEntity>())
         {
             switch (entry.State)
             {
                 case EntityState.Added:
-                    entry.Entity.MarkCreated(now, userId, currentUser.BranchId);
+                    entry.Entity.MarkCreated(now, userId, defaultBranchId: null);
                     break;
                 case EntityState.Modified:
                     entry.Entity.MarkUpdated(now, userId);

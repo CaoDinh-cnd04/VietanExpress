@@ -3,7 +3,6 @@
   <ItemGroup>
     <ProjectReference Include="..\..\..\BuildingBlocks\VietAnExpress.SharedKernel\VietAnExpress.SharedKernel.csproj" />
     <ProjectReference Include="..\VietAnExpress.Customers.Contracts\VietAnExpress.Customers.Contracts.csproj" />
-    <ProjectReference Include="..\..\Shipments\VietAnExpress.Shipments.Contracts\VietAnExpress.Shipments.Contracts.csproj" />
   </ItemGroup>
 
   <ItemGroup>

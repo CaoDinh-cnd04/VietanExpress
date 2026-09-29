@@ -8,7 +8,6 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using VietAnExpress.Identity.Api;
 using VietAnExpress.Identity.Application;
-using VietAnExpress.Identity.Contracts;
 using VietAnExpress.Identity.Infrastructure;
 using VietAnExpress.SharedKernel.Authorization;
 using VietAnExpress.SharedKernel.Persistence;
@@ -16,7 +15,10 @@ using VietAnExpress.SharedKernel.Web;
 
 namespace VietAnExpress.Identity;
 
-/// <summary>Điểm vào DUY NHẤT (public) của module Identity. Đăng ký cả xác thực JWT cho toàn hệ thống.</summary>
+/// <summary>
+/// Điểm vào DUY NHẤT (public) của module Identity: đăng nhập khách hàng bằng tài khoản ở dbo.TCustomer
+/// và xác thực JWT cho toàn hệ thống.
+/// </summary>
 public static class IdentityModule
 {
     public static Assembly Assembly => typeof(IdentityModule).Assembly;
@@ -29,18 +31,11 @@ public static class IdentityModule
             .Validate(o => System.Text.Encoding.UTF8.GetByteCount(o.Secret) >= 32,
                 "Jwt:Secret phải dài tối thiểu 32 byte. Dev: dotnet user-secrets set \"Jwt:Secret\" \"...\"")
             .ValidateOnStart();
-        services.AddOptions<IdentityModuleOptions>()
-            .Bind(configuration.GetSection(IdentityModuleOptions.Section))
-            .ValidateDataAnnotations()
-            .ValidateOnStart();
 
-        services.AddModuleDbContext<IdentityDbContext>(configuration, IdentityDbContext.Schema);
+        // Tài khoản khách: dbo.TCustomer (Login_UserName / Login_Password) — không có bảng riêng của portal.
+        services.AddLegacyDbContext<IdentityDbContext>(configuration, "identity");
         services.AddSingleton<ITokenService, JwtTokenService>();
-        services.AddSingleton<IPasswordService, PasswordService>();
         services.AddScoped<SessionService>();
-        services.AddScoped<Infrastructure.Legacy.ILegacyAccountSource, Infrastructure.Legacy.LegacyAccountSource>();
-        services.AddScoped<IModuleStartupTask, IdentitySeeder>();
-        services.AddSingleton<IPermissionProvider, IdentityPermissionProvider>();
         services.AddValidatorsFromAssembly(Assembly, includeInternalTypes: true);
 
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer();
@@ -88,13 +83,4 @@ public static class IdentityModule
         return http.Response.WriteAsJsonAsync(
             ProblemDetailsMapper.Create(http, status, code, message), (System.Text.Json.JsonSerializerOptions?)null, "application/problem+json");
     }
-}
-
-internal sealed class IdentityPermissionProvider : IPermissionProvider
-{
-    public IEnumerable<PermissionDefinition> GetPermissions() =>
-    [
-        new(IdentityPermissions.UsersView, "Xem danh sách tài khoản"),
-        new(IdentityPermissions.UsersManage, "Tạo, khoá / mở khoá tài khoản")
-    ];
 }

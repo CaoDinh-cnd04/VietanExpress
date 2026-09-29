@@ -10,7 +10,6 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" />
     <PackageReference Include="Asp.Versioning.Mvc" />
-    <PackageReference Include="Mapster" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="VietAnExpress.Architecture.Tests" />

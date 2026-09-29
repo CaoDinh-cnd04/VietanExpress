@@ -5,7 +5,7 @@
 #>
 $ErrorActionPreference = 'Stop'
 $root = Split-Path $PSScriptRoot -Parent
-foreach ($module in 'Identity', 'Customers', 'Shipments') {
+foreach ($module in @('Shipments')) {  # Identity, Customers chỉ dùng bảng dbo có sẵn — không có migration
     Write-Host "== $module"
     dotnet ef database update `
         --project (Join-Path $root "src/Modules/$module/VietAnExpress.$module") `

@@ -1,93 +1,99 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using VietAnExpress.Customers.Contracts;
 using VietAnExpress.Identity.Application.Dtos;
-using VietAnExpress.Identity.Domain;
 using VietAnExpress.Identity.Infrastructure;
-using VietAnExpress.Identity.Infrastructure.Legacy;
-using VietAnExpress.SharedKernel.Authorization;
+using VietAnExpress.SharedKernel.Application;
 using VietAnExpress.SharedKernel.Results;
 
 namespace VietAnExpress.Identity.Application.Commands;
 
-/// <param name="UserName">Tên đăng nhập hoặc email.</param>
-/// <param name="Remember">Ghi nhớ đăng nhập trên thiết bị này.</param>
-internal sealed record LoginCommand(string UserName, string Password, bool Remember, string? IpAddress) : IRequest<Result<AuthSession>>;
+// ---------- Đăng nhập ----------
 
-internal sealed class LoginHandler(
-    IdentityDbContext db,
-    IPasswordService passwords,
-    SessionService sessions,
-    ILegacyAccountSource legacyAccounts,
-    ICustomersApi customers,
-    IOptions<IdentityModuleOptions> options,
-    TimeProvider clock,
-    ILogger<LoginHandler> logger) : IRequestHandler<LoginCommand, Result<AuthSession>>
+/// <summary>Đăng nhập bằng Login_UserName / Login_Password của dbo.TCustomer (đúng tài khoản khách đang dùng ở hệ thống cũ).</summary>
+internal sealed record LoginCommand(string UserName, string Password, bool Remember) : IRequest<Result<AuthSession>>;
+
+internal sealed class LoginHandler(IdentityDbContext db, SessionService sessions) : IRequestHandler<LoginCommand, Result<AuthSession>>
 {
-    // Hash giả để khi user không tồn tại vẫn tốn thời gian như khi sai mật khẩu (chống dò tên đăng nhập qua thời gian phản hồi).
-    private static readonly Lazy<string> DummyHash = new(() => new PasswordService().Hash(Guid.NewGuid().ToString()));
-
     public async Task<Result<AuthSession>> Handle(LoginCommand cmd, CancellationToken ct)
     {
-        var now = clock.GetUtcNow();
-        var login = User.Normalize(cmd.UserName);
-        var user = await db.Users.FirstOrDefaultAsync(u => u.NormalizedUserName == login || u.NormalizedEmail == login, ct);
+        var userName = cmd.UserName.Trim();
+        var candidates = await db.Logins.AsNoTracking()
+            .Where(l => l.UserName == userName && l.Password != null && l.Password != "")
+            .ToListAsync(ct);
 
-        if (user is null)
-        {
-            // Khách của hệ thống cũ đăng nhập lần đầu: xác minh với dbo.TCustomer rồi chuyển tài khoản sang.
-            user = await MigrateLegacyAccountAsync(cmd, now, ct);
-            if (user is null)
-            {
-                passwords.Verify(DummyHash.Value, cmd.Password);
-                return IdentityErrors.InvalidCredentials;
-            }
-        }
+        var login = candidates.FirstOrDefault(l => JwtTokenService.FixedTimeEquals(l.Password!, cmd.Password));
+        if (login is null) return IdentityErrors.InvalidCredentials;
 
-        if (user.IsLockedOut(now))
-            return IdentityErrors.LockedOut((int)Math.Ceiling((user.LockoutEnd!.Value - now).TotalMinutes));
-        if (!user.IsActive)
-            return IdentityErrors.AccountDisabled;
-
-        var check = passwords.Verify(user.PasswordHash, cmd.Password);
-        if (check == PasswordCheck.Failed)
-        {
-            var policy = options.Value;
-            user.RecordFailedLogin(now, policy.MaxFailedLogins, TimeSpan.FromMinutes(policy.LockoutMinutes));
-            await db.SaveChangesAsync(ct);
-            return IdentityErrors.InvalidCredentials;
-        }
-        if (check == PasswordCheck.SuccessRehashNeeded)
-            user.RehashPassword(passwords.Hash(cmd.Password));
-
-        user.RecordSuccessfulLogin(now);
-        var (session, _) = await sessions.StartAsync(user, cmd.Remember, cmd.IpAddress, ct);
-        await db.SaveChangesAsync(ct);
-        return session;
+        var session = await sessions.StartAsync(login, cmd.Remember, ct);
+        return session is null ? IdentityErrors.InvalidCredentials : session;
     }
+}
 
-    /// <summary>
-    /// Đúng tài khoản cũ → chuyển hồ sơ khách sang module Customers (qua Contracts) và tạo tài khoản mới
-    /// với mật khẩu đã băm, vai trò customer. Lần đăng nhập sau đi thẳng đường mới.
-    /// </summary>
-    private async Task<User?> MigrateLegacyAccountAsync(LoginCommand cmd, DateTimeOffset now, CancellationToken ct)
+// ---------- Làm mới phiên ----------
+
+/// <summary>
+/// Đổi refresh token lấy cặp token mới. Refresh token không lưu DB: hợp lệ khi đúng chữ ký, còn hạn
+/// và mật khẩu trong dbo.TCustomer chưa đổi kể từ lúc cấp.
+/// </summary>
+internal sealed record RefreshSessionCommand(string RefreshToken) : IRequest<Result<AuthSession>>;
+
+internal sealed class RefreshSessionHandler(IdentityDbContext db, ITokenService tokens, SessionService sessions)
+    : IRequestHandler<RefreshSessionCommand, Result<AuthSession>>
+{
+    public async Task<Result<AuthSession>> Handle(RefreshSessionCommand cmd, CancellationToken ct)
     {
-        var legacy = await legacyAccounts.VerifyAsync(cmd.UserName, cmd.Password, ct);
-        if (legacy is null) return null;
+        var claims = await tokens.ReadRefreshTokenAsync(cmd.RefreshToken);
+        if (claims is null) return IdentityErrors.SessionExpired;
 
-        var customer = await customers.ImportLegacyCustomerAsync(legacy.CustomerId, ct);
-        var role = await db.Roles.FirstOrDefaultAsync(r => r.Name == SystemRoles.Customer, ct);
-        if (customer is null || role is null) return null;
+        var login = await db.Logins.AsNoTracking().FirstOrDefaultAsync(l => l.CustomerId == claims.CustomerId, ct);
+        if (login is null || !login.HasPassword
+            || !JwtTokenService.FixedTimeEquals(tokens.PasswordStamp(login.CustomerId, login.Password!), claims.PasswordStamp))
+            return IdentityErrors.SessionExpired;
 
-        var user = new User(legacy.UserName, customer.ContactName ?? customer.CompanyName, email: null, customer.Id, customer.BranchId);
-        user.SetPassword(passwords.Hash(cmd.Password), now);
-        user.AssignRole(role.Id);
-        db.Users.Add(user);
-        // Lưu ngay: bước tạo phiên phía sau đọc vai trò / quyền từ DB — chưa lưu thì token không có quyền nào.
+        var session = await sessions.StartAsync(login, claims.IsPersistent, ct);
+        return session is null ? IdentityErrors.SessionExpired : session;
+    }
+}
+
+// ---------- Đổi mật khẩu ----------
+
+/// <summary>
+/// Ghi mật khẩu mới vào dbo.TCustomer.Login_Password (dạng chữ thường như hệ thống cũ — 2 hệ thống dùng chung).
+/// Mọi phiên cũ hết hiệu lực; thiết bị đang dùng nhận phiên mới ngay, giữ kiểu phiên (ghi nhớ hay không) theo refresh token hiện tại.
+/// </summary>
+internal sealed record ChangePasswordCommand(string CurrentPassword, string NewPassword, string? CurrentRefreshToken) : IRequest<Result<AuthSession>>;
+
+internal sealed class ChangePasswordHandler(IdentityDbContext db, ITokenService tokens, SessionService sessions, ICurrentUser currentUser)
+    : IRequestHandler<ChangePasswordCommand, Result<AuthSession>>
+{
+    public async Task<Result<AuthSession>> Handle(ChangePasswordCommand cmd, CancellationToken ct)
+    {
+        if (currentUser.CustomerId is not { } customerId) return IdentityErrors.SessionExpired;
+        var login = await db.Logins.FirstOrDefaultAsync(l => l.CustomerId == customerId, ct);
+        if (login is null || !login.HasPassword) return IdentityErrors.SessionExpired;
+        if (!JwtTokenService.FixedTimeEquals(login.Password!, cmd.CurrentPassword)) return IdentityErrors.WrongCurrentPassword;
+
+        login.ChangePassword(cmd.NewPassword);
         await db.SaveChangesAsync(ct);
-        logger.LogInformation("Chuyển tài khoản cũ {UserName} (khách {LegacyId}) sang hệ thống mới", legacy.UserName, legacy.CustomerId);
-        return user;
+
+        var persistent = cmd.CurrentRefreshToken is { Length: > 0 } rt && (await tokens.ReadRefreshTokenAsync(rt))?.IsPersistent == true;
+        var session = await sessions.StartAsync(login, persistent, ct);
+        return session is null ? IdentityErrors.SessionExpired : session;
+    }
+}
+
+// ---------- Khách đang đăng nhập (GET /me) ----------
+
+internal sealed record GetSessionQuery : IRequest<Result<SessionUserDto>>;
+
+internal sealed class GetSessionHandler(IdentityDbContext db, SessionService sessions, ICurrentUser currentUser)
+    : IRequestHandler<GetSessionQuery, Result<SessionUserDto>>
+{
+    public async Task<Result<SessionUserDto>> Handle(GetSessionQuery q, CancellationToken ct)
+    {
+        if (currentUser.CustomerId is not { } customerId) return IdentityErrors.SessionExpired;
+        var login = await db.Logins.AsNoTracking().FirstOrDefaultAsync(l => l.CustomerId == customerId, ct);
+        var user = login is { HasPassword: true } ? await sessions.BuildUserAsync(login, ct) : null;
+        return user is null ? IdentityErrors.SessionExpired : user;
     }
 }

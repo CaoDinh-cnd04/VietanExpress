@@ -8,7 +8,7 @@ import { safeNextPath } from '../lib/session';
 import styles from './LoginForm.module.css';
 
 const schema = z.object({
-  username: z.string().trim().min(1, 'Nhập mã khách hàng hoặc email'),
+  username: z.string().trim().min(1, 'Nhập tên đăng nhập'),
   password: z.string().min(1, 'Nhập mật khẩu'),
   remember: z.boolean()
 });
@@ -55,7 +55,7 @@ export function LoginForm({ autoFocus }: { autoFocus?: boolean }) {
         <Notice title="Chưa kết nối máy chủ đăng nhập">Bạn có thể vào portal để dùng thử trong lúc chờ kết nối.</Notice>
       )}
       <TextField
-        label="Mã khách hàng hoặc email"
+        label="Tên đăng nhập"
         required
         autoComplete="username"
         autoFocus={autoFocus}

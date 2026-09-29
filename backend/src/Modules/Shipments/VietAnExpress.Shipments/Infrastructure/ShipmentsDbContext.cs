@@ -8,7 +8,6 @@ internal sealed class ShipmentsDbContext(DbContextOptions<ShipmentsDbContext> op
 {
     public const string Schema = "shipments";
 
-    public DbSet<Shipment> Shipments => Set<Shipment>();
     public DbSet<OrderDraft> OrderDrafts => Set<OrderDraft>();
 
     /// <summary>Bảng vận đơn hệ thống cũ dbo.MaVanDon — không thuộc migration của module.</summary>
@@ -21,7 +20,6 @@ internal sealed class ShipmentsDbContext(DbContextOptions<ShipmentsDbContext> op
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema(Schema);
-        modelBuilder.HasSequence<long>(ShipmentCodeGenerator.SequenceName).StartsAt(ShipmentCodeGenerator.FirstNumber);
         modelBuilder.HasSequence<long>(LegacyOrderNumberAllocator.SequenceName).StartsAt(LegacyOrderNumberAllocator.FirstNumber);
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ShipmentsDbContext).Assembly);
         modelBuilder.ApplyBaseEntityConventions();

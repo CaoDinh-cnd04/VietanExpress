@@ -1,98 +1,117 @@
+using System.Globalization;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
-using VietAnExpress.Identity.Domain;
 using VietAnExpress.SharedKernel.Authorization;
 
 namespace VietAnExpress.Identity.Infrastructure;
 
-internal sealed record AccessToken(string Token, DateTimeOffset ExpiresAt);
+internal sealed record IssuedToken(string Token, DateTimeOffset ExpiresAt);
+
+/// <summary>Nội dung 1 refresh token hợp lệ.</summary>
+internal sealed record RefreshClaims(long CustomerId, string PasswordStamp, bool IsPersistent);
 
 internal interface ITokenService
 {
-    AccessToken CreateAccessToken(User user, IReadOnlyCollection<string> roles, IReadOnlyCollection<string> permissions);
+    IssuedToken CreateAccessToken(long customerId, string userName, IReadOnlyCollection<string> roles, IReadOnlyCollection<string> permissions);
 
-    /// <summary>Sinh refresh token ngẫu nhiên; trả cả token (gửi client) và hash (lưu DB).</summary>
-    (string Token, string Hash) CreateRefreshToken();
+    /// <summary>
+    /// Refresh token tự chứa (JWT ký, không lưu DB) mang "dấu" của mật khẩu hiện tại:
+    /// đổi mật khẩu (trên portal hay hệ thống cũ) thì mọi refresh token cũ hết hiệu lực.
+    /// </summary>
+    IssuedToken CreateRefreshToken(long customerId, string passwordStamp, bool persistent);
 
-    string HashRefreshToken(string token);
+    /// <summary>Null nếu token sai chữ ký, hết hạn, hoặc không phải refresh token.</summary>
+    Task<RefreshClaims?> ReadRefreshTokenAsync(string token);
+
+    /// <summary>Dấu mật khẩu = HMAC(secret, CustomerID + mật khẩu): không lộ mật khẩu, đổi mật khẩu là đổi dấu.</summary>
+    string PasswordStamp(long customerId, string password);
 }
 
 internal sealed class JwtTokenService(IOptions<JwtOptions> options, TimeProvider clock) : ITokenService
 {
+    private const string StampClaim = "pst";
+    private const string PersistentClaim = "rem";
+
     private readonly JwtOptions _jwt = options.Value;
     private readonly JsonWebTokenHandler _handler = new();
 
-    public AccessToken CreateAccessToken(User user, IReadOnlyCollection<string> roles, IReadOnlyCollection<string> permissions)
+    public IssuedToken CreateAccessToken(long customerId, string userName, IReadOnlyCollection<string> roles, IReadOnlyCollection<string> permissions)
     {
-        var now = clock.GetUtcNow();
-        var expires = now.AddMinutes(_jwt.AccessTokenMinutes);
-
+        var id = customerId.ToString(CultureInfo.InvariantCulture);
         var claims = new List<Claim>
         {
-            new(VaClaimTypes.Subject, user.Id.ToString()),
-            new(VaClaimTypes.Name, user.UserName),
+            new(VaClaimTypes.Subject, id),
+            new(VaClaimTypes.Name, userName),
+            new(VaClaimTypes.CustomerId, id),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
-        if (user.BranchId is { } branchId) claims.Add(new(VaClaimTypes.BranchId, branchId.ToString()));
-        if (user.CustomerId is { } customerId) claims.Add(new(VaClaimTypes.CustomerId, customerId.ToString()));
         claims.AddRange(roles.Select(r => new Claim(VaClaimTypes.Role, r)));
-        // Quyền nằm trong token: đổi quyền có hiệu lực khi token được làm mới (tối đa AccessTokenMinutes).
         claims.AddRange(permissions.Select(p => new Claim(VaClaimTypes.Permission, p)));
+        return Create(claims, _jwt.Audience, clock.GetUtcNow().AddMinutes(_jwt.AccessTokenMinutes));
+    }
 
+    public IssuedToken CreateRefreshToken(long customerId, string passwordStamp, bool persistent)
+    {
+        var now = clock.GetUtcNow();
+        var expires = persistent ? now.AddDays(_jwt.RefreshTokenDays) : now.AddHours(_jwt.SessionRefreshTokenHours);
+        Claim[] claims =
+        [
+            new(VaClaimTypes.Subject, customerId.ToString(CultureInfo.InvariantCulture)),
+            new(StampClaim, passwordStamp),
+            new(PersistentClaim, persistent ? "1" : "0"),
+            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+        ];
+        return Create(claims, _jwt.RefreshAudience, expires);
+    }
+
+    public async Task<RefreshClaims?> ReadRefreshTokenAsync(string token)
+    {
+        var result = await _handler.ValidateTokenAsync(token, new TokenValidationParameters
+        {
+            ValidIssuer = _jwt.Issuer,
+            ValidAudience = _jwt.RefreshAudience,
+            IssuerSigningKey = SigningKey(_jwt),
+            LifetimeValidator = (_, expires, _, _) => expires is { } e && e > clock.GetUtcNow().UtcDateTime
+        });
+        if (!result.IsValid) return null;
+
+        var claims = result.ClaimsIdentity;
+        return long.TryParse(claims.FindFirst(VaClaimTypes.Subject)?.Value, NumberStyles.None, CultureInfo.InvariantCulture, out var id)
+               && claims.FindFirst(StampClaim)?.Value is { Length: > 0 } stamp
+            ? new RefreshClaims(id, stamp, claims.FindFirst(PersistentClaim)?.Value == "1")
+            : null;
+    }
+
+    public string PasswordStamp(long customerId, string password)
+    {
+        var mac = HMACSHA256.HashData(Encoding.UTF8.GetBytes(_jwt.Secret),
+            Encoding.UTF8.GetBytes(string.Create(CultureInfo.InvariantCulture, $"{customerId}:{password}")));
+        return Base64UrlEncoder.Encode(mac[..16]);
+    }
+
+    private IssuedToken Create(IEnumerable<Claim> claims, string audience, DateTimeOffset expires)
+    {
+        var now = clock.GetUtcNow();
         var token = _handler.CreateToken(new SecurityTokenDescriptor
         {
             Subject = new ClaimsIdentity(claims),
             Issuer = _jwt.Issuer,
-            Audience = _jwt.Audience,
+            Audience = audience,
             IssuedAt = now.UtcDateTime,
             NotBefore = now.UtcDateTime,
             Expires = expires.UtcDateTime,
             SigningCredentials = new SigningCredentials(SigningKey(_jwt), SecurityAlgorithms.HmacSha256)
         });
-        return new AccessToken(token, expires);
+        return new IssuedToken(token, expires);
     }
-
-    public (string Token, string Hash) CreateRefreshToken()
-    {
-        var token = Base64UrlEncoder.Encode(RandomNumberGenerator.GetBytes(64));
-        return (token, HashRefreshToken(token));
-    }
-
-    public string HashRefreshToken(string token) =>
-        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
 
     public static SymmetricSecurityKey SigningKey(JwtOptions jwt) => new(Encoding.UTF8.GetBytes(jwt.Secret));
-}
 
-internal enum PasswordCheck { Failed, Success, SuccessRehashNeeded }
-
-internal interface IPasswordService
-{
-    string Hash(string password);
-    PasswordCheck Verify(string hash, string password);
-}
-
-/// <summary>Băm mật khẩu bằng PasswordHasher của ASP.NET Core Identity (PBKDF2-SHA512, có salt).</summary>
-internal sealed class PasswordService : IPasswordService
-{
-    private static readonly PasswordHasher<object> Hasher = new();
-    private static readonly object Owner = new();
-
-    public string Hash(string password) => Hasher.HashPassword(Owner, password);
-
-    public PasswordCheck Verify(string hash, string password)
-    {
-        if (string.IsNullOrEmpty(hash)) return PasswordCheck.Failed;
-        return Hasher.VerifyHashedPassword(Owner, hash, password) switch
-        {
-            PasswordVerificationResult.Success => PasswordCheck.Success,
-            PasswordVerificationResult.SuccessRehashNeeded => PasswordCheck.SuccessRehashNeeded,
-            _ => PasswordCheck.Failed
-        };
-    }
+    /// <summary>So sánh thời gian cố định — không lộ độ dài / ký tự đúng qua thời gian phản hồi.</summary>
+    public static bool FixedTimeEquals(string expected, string actual) =>
+        CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(expected), Encoding.UTF8.GetBytes(actual));
 }

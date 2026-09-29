@@ -40,14 +40,38 @@ interface RequestOptions {
   body?: unknown;
 }
 
+/** Đang làm mới phiên — nhiều request cùng gặp 401 thì chỉ gọi /auth/refresh một lần. */
+let refreshing: Promise<boolean> | null = null;
+
+/** Access token (cookie) sống ngắn; hết hạn thì đổi refresh token lấy phiên mới. Trả false nếu phiên đã hết hẳn. */
+function refreshSession(): Promise<boolean> {
+  refreshing ??= fetch(buildUrl('/auth/refresh'), {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: '{}' // refresh token nằm trong cookie HttpOnly
+  })
+    .then(r => r.ok)
+    .catch(() => false)
+    .finally(() => { refreshing = null; });
+  return refreshing;
+}
+
+/** Gọi API; gặp 401 thì làm mới phiên 1 lần rồi gọi lại (trừ các endpoint /auth/*). */
+async function send(path: string, init: RequestInit, params?: QueryParams): Promise<Response> {
+  const url = buildUrl(path, params);
+  const res = await fetch(url, { ...init, credentials: 'include' });
+  if (res.status !== 401 || path.startsWith('/auth/') || !(await refreshSession())) return res;
+  return fetch(url, { ...init, credentials: 'include' });
+}
+
 async function request<T>(method: string, path: string, { params, body }: RequestOptions = {}): Promise<T> {
   const isForm = body instanceof FormData;
-  const res = await fetch(buildUrl(path, params), {
+  const res = await send(path, {
     method,
-    credentials: 'include',
     headers: body !== undefined && !isForm ? { 'Content-Type': 'application/json' } : undefined,
     body: body === undefined ? undefined : isForm ? body : JSON.stringify(body)
-  });
+  }, params);
 
   const payload: unknown = await res.json().catch(() => null);
   if (!res.ok) {
@@ -65,7 +89,7 @@ async function toApiError(res: Response): Promise<ApiError> {
 
 /** GET nội dung không phải JSON (trang in HTML, file Excel…). */
 async function getRaw(path: string, params?: QueryParams): Promise<Response> {
-  const res = await fetch(buildUrl(path, params), { credentials: 'include' });
+  const res = await send(path, {}, params);
   if (!res.ok) throw await toApiError(res);
   return res;
 }

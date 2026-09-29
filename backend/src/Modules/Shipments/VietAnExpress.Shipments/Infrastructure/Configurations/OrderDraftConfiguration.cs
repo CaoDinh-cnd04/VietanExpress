@@ -22,7 +22,6 @@ internal sealed class OrderDraftConfiguration : IEntityTypeConfiguration<OrderDr
         builder.Ignore(d => d.IsReady);
 
         builder.HasIndex(d => d.CustomerId);
-        builder.HasIndex(d => d.CreatedBy);
         builder.HasIndex(d => d.PrintedOrderNumber).HasFilter("[PrintedOrderNumber] IS NOT NULL");
     }
 }

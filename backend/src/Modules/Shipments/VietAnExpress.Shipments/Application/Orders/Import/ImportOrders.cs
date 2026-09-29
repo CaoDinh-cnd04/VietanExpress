@@ -47,7 +47,7 @@ internal static class ImportErrors
 }
 
 internal sealed class ImportOrdersHandler(
-    ShipmentsDbContext db, ICurrentUser user, OrderAccess access, ILegacyOrderNumberAllocator numbers, IGeoLookup geo, TimeProvider clock)
+    ShipmentsDbContext db, OrderAccess access, ILegacyOrderNumberAllocator numbers, IGeoLookup geo, TimeProvider clock)
     : IRequestHandler<ImportOrdersCommand, Result<ImportResultDto>>
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
@@ -145,7 +145,7 @@ internal sealed class ImportOrdersHandler(
                 var order = LegacyOrderFactory.FromPayload(row.Payload, customer, number, today);
                 db.LegacyOrders.Add(order);
                 saved.Add((order, row.Payload));
-                var draft = new OrderDraft(user.CustomerId, Summary(row, order, branch), JsonSerializer.Serialize(row.Payload, Json));
+                var draft = new OrderDraft(customer.LegacyCustomerId, Summary(row, order, branch), JsonSerializer.Serialize(row.Payload, Json));
                 draft.MarkPrinted(number);
                 drafts.Add(draft);
             }

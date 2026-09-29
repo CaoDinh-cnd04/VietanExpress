@@ -7,14 +7,13 @@ using Microsoft.Extensions.Options;
 using VietAnExpress.Identity.Application;
 using VietAnExpress.Identity.Application.Commands;
 using VietAnExpress.Identity.Application.Dtos;
-using VietAnExpress.Identity.Application.Queries;
 using VietAnExpress.Identity.Infrastructure;
 using VietAnExpress.SharedKernel.Web;
 
 namespace VietAnExpress.Identity.Api;
 
 /// <summary>
-/// Đăng nhập / làm mới / đăng xuất.
+/// Đăng nhập / làm mới / đăng xuất / đổi mật khẩu cho khách hàng (tài khoản ở dbo.TCustomer).
 /// Mặc định (web portal): token trả qua cookie HttpOnly, body chỉ có thông tin người dùng — khớp frontend.
 /// Ứng dụng khác (mobile, tích hợp): gọi với ?useCookies=false để nhận token trong body và gửi header Authorization: Bearer.
 /// </summary>
@@ -30,7 +29,7 @@ internal sealed class AuthController(IOptions<JwtOptions> jwt) : ApiControllerBa
     [ProducesResponseType<ApiResponse<TokenResponse>>(StatusCodes.Status200OK)]
     public async Task<IActionResult> Login(LoginRequest body, [FromQuery] bool useCookies = true, CancellationToken ct = default)
     {
-        var result = await Sender.Send(new LoginCommand(body.UserName, body.Password, body.Remember, ClientIp), ct);
+        var result = await Sender.Send(new LoginCommand(body.UserName, body.Password, body.Remember), ct);
         return result.IsSuccess ? SessionResponse(result.Value, useCookies, "Đăng nhập thành công") : Problem(result.Error);
     }
 
@@ -45,18 +44,17 @@ internal sealed class AuthController(IOptions<JwtOptions> jwt) : ApiControllerBa
         var token = fromBody ? body!.RefreshToken : Request.Cookies[AuthCookies.Refresh];
         if (string.IsNullOrEmpty(token)) return Problem(IdentityErrors.SessionExpired);
 
-        var result = await Sender.Send(new RefreshSessionCommand(token!, ClientIp), ct);
+        var result = await Sender.Send(new RefreshSessionCommand(token!), ct);
         if (result.IsFailure && !fromBody) AuthCookies.Clear(Response, jwt.Value);
         return result.IsSuccess ? SessionResponse(result.Value, useCookies: !fromBody, message: null) : Problem(result.Error);
     }
 
+    /// <summary>Xoá cookie phiên. Token không lưu DB nên không thu hồi phía server; đổi mật khẩu để huỷ mọi phiên.</summary>
     [HttpPost("logout")]
     [AllowAnonymous]
     [ProducesResponseType<ApiMessage>(StatusCodes.Status200OK)]
-    public async Task<IActionResult> Logout(RefreshRequest? body, CancellationToken ct)
+    public IActionResult Logout()
     {
-        var token = body?.RefreshToken ?? Request.Cookies[AuthCookies.Refresh];
-        await Sender.Send(new LogoutCommand(token), ct);
         AuthCookies.Clear(Response, jwt.Value);
         return Ok(new ApiMessage("Đã đăng xuất"));
     }
@@ -64,12 +62,16 @@ internal sealed class AuthController(IOptions<JwtOptions> jwt) : ApiControllerBa
     [HttpPost("change-password")]
     [Authorize]
     [ProducesResponseType<ApiMessage>(StatusCodes.Status200OK)]
-    public async Task<IActionResult> ChangePassword(ChangePasswordRequest body, CancellationToken ct) =>
-        FromResult(
-            await Sender.Send(new ChangePasswordCommand(body.CurrentPassword, body.NewPassword, Request.Cookies[AuthCookies.Refresh]), ct),
-            "Đã đổi mật khẩu. Các thiết bị khác sẽ phải đăng nhập lại");
+    public async Task<IActionResult> ChangePassword(ChangePasswordRequest body, CancellationToken ct)
+    {
+        var result = await Sender.Send(
+            new ChangePasswordCommand(body.CurrentPassword, body.NewPassword, Request.Cookies[AuthCookies.Refresh]), ct);
+        if (result.IsFailure) return Problem(result.Error);
 
-    private string? ClientIp => HttpContext.Connection.RemoteIpAddress?.ToString();
+        // Mật khẩu đổi → phiên cũ hết hiệu lực; thiết bị này nhận cookie phiên mới để không bị đăng xuất.
+        AuthCookies.Write(Response, result.Value, jwt.Value);
+        return Ok(new ApiMessage("Đã đổi mật khẩu. Các thiết bị khác sẽ phải đăng nhập lại"));
+    }
 
     private IActionResult SessionResponse(AuthSession session, bool useCookies, string? message)
     {
@@ -82,7 +84,7 @@ internal sealed class AuthController(IOptions<JwtOptions> jwt) : ApiControllerBa
     }
 }
 
-/// <summary>Thông tin người đang đăng nhập — frontend gọi khi mở trang để biết đã đăng nhập chưa (401 = chưa).</summary>
+/// <summary>Thông tin khách đang đăng nhập — frontend gọi khi mở trang để biết đã đăng nhập chưa (401 = chưa).</summary>
 [ApiVersion(1)]
 [Route("api/v{version:apiVersion}/me")]
 [Tags("Tài khoản")]
@@ -94,7 +96,7 @@ internal sealed class MeController : ApiControllerBase
     public async Task<IActionResult> Get(CancellationToken ct) => FromResult(await Sender.Send(new GetSessionQuery(), ct));
 }
 
-/// <param name="UserName">Mã khách hàng / tên đăng nhập hoặc email (frontend gửi trường "username").</param>
+/// <param name="UserName">Tên đăng nhập của khách (dbo.TCustomer.Login_UserName — frontend gửi trường "username").</param>
 internal sealed record LoginRequest(string UserName, string Password, bool Remember = false);
 
 internal sealed record RefreshRequest(string? RefreshToken);

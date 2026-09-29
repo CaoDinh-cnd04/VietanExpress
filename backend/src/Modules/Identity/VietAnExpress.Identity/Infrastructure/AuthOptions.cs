@@ -26,24 +26,7 @@ internal sealed class JwtOptions
 
     /// <summary>Cookie chỉ gửi qua HTTPS. Chỉ tắt khi dev bằng http://localhost.</summary>
     public bool SecureCookies { get; init; } = true;
-}
 
-/// <summary>Chính sách đăng nhập + tài khoản admin seed ban đầu (section "Identity").</summary>
-internal sealed class IdentityModuleOptions
-{
-    public const string Section = "Identity";
-
-    [Range(3, 20)] public int MaxFailedLogins { get; init; } = 5;
-    [Range(1, 1440)] public int LockoutMinutes { get; init; } = 15;
-
-    public SeedOptions Seed { get; init; } = new();
-
-    internal sealed class SeedOptions
-    {
-        public string AdminUserName { get; init; } = "admin";
-        public string AdminFullName { get; init; } = "Quản trị hệ thống";
-
-        /// <summary>Mật khẩu admin lần đầu — chỉ đặt qua user-secrets / biến môi trường. Trống = không seed admin.</summary>
-        public string? AdminPassword { get; init; }
-    }
+    /// <summary>Refresh token dùng audience riêng — không dùng thay access token được và ngược lại.</summary>
+    public string RefreshAudience => Audience + ".refresh";
 }
