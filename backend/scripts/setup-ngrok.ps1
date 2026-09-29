@@ -45,14 +45,32 @@ icacls $config /inheritance:r /grant:r 'Administrators:F' 'SYSTEM:F' | Out-Null
 if ($LASTEXITCODE -ne 0) { throw 'Cấu hình ngrok không hợp lệ' }
 
 # Cài lại service ngrok với cấu hình mới.
-& $NgrokExe service uninstall 2>$null | Out-Null
+# Phải DỪNG trước khi gỡ: gỡ service đang chạy thì Windows chỉ đánh dấu "chờ xoá" (Disabled) → cài mới thất bại,
+# và sau khi khởi động lại máy ngrok không tự chạy nữa.
+if (Get-Service -Name ngrok -ErrorAction SilentlyContinue) {
+    Write-Host 'Gỡ service ngrok cũ…'
+    Stop-Service -Name ngrok -Force -ErrorAction SilentlyContinue
+    & $NgrokExe service uninstall 2>$null | Out-Null
+    for ($i = 0; $i -lt 30 -and (Get-Service -Name ngrok -ErrorAction SilentlyContinue); $i++) { Start-Sleep -Seconds 1 }
+    if (Get-Service -Name ngrok -ErrorAction SilentlyContinue) {
+        throw 'Windows chưa xoá xong service ngrok cũ — đóng cửa sổ Services (services.msc) / Task Manager nếu đang mở, rồi chạy lại script.'
+    }
+}
 & $NgrokExe service install --config $config
-& $NgrokExe service start
+if ($LASTEXITCODE -ne 0) { throw 'Cài service ngrok thất bại' }
+sc.exe config ngrok start= auto | Out-Null              # tự chạy khi bật máy
+sc.exe failure ngrok reset= 86400 actions= restart/5000/restart/5000/restart/30000 | Out-Null
+Start-Service -Name ngrok
 Start-Sleep -Seconds 4
+
+$svc = Get-CimInstance Win32_Service -Filter "Name='ngrok'"
+if ($svc.State -ne 'Running' -or $svc.StartMode -ne 'Auto') {
+    throw "Service ngrok không ở trạng thái mong muốn (State=$($svc.State), StartMode=$($svc.StartMode))"
+}
 
 try {
     $health = (Invoke-WebRequest "https://$Domain/health" -UseBasicParsing -TimeoutSec 15 -Headers @{ 'ngrok-skip-browser-warning' = '1' }).Content
-    Write-Host "`nXong: https://$Domain/health → $health" -ForegroundColor Green
+    Write-Host "`nXong: service ngrok đang chạy, tự khởi động cùng Windows. https://$Domain/health → $health" -ForegroundColor Green
 } catch {
     Write-Warning "ngrok đã chạy nhưng chưa gọi được https://$Domain/health — kiểm tra service VietAnExpressApi đang chạy."
 }
