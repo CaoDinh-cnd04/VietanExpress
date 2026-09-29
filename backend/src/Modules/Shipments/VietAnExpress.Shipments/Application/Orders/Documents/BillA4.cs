@@ -1,0 +1,356 @@
+using System.Globalization;
+using System.Net;
+using System.Text;
+using QRCoder;
+using VietAnExpress.Shipments.Infrastructure.Legacy;
+
+namespace VietAnExpress.Shipments.Application.Orders.Documents;
+
+/// <summary>1 dòng kiện (từ form đơn portal): số kiện cùng kích thước, D×R×C (cm), cân 1 kiện (kg).</summary>
+internal sealed record PrintPackage(int Qty, decimal Length, decimal Width, decimal Height, decimal WeightKg)
+{
+    public decimal GrossKg => Qty * WeightKg;
+    /// <summary>Cân quy đổi = D×R×C / 5000 cho mỗi kiện.</summary>
+    public decimal VolumeKg => Qty * Length * Width * Height / BillA4.VolumeDivisor;
+}
+
+/// <summary>
+/// Bill A4 theo mẫu hệ thống cũ (VietAnExpress - Bill Online.pdf): A4 ngang, mỗi đơn 2 trang —
+/// trang 1: liên 1 (người gửi lưu) + điều khoản dịch vụ; trang 2: liên 2 (bưu cục gốc) + liên 3 (bưu cục phát).
+/// </summary>
+internal static class BillA4
+{
+    public const decimal VolumeDivisor = 5000m;
+
+    private enum Slip { Shipper = 1, Origin = 2, Destination = 3 }
+
+    public static string Render(OrderPrintModel m, CompanyInfo c) => $"""
+        <section class="page sheet">{SlipHtml(m, c, Slip.Shipper)}{Terms}</section>
+        <section class="page sheet">{SlipHtml(m, c, Slip.Origin)}{SlipHtml(m, c, Slip.Destination)}</section>
+        """;
+
+    /// <summary>
+    /// Mã tuyến in dưới số bill, vd "Chuyên tuyến|Singapore" → "CT-Sin", "DHL|Singapore" → "DHL-Sin".
+    /// Hãng nhiều chữ → viết tắt chữ cái đầu; tuyến → 3 ký tự đầu.
+    /// </summary>
+    public static string RouteCode(string? serviceName)
+    {
+        var parts = (serviceName ?? "").Split('|', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 0) return "";
+        var words = parts[0].Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var carrier = words.Length > 1
+            ? string.Concat(words.Select(w => char.ToUpperInvariant(w[0])))
+            : parts[0];
+        if (parts.Length == 1) return carrier;
+        var hub = parts[1].Replace(" ", "");
+        return $"{carrier}-{hub[..Math.Min(3, hub.Length)]}";
+    }
+
+    /// <summary>Số điện thoại người nhận kèm mã nước, vd ("65", "65 453778") → "+65 65 453778". Số đã có "+" thì giữ nguyên.</summary>
+    public static string PhoneWithCode(string? code, string? phone)
+    {
+        var p = phone?.Trim() ?? "";
+        var digits = new string((code ?? "").Where(char.IsAsciiDigit).ToArray());
+        if (p.Length == 0 || digits.Length == 0 || p.StartsWith('+')) return p;
+        return $"+{digits} {p}";
+    }
+
+    /// <summary>Địa chỉ người gửi tách 2 dòng: theo xuống dòng nếu có, không thì cắt ở dấu phẩy gần giữa khi quá dài.</summary>
+    public static (string Line1, string Line2) SplitAddress(string? address, int maxLine = 48)
+    {
+        var a = (address ?? "").Trim();
+        var byLine = a.Split('\n', 2, StringSplitOptions.TrimEntries);
+        if (byLine.Length == 2) return (byLine[0], byLine[1].Replace('\n', ' '));
+        if (a.Length <= maxLine) return (a, "");
+        var cut = a.LastIndexOf(',', Math.Min(a.Length - 1, maxLine));
+        if (cut <= 0) cut = a.LastIndexOf(' ', maxLine);
+        return cut <= 0 ? (a, "") : (a[..cut].Trim(), a[(cut + 1)..].Trim());
+    }
+
+    // ---------------- 1 liên ----------------
+
+    private static string SlipHtml(OrderPrintModel m, CompanyInfo c, Slip slip)
+    {
+        var o = m.Order;
+        var bill = H(m.Bill);
+        var (addr1, addr2) = SplitAddress(o.SenderAddress);
+        var senderCountry = o.SenderCountryId is null or 231 ? "Viet Nam" : "";
+        var qrCaption = slip == Slip.Shipper ? "Quét QR để tracking" : m.Bill;
+
+        var signs = slip == Slip.Destination
+            ? $"""
+              <div class="sign"><div>Nhân Viên Giao hàng <i>(Delivered by)</i></div><div class="sign-date"><b>Ngày, giờ</b> <i>(Date /time)</i>:</div></div>
+              <div class="sign"><div>Chữ ký người nhận <i>(Signed By Receiver)</i></div><div class="sign-date"><b>Ngày, giờ</b> <i>(Date /time)</i>:<br><i>NV kinh doanh</i> : </div></div>
+              """
+            : $"""
+              <div class="sign"><div>Chữ ký người gửi <i>(Sender's Signature)</i></div><div class="sign-date"><b>Ngày, giờ</b> <i>(Date /time)</i>: {Date(o.CreateDate)}</div></div>
+              <div class="sign"><div>Nhân viên nhận hàng <i>(Picked up by)</i></div><div class="sign-date"><b>Ngày, giờ</b> <i>(Date /time)</i>:<br><i>NV kinh doanh</i> : </div></div>
+              """;
+
+        var slipName = slip switch
+        {
+            Slip.Shipper => "Liên 1: người gửi lưu <i>(Slip 1: Saved By Shipper)</i>",
+            Slip.Origin => "Liên 2: lưu bưu cục gốc <i>(Slip 2: Saved by original Post Office)</i>",
+            _ => "Liên 3: lưu bưu cục Phát <i>(Slip 3: Saved by destination Post Office)</i>"
+        };
+        var total = slip == Slip.Destination ? "" : "<div class=\"total\">Tổng cước:</div>";
+
+        return $"""
+            <div class="slip">
+              <div class="box">
+                <div class="s-head">
+                  <img class="logo" src="{LogoDataUri.Value}" alt="Việt An Express">
+                  <div class="brand">
+                    <div class="brand-name">Viet An Express</div>
+                    <div><b class="k">Tel</b> : {H(c.Phone)}</div>
+                    <div><b class="k">Hotline</b> : <b>{H(c.Hotline)}</b></div>
+                    <div><b class="k">Website</b> : <i>{H(c.Website)}</i></div>
+                  </div>
+                  <div class="awb">{Code128.Svg(m.Bill, 40)}<div class="awb-no">{bill}</div><div class="route">{H(RouteCode(o.ServiceName))}</div></div>
+                </div>
+
+                <div class="bar">1. Thông tin người gửi <i>(Sender's information)</i>:</div>
+                <div class="sender">
+                  <div class="qr">
+                    <div class="qr-frame">{Qr(TrackingUrl(c, m.Bill))}</div>
+                    <div class="qr-cap">{H(qrCaption)}</div>
+                  </div>
+                  <div class="lines">
+                    <div class="ln">{H(addr1)}</div>
+                    <div class="ln">{H(addr2)}</div>
+                    <div class="ln split"><span>{senderCountry}</span><span class="lbl">Postal code:</span><span class="ln-in">{H(o.SenderPostalCode)}</span></div>
+                    <div class="ln">{H(o.SenderName)}</div>
+                    <div class="ln">{H(o.SenderPhone)}</div>
+                    <div class="ln">{H(o.SenderContactName)}</div>
+                  </div>
+                </div>
+
+                <div class="bar">2. Thông tin người nhận(Consignee's information):</div>
+                <div class="rows">
+                  {Row("C.Ty <i>(Company)</i>:", o.ConsigneeName)}
+                  {Row("Địa chỉ <i>(Address)</i>:", o.ConsigneeAddress1)}
+                  {Row("", o.ConsigneeAddress2)}
+                  {Row("", o.ConsigneeAddress3)}
+                  {Row2("Thành phố (City):", o.ConsigneeCity, "Tỉnh (State):", o.ConsigneeState)}
+                  {Row2("<b>Nước <i>(Country)</i></b>:", o.ConsigneeCountry, "Postal code:", o.ConsigneePostalCode)}
+                  {Row("Người liên hệ <i>(Contact name)</i>:", o.ConsigneeContactName)}
+                  {Row("ĐT (Tel):", PhoneWithCode(o.ConsigneePhoneCode, o.ConsigneePhone))}
+                  {Row("Email:", o.ConsigneeEmail, underline: false)}
+                </div>
+
+                <div class="bar">3. Thông tin Đơn Hàng <i>(Shipment information)</i>:</div>
+                <div class="rows ship">
+                  {Row("Tên hàng (Content):", o.GoodsName, underline: false)}
+                  {Row("Giá trị (value invoice):", Value(o), underline: false)}
+                </div>
+                <div class="gap"></div>
+                {Packages(m)}
+                <div class="signs">{signs}</div>
+              </div>
+              <div class="s-foot">
+                <div>{total}<div class="slip-name">{slipName}</div></div>
+                <div class="foot-awb">{Code128.Svg(m.Bill, 30)}<div>{bill}</div></div>
+              </div>
+            </div>
+            """;
+    }
+
+    private static string Packages(OrderPrintModel m)
+    {
+        var o = m.Order;
+        var pk = m.Packages;
+        string gross, vol;
+        var dims = new List<string>();
+        if (pk.Count > 0)
+        {
+            gross = Kg(pk.Sum(p => p.GrossKg));
+            vol = Kg(pk.Sum(p => p.VolumeKg));
+            const int maxLines = 4;
+            var shown = pk.Count > maxLines ? pk.Take(maxLines - 1) : pk;
+            dims.AddRange(shown.Select(p => $"{p.Qty} × {Kg(p.Length)} × {Kg(p.Width)} × {Kg(p.Height)} cm"));
+            if (pk.Count > maxLines) dims.Add($"… và {pk.Count - (maxLines - 1)} dòng kiện khác");
+        }
+        else
+        {
+            gross = o.WeightKg is > 0 ? Kg(o.WeightKg) : "";
+            vol = "";
+        }
+        while (dims.Count < 4) dims.Add("");
+
+        var pieces = pk.Count > 0 ? pk.Sum(p => p.Qty) : o.Pieces ?? 1;
+        return $"""
+            <table class="pkg">
+              <tr>
+                <th class="c-pcs">Số kiện<br><i>(PCS)</i></th>
+                <th class="c-w">TL thực<br><i>(G.W)</i></th>
+                <th class="c-w">TL Qui Đổi<br><i>(Vol.W)</i></th>
+                <th rowspan="2" class="dims"><div class="dims-title">Kích thước (Dimensions)</div>{string.Concat(dims.Select(d => $"<div class=\"dim\">{d}</div>"))}</th>
+              </tr>
+              <tr>
+                <td class="pcs">{pieces}</td>
+                <td class="w">{H(gross)}</td>
+                <td class="w">{H(vol)}</td>
+              </tr>
+            </table>
+            """;
+    }
+
+    private static string Row(string labelHtml, string? value, bool underline = true) =>
+        $"<div class=\"row\"><div class=\"lbl\">{labelHtml}</div><div class=\"val{(underline ? " ln" : "")}\">{H(value)}</div></div>";
+
+    private static string Row2(string labelHtml, string? value, string label2Html, string? value2) =>
+        $"<div class=\"row\"><div class=\"lbl\">{labelHtml}</div><div class=\"val split\"><span class=\"ln ln-main\">{H(value)}</span>" +
+        $"<span class=\"lbl\">{label2Html}</span><span class=\"ln ln-in\">{H(value2)}</span></div></div>";
+
+    private static string Value(LegacyOrder o) =>
+        o.GoodsValue is null ? "" : $"{(o.GoodsValue ?? 0).ToString("0.00", CultureInfo.InvariantCulture)} {o.Currency?.Trim()}".Trim();
+
+    private static string TrackingUrl(CompanyInfo c, string bill) =>
+        $"{c.PortalUrl.TrimEnd('/')}/tracking/{Uri.EscapeDataString(bill)}";
+
+    private static string Qr(string text)
+    {
+        using var data = QRCodeGenerator.GenerateQrCode(text, QRCodeGenerator.ECCLevel.M);
+        return new SvgQRCode(data).GetGraphic(4, "#000000", "#ffffff", false, SvgQRCode.SizingMode.ViewBoxAttribute);
+    }
+
+    /// <summary>Logo nhúng trong assembly → data URI, để trang in không phụ thuộc đường dẫn web.</summary>
+    private static readonly Lazy<string> LogoDataUri = new(() =>
+    {
+        using var s = typeof(BillA4).Assembly.GetManifestResourceStream("VietAnExpress.Shipments.logo.webp");
+        if (s is null) return "";
+        using var ms = new MemoryStream();
+        s.CopyTo(ms);
+        return "data:image/webp;base64," + Convert.ToBase64String(ms.ToArray());
+    });
+
+    private static string H(string? value) => WebUtility.HtmlEncode(value?.Trim() ?? "");
+
+    private static string Date(DateTime? value) => value?.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture) ?? "";
+
+    private static string Kg(decimal? value) => (value ?? 0).ToString("0.##", CultureInfo.InvariantCulture);
+
+    // ---------------- Điều khoản dịch vụ (chép theo mẫu bill hệ thống cũ) ----------------
+
+    private const string Terms = """
+        <div class="terms-col">
+          <div class="t-title">ĐIỀU KHOẢN DỊCH VỤ:</div>
+          <div class="t-h">1: Việt An Express không nhận gửi các hàng hóa như sau:</div>
+          <p>- Các loại hàng hóa, tài liệu vi phạm quy định của Nhà nước về hàng cấm gửi, cấm lưu thông, cấm xuất khẩu.</p>
+          <p>- Hàng hóa có thể gây nguy hại cho người khai thác và phương tiện vận chuyển.</p>
+          <p>- Các loại vật phẩm hàng hóa nước nhận cấm nhập khẩu.</p>
+          <div class="t-h">2. Quyền và nghĩa vụ của người gửi:</div>
+          <p>- Người gửi có quyền khiếu nại và yêu cầu công ty bồi thường thiệt hại vật chất theo mức Công ty đã công bố. Đối với các lô hàng không mua bảo hiểm:</p>
+          <p class="sub">+ Việt An Express bồi thường tối đa đối với tài liệu chuyển phát trong nước là: 200.000đ/ vận đơn.</p>
+          <p class="sub">+ Việt An Express bồi thường tối đa đối với tài liệu chuyển phát quốc tế là: 1.500.000đ/ vận đơn.</p>
+          <p class="sub">+ Việt An Express đền bù đối với hàng hóa trong nước là 4 lần cước/vận đơn (đã bao gồm phí gửi gốc).</p>
+          <p class="sub">+ Việt An Express đền bù đối với hàng hóa quốc tế căn cứ theo dịch vụ chuyển phát quốc tế kết nối.</p>
+          <p>- Cung cấp mọi chứng từ đi kèm với hàng gửi, đảm bảo người nhận có chức năng nhập khẩu tại nước đến.</p>
+          <p>- Gói bọc đảm bảo an toàn cho hàng hóa.</p>
+          <p>- Thông báo cho Việt An Express biết tính chất của hàng hóa. Thanh toán các chi phí phát sinh trong quá trình vận chuyển.</p>
+          <div class="t-h">3. Trách nhiệm của Việt An Express:</div>
+          <p>- Kiểm tra tính hợp pháp của hàng gửi. Trong trường hợp có dấu hiện vi phạm pháp luật, Việt An Express sẽ từ chối phục vụ.</p>
+          <p>- Việt An Express có trách nhiệm đảm bảo an toàn bưu gửi kể từ khi nhận gửi đến khi phát hàng cho người có quyền nhận.</p>
+          <p>- Việt an Express chịu trách nhiệm bồi thường trong trường hợp có thiệt hại xảy ra theo mức đã công bố.</p>
+          <p>- Việt An Express không hoàn lại cước trong các trường hợp sau:</p>
+          <p class="sub">+ Chuyển phát chậm trong các trường hợp bất khả kháng như: Động đất, chiến sự, bão lụt, chậm trễ do thủ tục pháp luật tại nước sở tại chưa hoàn thành, hãng vận chuyển quá tải...</p>
+          <p class="sub">+ Việt An Express không phát được do lỗi bởi người gửi hoặc người nhận từ chối nhận;</p>
+          <p>- Việt An Express không chịu trách nhiệm bồi thường trong các trường hợp:</p>
+          <p class="sub">+ Hàng gửi bị các cơ quan Nhà nước có thẩm quyền thu giữ hoặc gửi ra nước ngoài bị tịch thu, tiêu hủy, trả lại theo điều lệ của nước nhận.</p>
+          <p class="sub">+ Hàng hóa,vật phẩm bị hủy hoại do đặc tính của tự nhiên.</p>
+          <p class="sub">+ Các thiệt hại gián tiếp hoặc những nguồn lợi không thực hiện do việc mất, chậm trễ, hư hỏng…</p>
+          <p class="sub">+ Khiếu nại quá thời hiệu quá thời hiệu quy định.</p>
+          <div class="t-h">4. Lưu ý:</div>
+          <p>- Không để tiền, các chất nguy hiểm vào hàng gửi. Người gửi khai báo đầy đủ, rõ ràng các nội dung trên và đảm bảo tính chính xác của thông tin, tính hợp pháp của hàng hóa.</p>
+          <p>- Thời hạn khiếu kiện trong vòng 60 ngày kể từ ngày gửi.</p>
+          <p>- Hàng hóa chuyển hoàn theo yêu cầu của khách hàng, do lỗi của người gửi, do địa chỉ người nhận không đúng, do không có người nhận, do quá thời gian lưu giữ theo quy định của hãng kết nối hoặc do người nhận không đủ điều kiện nhập khẩu tại nước đến sẽ thu thêm phí bằng cước chính đối với bưu gửi trong nước và bằng hai lần cước chính đối với bưu gửi quốc tế.</p>
+          <p>- Khách hàng cần xuất hóa đơn thanh toán ngay cần đưa yêu cầu xuất hóa đơn cho Việt An Express trong vòng 20 ngày kể từ ngày gửi hàng. Sau 20 ngày Việt An Express sẽ kê khai vận đơn với các cơ quan thuế dưới hình thức “Người mua không lấy hóa đơn” và từ chối xuất hóa đơn cho khách.</p>
+          <p>- Khi sử dụng dịch vụ đồng nghĩa với việc khách hàng đã đồng ý các điều khoản nêu trên.</p>
+        </div>
+        """;
+
+    // ---------------- CSS riêng cho bill (A4 ngang) ----------------
+
+    public const string Css = """
+        @page { size: A4 landscape; margin: 7mm; }
+        * { box-sizing: border-box; }
+        body { margin: 0; font-family: "Times New Roman", Times, serif; font-size: 11.5px; color: #000; background: #e9ece9; }
+        .toolbar { position: sticky; top: 0; display: flex; gap: 12px; align-items: center; padding: 10px 16px; background: #1e6b2c; color: #fff; z-index: 1; font-family: Arial, "Segoe UI", sans-serif; font-size: 12px; }
+        .toolbar button { padding: 6px 18px; border: 0; border-radius: 6px; background: #fff; color: #1e6b2c; font-weight: 700; cursor: pointer; }
+        .toolbar .hint { opacity: .85; }
+        .sheet { width: 297mm; height: 210mm; padding: 7mm; margin: 16px auto; background: #fff; box-shadow: 0 2px 10px rgba(0,0,0,.15);
+                 display: grid; grid-template-columns: 1fr 1fr; gap: 9mm; overflow: hidden; break-after: page; page-break-after: always; }
+        .sheet:last-of-type { break-after: auto; page-break-after: auto; }
+        .slip { display: flex; flex-direction: column; min-width: 0; height: 100%; }
+        .box { border: 1.5px solid #000; flex: 1; display: flex; flex-direction: column; min-height: 0; }
+        .s-head { display: grid; grid-template-columns: 22mm 1fr 42mm; gap: 2mm; align-items: center; padding: 1.5mm 3mm; height: 23mm; }
+        .logo { width: 22mm; height: 16mm; object-fit: contain; }
+        .brand { font-size: 10px; line-height: 1.3; }
+        .brand-name { font-size: 22px; font-weight: 700; line-height: 1.1; }
+        .brand .k { display: inline-block; min-width: 9mm; font-size: 9px; }
+        .awb { text-align: center; }
+        .awb .barcode { display: block; width: 100%; height: 8mm; }
+        .awb-no { font-size: 20px; line-height: 1.1; }
+        .route { font-size: 11px; }
+        .bar { background: #92d050; font-weight: 700; padding: .4mm 1.5mm; border-top: 1px solid #000; border-bottom: 1px solid #000; }
+        .sender { display: grid; grid-template-columns: 50mm 1fr; padding: 1mm 3mm 0 0; }
+        .qr { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .qr-frame { position: relative; width: 26mm; height: 26mm; padding: 2mm; }
+        .qr-frame::before, .qr-frame::after { content: ""; position: absolute; top: 0; bottom: 0; width: 4mm; border: 1.5px solid #000; }
+        .qr-frame::before { left: 0; border-right: 0; }
+        .qr-frame::after { right: 0; border-left: 0; }
+        .qr-frame svg { display: block; width: 100%; height: 100%; }
+        .qr-cap { color: #e00; font-style: italic; margin-top: .5mm; }
+        .lines { display: flex; flex-direction: column; }
+        .ln { border-bottom: 1px dashed #000; min-height: 5mm; line-height: 5mm; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .split { display: flex; gap: 2mm; align-items: flex-end; }
+        .split > span:first-child { flex: 1; }
+        .split .lbl { font-weight: 400; white-space: nowrap; border: 0; }
+        .ln-in { min-width: 18mm; }
+        .lines .split { border-bottom: 0; }
+        .lines .split > span:first-child { border-bottom: 1px dashed #000; }
+        .lines .split .ln-in { border-bottom: 1px dashed #000; }
+        .rows { padding: .5mm 3mm 0 0; }
+        .row { display: grid; grid-template-columns: 50mm 1fr; gap: 2mm; align-items: end; min-height: 4.6mm; }
+        .row .lbl { text-align: right; white-space: nowrap; line-height: 4.6mm; }
+        .row .val { min-height: 4.6mm; line-height: 4.6mm; font-weight: 700; min-width: 0; }
+        .row .val:not(.ln) { border: 0; }
+        .row .split { font-weight: 700; }
+        .ln-main { flex: 1; }
+        .ship .row { min-height: 7.5mm; border-bottom: 1px solid #000; margin-right: -3mm; padding-right: 3mm; }
+        .ship .row .lbl, .ship .row .val { line-height: 7.5mm; }
+        .gap { height: 3mm; border-bottom: 1.5px solid #000; }
+        table.pkg { width: 100%; border-collapse: collapse; table-layout: fixed; }
+        .pkg th, .pkg td { border: 1px solid #000; padding: .5mm 1mm; text-align: center; vertical-align: top; }
+        .pkg tr:first-child > * { border-top: 0; }
+        .pkg tr > *:first-child { border-left: 0; }
+        .pkg tr > *:last-child { border-right: 0; }
+        .c-pcs { width: 16mm; }
+        .c-w { width: 19mm; }
+        .pkg .dims { font-weight: 400; text-align: left; padding: .5mm 2mm; }
+        .dims-title { text-align: center; font-weight: 700; }
+        .dim { border-bottom: 1px dashed #000; min-height: 4.6mm; line-height: 4.6mm; font-size: 10.5px; }
+        .pkg td { height: 14mm; border-top: 0; vertical-align: middle; }
+        .pkg .pcs { font-size: 24px; font-weight: 700; }
+        .pkg .w { font-weight: 700; }
+        .pkg tr:first-child th:not(.dims) { border-bottom: 0; }
+        .signs { display: grid; grid-template-columns: 1fr 1fr; flex: 1; min-height: 18mm; border-top: 1px solid #000; }
+        .sign { display: flex; flex-direction: column; justify-content: space-between; padding: 1mm 2mm; }
+        .sign + .sign { border-left: 1px solid #000; }
+        .sign-date { font-size: 10.5px; line-height: 1.2; }
+        .s-foot { display: flex; justify-content: space-between; align-items: flex-end; padding: 1.5mm 3mm 0; height: 15mm; }
+        .total { font-size: 16px; font-weight: 700; margin-bottom: 1.5mm; }
+        .slip-name { font-size: 10.5px; }
+        .foot-awb { width: 42mm; text-align: center; font-size: 13px; line-height: 1; }
+        .foot-awb .barcode { display: block; width: 100%; height: 7mm; }
+        .terms-col { font-size: 10.6px; line-height: 1.28; text-align: justify; overflow: hidden; }
+        .terms-col p { margin: 0 0 .55mm; }
+        .terms-col .sub { padding-left: 3.5mm; }
+        .t-title, .t-h { font-weight: 700; margin: .6mm 0 .3mm; }
+        @media print {
+          body { background: #fff; }
+          .toolbar { display: none; }
+          .sheet { width: auto; height: 195mm; margin: 0; padding: 0; box-shadow: none; }
+        }
+        """;
+}

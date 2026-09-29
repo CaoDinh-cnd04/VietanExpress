@@ -22,9 +22,13 @@ internal sealed record PrintItem(string Description, decimal Quantity, string Un
     public decimal Amount => decimal.Round(Quantity * UnitPrice, 2, MidpointRounding.AwayFromZero);
 }
 
-/// <summary>Dữ liệu 1 đơn để in: dòng dbo.MaVanDon + các dòng hàng (nếu đơn tạo trên portal còn giữ form).</summary>
-internal sealed record OrderPrintModel(LegacyOrder Order, IReadOnlyList<PrintItem> Items)
+/// <summary>
+/// Dữ liệu 1 đơn để in: dòng dbo.MaVanDon + dòng hàng và dòng kiện (nếu đơn tạo trên portal còn giữ form).
+/// </summary>
+internal sealed record OrderPrintModel(LegacyOrder Order, IReadOnlyList<PrintItem> Items, IReadOnlyList<PrintPackage>? PackageLines = null)
 {
+    public IReadOnlyList<PrintPackage> Packages => PackageLines ?? [];
+
     public string Bill => LegacyOrderView.BillOf(Order);
 
     /// <summary>Không có chi tiết hàng (đơn hệ thống cũ) → 1 dòng từ tên hàng, số kiện, giá trị tổng.</summary>
@@ -62,7 +66,7 @@ internal static class OrderDocumentRenderer
         {
             switch (doc)
             {
-                case PrintDocs.BillA4: pages.Append(Bill(o, company, printedAtVn)); break;
+                case PrintDocs.BillA4: pages.Append(BillA4.Render(o, company)); break;
                 case PrintDocs.Invoice: pages.Append(Invoice(o, company)); break;
                 case PrintDocs.Cvck: pages.Append(Cvck(o, company, printedAtVn)); break;
                 default: pages.Append(Labels(o, company)); break;
@@ -76,96 +80,18 @@ internal static class OrderDocumentRenderer
             <head>
             <meta charset="utf-8">
             <title>{{H(title)}} {{H(bills)}}</title>
-            <style>{{Css(doc)}}</style>
+            <style>{{(doc == PrintDocs.BillA4 ? BillA4.Css : Css(doc))}}</style>
             </head>
             <body>
             <div class="toolbar">
               <strong>{{H(title)}}</strong> · {{orders.Count}} đơn
               <button type="button" onclick="window.print()">In</button>
-              <span class="hint">Chọn khổ giấy {{(doc == PrintDocs.LabelA6 ? "100 × 150 mm (A6)" : "A4")}}, tắt "Headers and footers" trong hộp thoại in.</span>
+              <span class="hint">Chọn khổ giấy {{(doc == PrintDocs.LabelA6 ? "100 × 150 mm (A6)" : doc == PrintDocs.BillA4 ? "A4 ngang (landscape)" : "A4")}}, tắt "Headers and footers" trong hộp thoại in.</span>
             </div>
             {{pages}}
             <script>window.addEventListener('load', function () { setTimeout(function () { window.focus(); window.print(); }, 300); });</script>
             </body>
             </html>
-            """;
-    }
-
-    // ---------------- Bill A4 ----------------
-
-    private static string Bill(OrderPrintModel m, CompanyInfo c, DateTime printedAt)
-    {
-        var o = m.Order;
-        return $$"""
-            <section class="page a4">
-              <header class="head">
-                <div class="brand">
-                  <div class="company">{{H(c.Name)}}</div>
-                  <div class="muted">{{H(c.Address)}}</div>
-                  <div class="muted">ĐT: {{H(c.Phone)}} · Hotline: {{H(c.Hotline)}} · {{H(c.Website)}}</div>
-                </div>
-                <div class="awb">
-                  <div class="doc-title">Vận đơn · Airway bill</div>
-                  {{Code128.Svg(m.Bill)}}
-                  <div class="awb-no">{{H(m.Bill)}}</div>
-                </div>
-              </header>
-
-              <table class="grid meta">
-                <tr>
-                  <th>Dịch vụ</th><td>{{H(Route(o))}}</td>
-                  <th>Ngày tạo</th><td>{{Date(o.CreateDate)}}</td>
-                </tr>
-                <tr>
-                  <th>Mã hãng</th><td>{{H(Connect(o))}}</td>
-                  <th>Số tham chiếu</th><td>{{H(o.CustomerBill)}}</td>
-                </tr>
-              </table>
-
-              <div class="parties">
-                <div class="party">
-                  <div class="party-title">Người gửi · Shipper</div>
-                  <div class="strong">{{H(o.SenderName)}}</div>
-                  <div>{{H(o.SenderContactName)}}</div>
-                  <div>ĐT: {{H(o.SenderPhone)}}</div>
-                  <div>{{H(o.SenderAddress)}}</div>
-                  {{Optional("MST", o.SenderTax)}}
-                </div>
-                <div class="party">
-                  <div class="party-title">Người nhận · Consignee</div>
-                  <div class="strong">{{H(o.ConsigneeName)}}</div>
-                  <div>{{H(o.ConsigneeContactName)}}</div>
-                  <div>ĐT: {{H(o.ConsigneePhone)}}</div>
-                  <div>{{H(Join(", ", o.ConsigneeAddress1, o.ConsigneeAddress2, o.ConsigneeAddress3))}}</div>
-                  <div>{{H(Join(", ", o.ConsigneeCity, o.ConsigneeState, o.ConsigneePostalCode))}}</div>
-                  <div class="strong">{{H(o.ConsigneeCountry)}}</div>
-                </div>
-              </div>
-
-              <table class="grid">
-                <tr><th>Số kiện</th><th>Cân tính cước</th><th>Nội dung hàng</th><th>Giá trị khai báo</th><th>Lý do xuất</th></tr>
-                <tr>
-                  <td class="num big">{{o.Pieces ?? 1}}</td>
-                  <td class="num big">{{Kg(o.WeightKg)}} kg</td>
-                  <td>{{H(o.GoodsName)}}</td>
-                  <td class="num">{{Money(o.GoodsValue)}} {{H(o.Currency)}}</td>
-                  <td>{{H(o.ExportReason)}}</td>
-                </tr>
-              </table>
-
-              <p class="terms">
-                Người gửi cam kết hàng hoá không thuộc danh mục cấm gửi theo quy định của Việt Nam, nước nhận và hãng vận chuyển;
-                khai báo đúng nội dung, giá trị và chịu trách nhiệm về tính chính xác của thông tin trên vận đơn.
-              </p>
-
-              <div class="signs">
-                <div><div class="sign-title">Người gửi</div><div class="muted">(ký, ghi rõ họ tên)</div></div>
-                <div><div class="sign-title">Nhân viên nhận hàng</div><div class="muted">(ký, ghi rõ họ tên)</div></div>
-                <div><div class="sign-title">Thời gian nhận hàng</div><div class="muted">…… giờ …… ngày …… / …… / ……</div></div>
-              </div>
-
-              <footer class="foot muted">In lúc {{printedAt.ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture)}} · Tra cứu hành trình: {{H(c.Website)}}/tracking/{{H(m.Bill)}}</footer>
-            </section>
             """;
     }
 

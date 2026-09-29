@@ -17,6 +17,8 @@
     <PackageVersion Include="Mapster" Version="10.0.13" />
     <!-- Xuất Excel bảng kê — giấy phép MIT. -->
     <PackageVersion Include="ClosedXML" Version="0.105.1" />
+    <!-- Mã QR trên bill (xuất SVG, không cần thư viện đồ hoạ) — giấy phép MIT. -->
+    <PackageVersion Include="QRCoder" Version="1.8.0" />
     <PackageVersion Include="Microsoft.Extensions.Hosting.WindowsServices" Version="10.0.12" />
     <PackageVersion Include="Serilog.AspNetCore" Version="10.0.0" />
     <PackageVersion Include="Serilog.Sinks.File" Version="7.0.0" />

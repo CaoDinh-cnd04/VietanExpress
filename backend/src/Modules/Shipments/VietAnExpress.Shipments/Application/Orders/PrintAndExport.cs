@@ -39,21 +39,21 @@ internal sealed class PrintOrdersHandler(
             .ToListAsync(ct);
         if (orders.Count == 0) return OrderErrors.NotFound(string.Join(", ", bills));
 
-        var items = await LoadInvoiceItemsAsync(orders, ct);
+        var details = await LoadDraftDetailsAsync(orders, ct);
         // Giữ đúng thứ tự khách chọn.
         var models = bills
             .Select(b => orders.FirstOrDefault(o => LegacyOrderView.BillOf(o) == b || o.BillConnect == b))
             .OfType<LegacyOrder>()
             .DistinctBy(o => o.Id)
-            .Select(o => new OrderPrintModel(o, items.GetValueOrDefault(o.OrderNumber ?? 0) ?? []))
+            .Select(o => details.TryGetValue(o.OrderNumber ?? 0, out var d) ? new OrderPrintModel(o, d.Items, d.Packages) : new OrderPrintModel(o, []))
             .ToList();
 
         var now = VietnamTime.ToVietnam(clock.GetUtcNow()).DateTime;
         return OrderDocumentRenderer.Render(q.Doc, models, company.Value, now);
     }
 
-    /// <summary>Đơn tạo trên portal còn giữ form (nháp đã in) → lấy đủ dòng hàng cho invoice.</summary>
-    private async Task<Dictionary<long, IReadOnlyList<PrintItem>>> LoadInvoiceItemsAsync(List<LegacyOrder> orders, CancellationToken ct)
+    /// <summary>Đơn tạo trên portal còn giữ form (nháp đã in) → lấy đủ dòng hàng cho invoice, dòng kiện cho bill.</summary>
+    private async Task<Dictionary<long, (IReadOnlyList<PrintItem> Items, IReadOnlyList<PrintPackage> Packages)>> LoadDraftDetailsAsync(List<LegacyOrder> orders, CancellationToken ct)
     {
         var numbers = orders.Select(o => o.OrderNumber).OfType<long>().ToList();
         var drafts = await db.OrderDrafts.IgnoreQueryFilters().AsNoTracking()
@@ -61,7 +61,7 @@ internal sealed class PrintOrdersHandler(
             .Select(d => new { Number = d.PrintedOrderNumber!.Value, d.PayloadJson })
             .ToListAsync(ct);
 
-        var result = new Dictionary<long, IReadOnlyList<PrintItem>>();
+        var result = new Dictionary<long, (IReadOnlyList<PrintItem>, IReadOnlyList<PrintPackage>)>();
         foreach (var d in drafts)
         {
             OrderPayload? payload;
@@ -69,13 +69,18 @@ internal sealed class PrintOrdersHandler(
             catch (JsonException) { continue; }
             if (payload is null) continue;
 
-            result[d.Number] = payload.Invoice.Items
+            IReadOnlyList<PrintItem> items = payload.Invoice.Items
                 .Where(i => !string.IsNullOrWhiteSpace(i.DescEn))
                 .Select(i => new PrintItem(
                     string.IsNullOrWhiteSpace(i.DescVi) ? i.DescEn : $"{i.DescEn} ({i.DescVi})",
                     Num(i.Qty), string.IsNullOrWhiteSpace(i.Unit) ? "PCS" : i.Unit, Num(i.Price),
                     i.Hs, string.IsNullOrWhiteSpace(i.Origin) ? null : i.Origin))
                 .ToList();
+            IReadOnlyList<PrintPackage> packages = payload.Packages
+                .Select(k => new PrintPackage((int)Num(k.Qty), Num(k.Length), Num(k.Width), Num(k.Height), Num(k.Weight)))
+                .Where(k => k.Qty > 0 && (k.WeightKg > 0 || k.Length * k.Width * k.Height > 0))
+                .ToList();
+            result[d.Number] = (items, packages);
         }
         return result;
     }

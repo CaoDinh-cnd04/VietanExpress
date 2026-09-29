@@ -8,6 +8,10 @@
 
   <ItemGroup>
     <PackageReference Include="ClosedXML" />
+    <PackageReference Include="QRCoder" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Application/Orders/Documents/Assets/logo.webp" LogicalName="VietAnExpress.Shipments.logo.webp" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="VietAnExpress.Shipments.Tests" />

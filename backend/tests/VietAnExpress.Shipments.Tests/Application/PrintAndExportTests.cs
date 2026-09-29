@@ -48,6 +48,55 @@ public class OrderDocumentRendererTests
     }
 
     [Fact]
+    public void Bill_A4_ngang_moi_don_2_trang_3_lien_va_dieu_khoan()
+    {
+        var o = Order();
+        o.ConsigneePhoneCode = "44";
+        o.ConsigneePhone = "20 7946 0000";
+        var packages = new[] { new PrintPackage(2, 50, 40, 30, 5) };
+        var html = Render(PrintDocs.BillA4, new OrderPrintModel(o, [], packages));
+
+        Assert.Contains("size: A4 landscape", html);
+        Assert.Equal(2, html.Split("class=\"page sheet\"").Length - 1);
+        Assert.Contains("Liên 1: người gửi lưu", html);
+        Assert.Contains("Liên 2: lưu bưu cục gốc", html);
+        Assert.Contains("Liên 3: lưu bưu cục Phát", html);
+        Assert.Contains("ĐIỀU KHOẢN DỊCH VỤ", html);
+        Assert.Contains("DHL-Sin", html);
+        Assert.Contains("+44 20 7946 0000", html);
+        Assert.Contains("40.00 USD", html);
+        Assert.Contains("2 × 50 × 40 × 30 cm", html);
+        Assert.Contains(">10<", html);  // G.W = 2 × 5
+        Assert.Contains(">24<", html);  // Vol.W = 2 × 50×40×30 / 5000
+        Assert.Contains("data:image/webp;base64,", html);
+        Assert.Contains("viewBox", html); // QR tracking
+    }
+
+    [Theory]
+    [InlineData("Chuyên tuyến|Singapore", "CT-Sin")]
+    [InlineData("DHL|Singapore", "DHL-Sin")]
+    [InlineData("UPS", "UPS")]
+    [InlineData(null, "")]
+    public void Ma_tuyen_in_duoi_so_bill(string? service, string expected) =>
+        Assert.Equal(expected, BillA4.RouteCode(service));
+
+    [Theory]
+    [InlineData("65", "65 453778", "+65 65 453778")]
+    [InlineData("+1", "+1 555 0100", "+1 555 0100")]
+    [InlineData("", "0909", "0909")]
+    public void So_dien_thoai_nguoi_nhan_kem_ma_nuoc(string code, string phone, string expected) =>
+        Assert.Equal(expected, BillA4.PhoneWithCode(code, phone));
+
+    [Fact]
+    public void Dia_chi_nguoi_gui_dai_tach_2_dong_o_dau_phay()
+    {
+        var (l1, l2) = BillA4.SplitAddress("14 Sâm Sơn, Phường 4, Quận Tân Bình, TP. Hồ Chí Minh, Việt Nam");
+        Assert.Equal("14 Sâm Sơn, Phường 4, Quận Tân Bình", l1);
+        Assert.Equal("TP. Hồ Chí Minh, Việt Nam", l2);
+        Assert.Equal(("Ngắn", ""), BillA4.SplitAddress("Ngắn"));
+    }
+
+    [Fact]
     public void Nhan_A6_in_moi_kien_mot_nhan()
     {
         var html = Render(PrintDocs.LabelA6, new OrderPrintModel(Order(pieces: 3), []));
