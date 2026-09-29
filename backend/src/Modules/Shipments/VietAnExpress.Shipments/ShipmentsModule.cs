@@ -22,6 +22,14 @@ public static class ShipmentsModule
         services.AddScoped<Infrastructure.Legacy.ILegacyBillReader, Infrastructure.Legacy.LegacyBillReader>();
         services.AddScoped<ILegacyOrderNumberAllocator, LegacyOrderNumberAllocator>();
         services.AddScoped<Application.Orders.OrderAccess>();
+
+        // Tra cứu địa lý qua API ngoài (quốc gia + mã điện thoại, mã bưu chính) — có cache, timeout ngắn.
+        services.AddMemoryCache();
+        services.AddHttpClient<Infrastructure.Geo.IGeoLookup, Infrastructure.Geo.GeoLookupService>(c =>
+        {
+            c.Timeout = TimeSpan.FromSeconds(6);
+            c.DefaultRequestHeaders.UserAgent.ParseAdd("VietAnExpress-Portal/1.0");
+        });
         services.Configure<Application.Orders.Documents.CompanyInfo>(configuration.GetSection(Application.Orders.Documents.CompanyInfo.Section));
         services.AddSingleton<IPermissionProvider, ShipmentsPermissionProvider>();
         services.AddValidatorsFromAssembly(Assembly, includeInternalTypes: true);

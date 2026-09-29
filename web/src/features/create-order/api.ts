@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { http } from '@/shared/api/http';
+import { ApiError, http } from '@/shared/api/http';
+import type { Country, PostalInfo } from './lib/geo';
 
 export interface Category {
   name: string;
@@ -106,6 +107,37 @@ export function useRecentInvoices(enabled: boolean) {
     queryKey: ['invoices', 'recent'],
     queryFn: () => http.get<{ data: RecentInvoice[] }>('/invoices/recent', { limit: 20 }).then(r => r.data),
     enabled,
+    retry: false
+  });
+}
+
+const ONE_DAY = 24 * ONE_HOUR;
+
+/** Danh sách quốc gia + mã điện thoại (backend lấy từ bộ dữ liệu world-countries, có cache). */
+export function useCountries() {
+  return useQuery({
+    queryKey: ['geo', 'countries'],
+    queryFn: () => http.get<{ data: Country[] }>('/geo/countries').then(r => r.data),
+    staleTime: ONE_DAY,
+    gcTime: ONE_DAY,
+    retry: 1
+  });
+}
+
+/** Tra mã bưu chính → thành phố, tỉnh / bang (backend gọi Zippopotam.us). Không tìm thấy trả null. */
+export function usePostalLookup(countryCode: string | undefined, postal: string | null) {
+  return useQuery({
+    queryKey: ['geo', 'postal', countryCode, postal],
+    queryFn: () =>
+      http
+        .get<{ data: PostalInfo }>(`/geo/postal/${encodeURIComponent(countryCode ?? '')}/${encodeURIComponent(postal ?? '')}`)
+        .then(r => r.data)
+        .catch((e: unknown) => {
+          if (e instanceof ApiError && e.status === 404) return null;
+          throw e;
+        }),
+    enabled: !!countryCode && !!postal,
+    staleTime: ONE_DAY,
     retry: false
   });
 }

@@ -124,6 +124,8 @@ Body POST / PUT (`NewDraft`):
 | GET | `/catalog/products` | **Mới** | Thư viện mặt hàng của khách: `SavedProduct[]` |
 | POST | `/catalog/products` | **Mới** | Lưu mặt hàng vào thư viện |
 | GET | `/invoices/recent?limit=20` | **Mới** | Invoice đơn gần đây để chép lại: `{ bill, cnee, date, currency, items: SavedProduct[] }[]` |
+| GET | `/geo/countries` | Có sẵn | Quốc gia + mã điện thoại: `[{ code: "US", name: "United States", dialCode: "+1" }]` (backend lấy từ world-countries, cache 1 ngày) |
+| GET | `/geo/postal/:countryCode/:postalCode` | Có sẵn | Mã bưu chính → `{ countryCode, postalCode, city, state, stateCode }` (Zippopotam.us, ~60 nước); không tìm thấy / chưa hỗ trợ → 404 |
 | GET | `/addresses/senders` | Có sẵn | Hồ sơ người gửi: `{ id, n (tên), c (liên hệ), t (điện thoại), d (địa chỉ) }` |
 | GET | `/addresses/receivers` | Có sẵn | Sổ địa chỉ người nhận: `{ id, n, ct, city, postal, contact, tel, a1, a2, a3 }` |
 | POST | `/addresses/receivers` | Có sẵn | Lưu người nhận vào sổ |

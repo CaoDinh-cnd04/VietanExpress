@@ -52,6 +52,8 @@ internal static partial class LegacyOrderFactory
             ConsigneePostalCode = Clip(p.Receiver.Postal, 50),
             ConsigneeCountry = Clip(p.Receiver.Country, 50),
             ConsigneeVatTax = Clip(p.Receiver.TaxId, 100),
+            // Hệ thống cũ lưu mã điện thoại chỉ gồm chữ số, vd "65", "1".
+            ConsigneePhoneCode = Clip(new string(p.Receiver.PhoneCode.Where(char.IsAsciiDigit).ToArray()), 50),
 
             ServiceName = Clip(ServiceName(p.Service.Hub, p.Service.Carrier), 50),
             GoodsName = Clip(string.IsNullOrWhiteSpace(goods) ? (isDoc ? "DOCUMENTS" : "GOODS") : goods, 150),

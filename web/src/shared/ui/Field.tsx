@@ -41,9 +41,11 @@ type SharedProps = Omit<FieldShellProps, 'id' | 'children'>;
 export interface TextFieldProps extends SharedProps, Omit<ComponentPropsWithRef<'input'>, 'className'> {
   /** Đơn vị hiển thị trong ô, VD "kg". */
   suffix?: string;
+  /** Tiền tố hiển thị đầu ô, VD mã điện thoại "+84". */
+  prefix?: string;
 }
 
-export function TextField({ label, required, error, hint, aside, wide, className, suffix, id, ...input }: TextFieldProps) {
+export function TextField({ label, required, error, hint, aside, wide, className, suffix, prefix, id, ...input }: TextFieldProps) {
   const autoId = useId();
   const fieldId = id ?? autoId;
   return (
@@ -51,12 +53,13 @@ export function TextField({ label, required, error, hint, aside, wide, className
       <div className={styles.controlWrap}>
         <input
           id={fieldId}
-          className={cx(styles.control, error && styles.invalid, suffix && styles.withSuffix)}
+          className={cx(styles.control, error && styles.invalid, suffix && styles.withSuffix, prefix && styles.withPrefix)}
           aria-invalid={error ? true : undefined}
           aria-describedby={error || hint ? `${fieldId}-msg` : undefined}
           aria-required={required || undefined}
           {...input}
         />
+        {prefix && <span className={styles.prefix} aria-hidden="true">{prefix}</span>}
         {suffix && <span className={styles.suffix}>{suffix}</span>}
       </div>
     </FieldShell>

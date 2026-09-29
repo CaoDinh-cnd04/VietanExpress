@@ -49,6 +49,8 @@ internal sealed class OrderPayload
         public string Company { get; init; } = "";
         public string Contact { get; init; } = "";
         public string Tel { get; init; } = "";
+        /// <summary>Mã điện thoại quốc gia, vd "+1" (tự điền theo nước đến).</summary>
+        public string PhoneCode { get; init; } = "";
         public string TaxId { get; init; } = "";
         public string Email { get; init; } = "";
         public string Postal { get; init; } = "";

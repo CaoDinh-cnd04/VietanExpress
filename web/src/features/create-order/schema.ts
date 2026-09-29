@@ -68,6 +68,8 @@ export const createOrderSchema = z
       company: required(),
       contact: required(),
       tel: required(),
+      /** Mã điện thoại theo nước đến, vd "+1" — tự điền, lưu vào ConsigneePhoneCode. Có thể thiếu ở nháp cũ. */
+      phoneCode: z.string().optional(),
       taxId: optional,
       email: optionalEmail,
       postal: optional,
@@ -134,7 +136,7 @@ export const defaultValues = (): CreateOrderValues => ({
   shipper: { company: '', contact: '', tel: '', address: '', taxId: '', email: '', country: 'Vietnam', branch: 'TP.HCM' },
   service: { carrier: 'Chuyên tuyến', hub: CARRIER_HUBS['Chuyên tuyến']?.[0] ?? '', reference: '' },
   shipment: { type: 'PACK', pieces: '1', grossWeight: '' },
-  receiver: { country: '', city: '', company: '', contact: '', tel: '', taxId: '', email: '', postal: '', state: '', addr1: '', addr2: '', addr3: '' },
+  receiver: { country: '', city: '', company: '', contact: '', tel: '', phoneCode: '', taxId: '', email: '', postal: '', state: '', addr1: '', addr2: '', addr3: '' },
   goods: { category: '', description: '', docContent: '', multi: [] },
   packages: [emptyPackage()],
   addons: [],
