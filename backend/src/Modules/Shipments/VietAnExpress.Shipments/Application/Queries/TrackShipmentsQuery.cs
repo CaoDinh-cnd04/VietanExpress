@@ -37,6 +37,11 @@ internal sealed class TrackShipmentsHandler(ShipmentsDbContext db, ILegacyBillRe
                 s.ServiceCode,
                 s.Receiver.City,
                 s.Receiver.CountryCode,
+                SenderCity = s.Sender.City,
+                SenderCountry = s.Sender.CountryCode,
+                s.DispatchedAt,
+                s.TotalPieces,
+                s.ChargeableWeightKg,
                 Events = s.TrackingEvents
                     .Where(e => e.IsPublic)
                     .OrderByDescending(e => e.OccurredAt)
@@ -56,7 +61,11 @@ internal sealed class TrackShipmentsHandler(ShipmentsDbContext db, ILegacyBillRe
                     Status: PublicStatus(s.Status),
                     Destination: $"{s.City}, {s.CountryCode}",
                     Service: s.ServiceCode,
-                    Events: s.Events.Select(e => new PublicTrackEventDto(VietnamTime.Format(e.OccurredAt), e.Description, e.Location)).ToList())
+                    Events: s.Events.Select(e => new PublicTrackEventDto(VietnamTime.Format(e.OccurredAt), e.Description, e.Location)).ToList(),
+                    Origin: $"{s.SenderCity}, {s.SenderCountry}",
+                    ShipDate: s.DispatchedAt is { } sent ? VietnamTime.ToVietnam(sent).ToString("dd/MM/yyyy", System.Globalization.CultureInfo.InvariantCulture) : null,
+                    Pieces: s.TotalPieces,
+                    WeightKg: s.ChargeableWeightKg)
                 : legacyRows.FirstOrDefault(r => LegacyTrackingMapper.Matches(r, bill)) is { } row
                     ? LegacyTrackingMapper.ToResult(bill, row, VietnamTime.ToVietnam(clock.GetUtcNow()).Date)
                     : new PublicTrackResultDto(bill, Found: false))

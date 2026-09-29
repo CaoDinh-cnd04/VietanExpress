@@ -28,6 +28,27 @@ internal static class LegacyTrackingMapper
             string.IsNullOrEmpty(destination) ? null : destination,
             string.IsNullOrEmpty(service) ? null : service,
             // Trang công khai: không đưa tên người ký nhận.
-            LegacyOrderView.Events(o, hideSigner: true).Select(e => new PublicTrackEventDto(e.Time, e.Title, e.Location)).ToList());
+            LegacyOrderView.Events(o, hideSigner: true).Select(e => new PublicTrackEventDto(e.Time, e.Title, e.Location)).ToList(),
+            Origin: Origin(o),
+            ShipDate: Date(o.SentDate),
+            EstimatedDate: Date(o.PodEstimate),
+            Pieces: o.Pieces,
+            WeightKg: o.WeightKg,
+            CarrierBill: CarrierBill(o));
     }
+
+    /// <summary>ID quốc gia của hệ thống cũ: 231 = Việt Nam (theo dữ liệu hiện có). Chưa có bảng danh mục quốc gia nên chỉ nhận diện Việt Nam.</summary>
+    private const int LegacyVietnamCountryId = 231;
+
+    /// <summary>Nơi gửi: Việt An chỉ nhận hàng xuất đi từ Việt Nam; mã quốc gia khác thì chưa có danh mục để đổi tên → bỏ trống.</summary>
+    private static string? Origin(LegacyOrder o) =>
+        o.SenderCountryId is null or LegacyVietnamCountryId ? "Việt Nam" : null;
+
+    private static string? CarrierBill(LegacyOrder o)
+    {
+        var connect = o.BillConnect?.Trim();
+        return string.IsNullOrEmpty(connect) || connect == o.OrderNumber?.ToString(CultureInfo.InvariantCulture) ? null : connect;
+    }
+
+    private static string? Date(DateTime? value) => value?.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture);
 }

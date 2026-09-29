@@ -59,3 +59,39 @@ public class LegacyTrackingMapperTests
         Assert.Equal("wait", LegacyTrackingMapper.ToResult("x", Row(null), Today).Status);
     }
 }
+
+public class LegacyTrackingDetailTests
+{
+    [Fact]
+    public void Tra_cuu_cong_khai_co_noi_gui_ngay_gui_du_kien_so_kien_can_va_ma_hang()
+    {
+        var o = new LegacyOrder
+        {
+            OrderNumber = 6010839, BillConnect = "4681242285", SenderCountryId = 231, ConsigneeCountry = "New Zealand",
+            SentDate = new DateTime(2026, 1, 5), PodEstimate = new DateTime(2026, 1, 11), Pieces = 1, WeightKg = 1.00m,
+            ServiceName = "DHL|Singapore"
+        };
+
+        var r = LegacyTrackingMapper.ToResult("6010839", o, new DateTime(2026, 9, 29));
+
+        Assert.Equal("Việt Nam", r.Origin);
+        Assert.Equal("05/01/2026", r.ShipDate);
+        Assert.Equal("11/01/2026", r.EstimatedDate);
+        Assert.Equal(1, r.Pieces);
+        Assert.Equal(1.00m, r.WeightKg);
+        Assert.Equal("4681242285", r.CarrierBill);
+    }
+
+    [Fact]
+    public void Ma_hang_trung_so_VA_hoac_thieu_du_lieu_thi_bo_trong()
+    {
+        var o = new LegacyOrder { OrderNumber = 6003584, BillConnect = "6003584", SenderCountryId = 999 };
+
+        var r = LegacyTrackingMapper.ToResult("6003584", o, new DateTime(2026, 9, 29));
+
+        Assert.Null(r.CarrierBill);
+        Assert.Null(r.Origin);      // mã quốc gia lạ → chưa có danh mục để đổi tên
+        Assert.Null(r.ShipDate);
+        Assert.Null(r.EstimatedDate);
+    }
+}
