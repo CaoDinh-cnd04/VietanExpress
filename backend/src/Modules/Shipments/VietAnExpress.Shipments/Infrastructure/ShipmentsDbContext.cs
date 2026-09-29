@@ -14,6 +14,10 @@ internal sealed class ShipmentsDbContext(DbContextOptions<ShipmentsDbContext> op
     /// <summary>Bảng vận đơn hệ thống cũ dbo.MaVanDon — không thuộc migration của module.</summary>
     public DbSet<Legacy.LegacyOrder> LegacyOrders => Set<Legacy.LegacyOrder>();
 
+    /// <summary>Chi tiết kiện (dbo.MaVanDon_PCS_DIM) và dòng hàng invoice (dbo.MaVanDon_ChiTietHang) của vận đơn — không thuộc migration.</summary>
+    public DbSet<Legacy.LegacyPackageLine> LegacyPackageLines => Set<Legacy.LegacyPackageLine>();
+    public DbSet<Legacy.LegacyInvoiceLine> LegacyInvoiceLines => Set<Legacy.LegacyInvoiceLine>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema(Schema);

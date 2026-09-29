@@ -124,7 +124,7 @@ internal static partial class ExcelOrderParser
             // GW_n là tổng cân của dòng kiện; form đơn lưu cân 1 kiện.
             packages.Add(new OrderPayload.PackagePart
             {
-                Qty = Text(count), Length = Text(l), Width = Text(w), Height = Text(h),
+                Type = row[$"pack_type_{n}"].ToUpperInvariant(), Qty = Text(count), Length = Text(l), Width = Text(w), Height = Text(h),
                 Weight = Text(count > 0 ? decimal.Round(gw / count, 3, MidpointRounding.AwayFromZero) : gw)
             });
         }

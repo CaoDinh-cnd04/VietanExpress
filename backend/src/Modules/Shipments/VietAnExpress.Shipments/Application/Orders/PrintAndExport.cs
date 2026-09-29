@@ -39,20 +39,24 @@ internal sealed class PrintOrdersHandler(
             .ToListAsync(ct);
         if (orders.Count == 0) return OrderErrors.NotFound(string.Join(", ", bills));
 
-        var details = await LoadDraftDetailsAsync(orders, ct);
+        // Ưu tiên 2 bảng chi tiết (dùng chung với hệ thống cũ); đơn cấp bill trước khi có 2 bảng → lấy form nháp đã in.
+        var lines = await LegacyOrderLinesReader.LoadAsync(db, orders, ct);
+        var details = await LoadDraftDetailsAsync(orders.Where(o => !lines.ContainsKey(o.Id)).ToList(), ct);
         // Giữ đúng thứ tự khách chọn.
         var models = bills
             .Select(b => orders.FirstOrDefault(o => LegacyOrderView.BillOf(o) == b || o.BillConnect == b))
             .OfType<LegacyOrder>()
             .DistinctBy(o => o.Id)
-            .Select(o => details.TryGetValue(o.OrderNumber ?? 0, out var d) ? new OrderPrintModel(o, d.Items, d.Packages) : new OrderPrintModel(o, []))
+            .Select(o => lines.TryGetValue(o.Id, out var l) ? new OrderPrintModel(o, l.Items, l.Packages)
+                : details.TryGetValue(o.OrderNumber ?? 0, out var d) ? new OrderPrintModel(o, d.Items, d.Packages)
+                : new OrderPrintModel(o, []))
             .ToList();
 
         var now = VietnamTime.ToVietnam(clock.GetUtcNow()).DateTime;
         return OrderDocumentRenderer.Render(q.Doc, models, company.Value, now);
     }
 
-    /// <summary>Đơn tạo trên portal còn giữ form (nháp đã in) → lấy đủ dòng hàng cho invoice, dòng kiện cho bill.</summary>
+    /// <summary>Đơn tạo trên portal còn giữ form (nháp đã in) → lấy dòng hàng cho invoice, dòng kiện cho bill.</summary>
     private async Task<Dictionary<long, (IReadOnlyList<PrintItem> Items, IReadOnlyList<PrintPackage> Packages)>> LoadDraftDetailsAsync(List<LegacyOrder> orders, CancellationToken ct)
     {
         var numbers = orders.Select(o => o.OrderNumber).OfType<long>().ToList();

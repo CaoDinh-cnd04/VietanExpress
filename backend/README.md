@@ -144,7 +144,8 @@ Khách hàng và vận đơn thật hiện vẫn nằm ở `dbo.TCustomer` và `
 - **Đơn hàng (`/orders`, `/drafts`)**: đọc **và ghi** thẳng `dbo.MaVanDon`, vì hệ thống cũ (kho, vận hành) vẫn chạy song song trên bảng này:
   - `GET /orders`, `GET /orders/{bill}`, `/events`: đọc `MaVanDon`. Khách chỉ thấy dòng có `CustomerID` bằng mã khách cũ của mình; nhân viên thấy tất cả. Trạng thái suy ra từ `POD`, `POD_Est`, `Sent_Date` (xem `LegacyOrderStatus`).
   - Đơn nháp lưu ở `shipments.OrderDrafts` (dữ liệu tạm của portal). `POST /drafts/{id}/print` cấp số vận đơn và ghi 1 dòng vào `MaVanDon`, trong cùng transaction với việc xoá nháp.
-  - `POST /orders/import` (tạo từ file Excel mẫu) ghi thẳng vào `MaVanDon`, kèm lưu form (nháp đã in) để in bill / invoice đủ kiện và dòng hàng.
+  - `POST /orders/import` (tạo từ file Excel mẫu) ghi thẳng vào `MaVanDon`, kèm lưu form (nháp đã in) để nhân bản đơn.
+  - Cấp bill (in nháp hoặc import Excel) ghi thêm chi tiết kiện vào `dbo.MaVanDon_PCS_DIM` và dòng hàng invoice vào `dbo.MaVanDon_ChiTietHang` (khoá `MaVanDonID` = `MaVanDon.ID`), cùng transaction. `TrongLuong` / `QuiDoi` / `ChargeWeight` là tổng của dòng kiện; chứng từ không ghi dòng kiện. In bill / invoice đọc 2 bảng này trước, không có thì lấy form nháp. 2 bảng không nằm trong migration (`ExcludeFromMigrations`).
   - **Số vận đơn** của portal lấy từ dải riêng, bắt đầu từ **90.000.001** (sequence `shipments.LegacyOrderNumberSequence`), để không trùng số hệ thống cũ cấp (hiện khoảng 6 triệu).
   - Giá trị ghi theo dữ liệu cũ đang có: `Service = 1`, `Status = 1`, `Dich_Vu` dạng `DHL|Singapore`, `ConsigneeEmail = ''` (cột NOT NULL). Chưa ghi `SenderCountryID` / `ConsigneeCountryID`, vì database chưa có bảng danh mục quốc gia.
   - Chỉ tài khoản khách hàng đã liên kết mã khách cũ mới tạo đơn được. Nhân viên vẫn tạo đơn trên hệ thống nội bộ.

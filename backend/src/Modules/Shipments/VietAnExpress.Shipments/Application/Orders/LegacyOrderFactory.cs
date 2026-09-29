@@ -75,6 +75,66 @@ internal static class LegacyOrderFactory
         };
     }
 
+    public const string DefaultPackType = "CARTON";
+
+    /// <summary>
+    /// Dòng kiện (dbo.MaVanDon_PCS_DIM) cho vận đơn <paramref name="orderId"/>: cân / quy đổi / cân tính cước là tổng của dòng,
+    /// kích thước làm tròn lên cm. Chứng từ không ghi kiện (form chứng từ không có chi tiết kiện).
+    /// </summary>
+    public static List<LegacyPackageLine> PackageLines(OrderPayload p, int orderId)
+    {
+        if (string.Equals(p.Shipment.Type, "DOC", StringComparison.OrdinalIgnoreCase)) return [];
+        return p.Packages
+            .Select(k => (Part: k, Qty: (int)Num(k.Qty), L: Num(k.Length), W: Num(k.Width), H: Num(k.Height), Kg: Num(k.Weight)))
+            .Where(k => k.Qty > 0 && (k.Kg > 0 || k.L * k.W * k.H > 0))
+            .Select(k =>
+            {
+                var weight = Round(k.Qty * k.Kg);
+                var volumetric = Round(k.Qty * k.L * k.W * k.H / ShippingRules.VolumetricDivisor);
+                return new LegacyPackageLine
+                {
+                    OrderId = orderId,
+                    Quantity = k.Qty,
+                    PackType = Clip(k.Part.Type.ToUpperInvariant(), 50) ?? DefaultPackType,
+                    LengthCm = (int)Math.Ceiling(k.L),
+                    WidthCm = (int)Math.Ceiling(k.W),
+                    HeightCm = (int)Math.Ceiling(k.H),
+                    WeightKg = weight,
+                    VolumetricKg = volumetric,
+                    ChargeableKg = ShippingRules.ChargeableWeight(weight, volumetric)
+                };
+            })
+            .ToList();
+    }
+
+    /// <summary>Dòng hàng invoice (dbo.MaVanDon_ChiTietHang) cho vận đơn <paramref name="orderId"/>.</summary>
+    public static List<LegacyInvoiceLine> InvoiceLines(OrderPayload p, int orderId)
+    {
+        var currency = Clip(string.IsNullOrWhiteSpace(p.Invoice.Currency) ? "USD" : p.Invoice.Currency, 150);
+        return p.Invoice.Items
+            .Where(i => !string.IsNullOrWhiteSpace(i.DescEn))
+            .Select(i =>
+            {
+                var qty = Num(i.Qty);
+                var price = Num(i.Price);
+                return new LegacyInvoiceLine
+                {
+                    OrderId = orderId,
+                    DescriptionEn = Clip(i.DescEn, 500),
+                    DescriptionVi = Clip(i.DescVi, 500),
+                    Quantity = qty,
+                    Unit = Clip(string.IsNullOrWhiteSpace(i.Unit) ? "PCS" : i.Unit, 50),
+                    UnitPrice = price,
+                    Amount = Round(qty * price),
+                    HsCode = Clip(i.Hs, 500),
+                    Manufacturer = Clip(i.Manufacturer, 999),
+                    Origin = Clip(i.Origin, 300),
+                    Currency = currency
+                };
+            })
+            .ToList();
+    }
+
     /// <summary>"DHL - Singapore" → "DHL|Singapore" (định dạng cột Dich_Vu của hệ thống cũ).</summary>
     public static string ServiceName(string hub, string carrier)
     {

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using VietAnExpress.Shipments.Infrastructure;
 
@@ -12,9 +13,11 @@ using VietAnExpress.Shipments.Infrastructure;
 namespace VietAnExpress.Shipments.Infrastructure.Migrations
 {
     [DbContext(typeof(ShipmentsDbContext))]
-    partial class ShipmentsDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260929123938_MapLegacyOrderLines")]
+    partial class MapLegacyOrderLines
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

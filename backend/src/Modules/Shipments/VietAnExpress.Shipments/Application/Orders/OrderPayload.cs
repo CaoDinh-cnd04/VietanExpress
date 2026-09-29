@@ -69,6 +69,8 @@ internal sealed class OrderPayload
 
     internal sealed class PackagePart
     {
+        /// <summary>Loại bao bì (CARTON, BAG…) — trống thì ghi CARTON.</summary>
+        public string Type { get; init; } = "";
         public string Qty { get; init; } = "";
         public string Length { get; init; } = "";
         public string Width { get; init; } = "";

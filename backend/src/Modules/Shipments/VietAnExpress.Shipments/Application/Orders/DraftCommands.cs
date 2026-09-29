@@ -117,12 +117,21 @@ internal sealed class PrintDraftHandler(
 
         var number = await numbers.NextAsync(ct);
         var today = VietnamTime.ToVietnam(clock.GetUtcNow()).Date;
-        db.LegacyOrders.Add(LegacyOrderFactory.FromPayload(payload, writer.Value, number, today));
-        draft.MarkPrinted(number);
-        db.OrderDrafts.Remove(draft); // xoá mềm — vẫn giữ form để in invoice
 
-        // 1 lần SaveChanges = 1 transaction: ghi đơn vào MaVanDon và xoá nháp cùng thành công hoặc cùng huỷ.
-        await db.SaveChangesAsync(ct);
+        // 1 transaction: ghi MaVanDon + chi tiết kiện / dòng hàng và xoá nháp cùng thành công hoặc cùng huỷ.
+        await db.Database.CreateExecutionStrategy().ExecuteAsync(async () =>
+        {
+            db.ChangeTracker.Clear();
+            await using var tx = await db.Database.BeginTransactionAsync(ct);
+            var order = LegacyOrderFactory.FromPayload(payload, writer.Value, number, today);
+            db.LegacyOrders.Add(order);
+            db.OrderDrafts.Attach(draft);
+            draft.MarkPrinted(number);
+            db.OrderDrafts.Remove(draft); // xoá mềm — vẫn giữ form để mở lại / nhân bản
+            await db.SaveChangesAsync(ct);
+            await LegacyOrderLinesWriter.AddAsync(db, [(order, payload)], ct);
+            await tx.CommitAsync(ct);
+        });
         var bill = number.ToString(CultureInfo.InvariantCulture);
         return new PrintDraftResponse($"Đã cấp mã vận đơn {bill}", bill);
     }

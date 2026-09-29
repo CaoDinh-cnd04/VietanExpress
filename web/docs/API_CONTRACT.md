@@ -99,7 +99,7 @@ Phản hồi:
 } }
 ```
 
-`bill` chỉ có ở `/orders/import`. Lỗi cả file (sai định dạng, thiếu cột, quá 100 dòng, chọn dịch vụ mà thiếu hub) → 400 kèm `message`.
+`bill` chỉ có ở `/orders/import`. Mỗi đơn tạo ra được ghi kèm chi tiết kiện (`dbo.MaVanDon_PCS_DIM`) và dòng hàng (`dbo.MaVanDon_ChiTietHang`). Lỗi cả file (sai định dạng, thiếu cột, quá 100 dòng, chọn dịch vụ mà thiếu hub) → 400 kèm `message`.
 
 ---
 

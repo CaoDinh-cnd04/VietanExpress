@@ -1,4 +1,5 @@
 using VietAnExpress.Shipments.Application.Orders;
+using VietAnExpress.Shipments.Application.Orders.Documents;
 using VietAnExpress.Shipments.Infrastructure.Legacy;
 using Xunit;
 
@@ -71,6 +72,59 @@ public class LegacyOrderFactoryTests
     public void Dich_vu_dang_hang_gach_dung_hub(string hub, string carrier, string expected) =>
         Assert.Equal(expected, LegacyOrderFactory.ServiceName(hub, carrier));
 
+    [Fact]
+    public void Dong_kien_ghi_MaVanDon_PCS_DIM_can_la_tong_cua_dong()
+    {
+        var p = Payload("PACK",
+            new OrderPayload.PackagePart { Type = "bag", Qty = "2", Weight = "5", Length = "40", Width = "30", Height = "20.5" },
+            new OrderPayload.PackagePart { Qty = "1", Weight = "1", Length = "10", Width = "10", Height = "10" },
+            new OrderPayload.PackagePart { Qty = "", Weight = "", Length = "", Width = "", Height = "" }); // dòng trống bị bỏ
+
+        var lines = LegacyOrderFactory.PackageLines(p, 850976);
+
+        Assert.Equal(2, lines.Count);
+        var a = lines[0];
+        Assert.Equal((850976, 2, "BAG", 40, 30, 21), (a.OrderId, a.Quantity, a.PackType, a.LengthCm, a.WidthCm, a.HeightCm));
+        Assert.Equal(10m, a.WeightKg);          // 2 × 5
+        Assert.Equal(9.84m, a.VolumetricKg);    // 2 × 40×30×20.5 / 5000
+        Assert.Equal(10m, a.ChargeableKg);
+        Assert.Equal(LegacyOrderFactory.DefaultPackType, lines[1].PackType);
+    }
+
+    [Fact]
+    public void Chung_tu_khong_ghi_dong_kien()
+    {
+        var p = Payload("DOC", new OrderPayload.PackagePart { Qty = "1", Weight = "0.5", Length = "30", Width = "20", Height = "1" });
+        Assert.Empty(LegacyOrderFactory.PackageLines(p, 1));
+    }
+
+    [Fact]
+    public void Dong_hang_ghi_MaVanDon_ChiTietHang()
+    {
+        var p = Payload();
+        p.Invoice.Items.Add(new OrderPayload.InvoiceItemPart
+        {
+            DescEn = "Dress", DescVi = "Đầm", Manufacturer = "LE GA CO., LTD", Origin = "VN", Hs = "62044220", Qty = "3", Unit = "", Price = "12.5"
+        });
+        p.Invoice.Items.Add(new OrderPayload.InvoiceItemPart { DescEn = " ", Qty = "1", Price = "1" }); // không tên hàng → bỏ
+
+        var lines = LegacyOrderFactory.InvoiceLines(p, 7);
+
+        Assert.Equal(2, lines.Count);
+        var d = lines[1];
+        Assert.Equal((7, "Dress", "Đầm", "LE GA CO., LTD", "VN", "62044220"), (d.OrderId!.Value, d.DescriptionEn, d.DescriptionVi, d.Manufacturer, d.Origin, d.HsCode));
+        Assert.Equal((3m, "PCS", 12.5m, 37.5m, "SGD"), (d.Quantity!.Value, d.Unit, d.UnitPrice!.Value, d.Amount!.Value, d.Currency));
+    }
+
+    [Fact]
+    public void Doc_lai_2_bang_de_in_can_1_kien_va_ten_hang()
+    {
+        var pkg = LegacyOrderLinesReader.ToPrint(new LegacyPackageLine { Quantity = 2, LengthCm = 40, WidthCm = 30, HeightCm = 21, WeightKg = 10 });
+        Assert.Equal(new PrintPackage(2, 40, 30, 21, 5), pkg);
+
+        var item = LegacyOrderLinesReader.ToPrint(new LegacyInvoiceLine { DescriptionEn = "Dress", DescriptionVi = "Đầm", Quantity = 3, UnitPrice = 12.5m });
+        Assert.Equal(("Dress (Đầm)", "PCS", 37.5m), (item.Description, item.Unit, item.Amount));
+    }
 }
 
 public class LegacyOrderViewTests

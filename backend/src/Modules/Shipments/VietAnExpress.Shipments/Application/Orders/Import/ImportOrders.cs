@@ -123,7 +123,7 @@ internal sealed class ImportOrdersHandler(
     }
 
     /// <summary>
-    /// Ghi các đơn vào dbo.MaVanDon; kèm lưu form (nháp đã in, xoá mềm) để in bill / invoice đủ kiện và dòng hàng.
+    /// Ghi các đơn vào dbo.MaVanDon + chi tiết kiện / dòng hàng vào 2 bảng chi tiết; kèm lưu form (nháp đã in, xoá mềm) để nhân bản đơn.
     /// Tất cả trong 1 transaction: lỗi thì không đơn nào được tạo.
     /// </summary>
     private async Task<Dictionary<int, string>> CreateAsync(List<ImportedRow> rows, LegacyCustomerRef customer, string branch, CancellationToken ct)
@@ -139,16 +139,21 @@ internal sealed class ImportOrdersHandler(
             await using var tx = await db.Database.BeginTransactionAsync(ct);
 
             var drafts = new List<OrderDraft>();
+            var saved = new List<(Infrastructure.Legacy.LegacyOrder, OrderPayload)>();
             foreach (var (row, number) in planned)
             {
                 var order = LegacyOrderFactory.FromPayload(row.Payload, customer, number, today);
                 db.LegacyOrders.Add(order);
+                saved.Add((order, row.Payload));
                 var draft = new OrderDraft(user.CustomerId, Summary(row, order, branch), JsonSerializer.Serialize(row.Payload, Json));
                 draft.MarkPrinted(number);
                 drafts.Add(draft);
             }
             db.OrderDrafts.AddRange(drafts);
             await db.SaveChangesAsync(ct);
+
+            // Có MaVanDon.ID rồi mới ghi chi tiết kiện (MaVanDon_PCS_DIM) và dòng hàng (MaVanDon_ChiTietHang).
+            await LegacyOrderLinesWriter.AddAsync(db, saved, ct);
 
             // Xoá mềm ngay để không hiện trong "Đơn nháp & chưa in" — chỉ giữ để in chứng từ.
             db.OrderDrafts.RemoveRange(drafts);
