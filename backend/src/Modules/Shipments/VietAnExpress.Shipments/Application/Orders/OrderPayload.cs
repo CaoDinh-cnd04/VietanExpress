@@ -83,6 +83,8 @@ internal sealed class OrderPayload
         public string ExportType { get; init; } = "";
         public string Currency { get; init; } = "USD";
         public string ShippingFee { get; init; } = "";
+        /// <summary>Tổng giá trị khai báo khi không có dòng hàng (vd chứng từ nhập từ Excel, cột Invoice_Value).</summary>
+        public string DeclaredValue { get; init; } = "";
         public List<InvoiceItemPart> Items { get; init; } = [];
     }
 
@@ -96,33 +98,5 @@ internal sealed class OrderPayload
         public string Qty { get; init; } = "";
         public string Unit { get; init; } = "";
         public string Price { get; init; } = "";
-    }
-}
-
-/// <summary>1 dòng file Excel "Tạo đơn từ Excel" — POST /orders/batch (web/src/features/order-import).</summary>
-internal sealed class BatchOrderRow
-{
-    public string Ref { get; init; } = "";
-    public string Service { get; init; } = "";
-    public string Hub { get; init; } = "";
-    public string Branch { get; init; } = "";
-    public string Cnee { get; init; } = "";
-    public string Ct { get; init; } = "";
-    public BatchReceiver Receiver { get; init; } = new();
-    /// <summary>Vd "1 kiện · 2.5 kg".</summary>
-    public string Pcs { get; init; } = "";
-    public string Content { get; init; } = "";
-    public decimal? DeclaredValue { get; init; }
-
-    internal sealed class BatchReceiver
-    {
-        public string Company { get; init; } = "";
-        public string Contact { get; init; } = "";
-        public string Tel { get; init; } = "";
-        public string Country { get; init; } = "";
-        public string City { get; init; } = "";
-        public string Postal { get; init; } = "";
-        public string Addr1 { get; init; } = "";
-        public string Addr2 { get; init; } = "";
     }
 }

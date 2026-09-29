@@ -29,7 +29,8 @@ Backend mới (SQL Server) chỉ cần làm đúng các hợp đồng này là f
 |---|---|---|---|
 | GET | `/orders` | Có sẵn | Danh sách có lọc, sắp xếp, phân trang |
 | GET | `/orders/:bill` | Có sẵn | Chi tiết 1 đơn (dùng cho "Nhân bản đơn"): `Order` + `shipper { company, contact, tel, address, taxId, email }` + `receiver { company, contact, tel, country, city, postal, state, addr1, addr2, addr3, taxId, email }` |
-| POST | `/orders/batch` | Có sẵn | Tạo nhiều đơn (≤ 100) — trang "Tạo đơn từ Excel" |
+| POST | `/orders/import/preview` | Có sẵn | Kiểm tra file Excel tạo đơn (multipart), chưa tạo đơn — trang "Tạo đơn từ Excel" |
+| POST | `/orders/import` | Có sẵn | Kiểm tra lại file và tạo đơn cho các dòng hợp lệ (≤ 100), cấp số vận đơn ngay |
 | DELETE | `/orders/:bill` | Có sẵn | Hủy đơn (chỉ đơn "Chưa đi") |
 | GET | `/orders/:bill/photos` | **Mới** | Ảnh kiện chụp tại kho |
 | GET | `/orders/:bill/events` | **Mới** | Hành trình đơn |
@@ -74,18 +75,31 @@ Phản hồi (`OrderListResponse`):
 { "data": [{ "time": "09/09/2026 06:40", "title": "Đến kho nước đến", "location": "Singapore" }] }
 ```
 
-### POST `/orders/batch` — body
+### POST `/orders/import/preview` và `/orders/import` — multipart/form-data
+
+| Trường | Bắt buộc | Mô tả |
+|---|---|---|
+| `file` | có | File **.xlsx** theo mẫu `web/public/templates/Mau_Excel_Tao_Don.xlsx` (sheet `DATA`, dòng 1 tiêu đề, dòng 2 chú thích, dữ liệu từ dòng 3; ≤ 5 MB, ≤ 100 dòng) |
+| `service` | không | Dịch vụ áp cho cả file (vd `DHL`). Không gửi → lấy cột `Service` / `HUB` trong file nếu có |
+| `hub` | khi có `service` | Vd `DHL - Singapore` |
+| `branch` | không | Chi nhánh gửi |
+
+Cột file (không phân biệt hoa thường): `Ref_No, Shipper_att, Shipper_Tel, Shipper_Tax, Shipper_Email, Cnee_country_Code, Cnee_company, Cnee_contact_name, Cnee_Tel, Cnee_Email, Cnee_TaxID, Cnee_Postalcode, Cnee_City, Cnee_State, Add1, Add2, Add3, Type (D|P), Description, Currency, Export_Type, Invoice_Value, Shipping_fee`; nhóm kiện `Qty_Pack_n, Pack_Type_n, L_n, W_n, H_n, GW_n` (GW là tổng cân của dòng kiện); nhóm hàng `Product_en_n, Product_vn_n, Manufacturer_n, Org_Country_n, HS_Code_n, Qty_n, Unit_n, Unit_Price_n` (n ≤ 50).
+
+Kiểm tra: bắt buộc theo sheet HƯỚNG DẪN; mã nước 2 ký tự; bang bắt buộc với US/CA/AU; Add1, Add2 ≤ 30 ký tự; Description ≤ 50; HS code 6/8/10 chữ số; hàng hoá cần ≥ 1 sản phẩm và đủ D×R×C; chứng từ > 2 kg tự chuyển hàng hoá (cảnh báo). Ref_No trùng trong file hoặc đã có đơn → cảnh báo.
+
+Phản hồi:
 
 ```json
-{ "orders": [{
-  "ref": "PO-1001", "route": "Chuyên tuyến - Singapore", "service": "Chuyên tuyến", "hub": "Chuyên tuyến - Singapore",
-  "branch": "TP.HCM", "cnee": "LINEX CO. LTD", "ct": "Singapore",
-  "receiver": { "company": "", "contact": "", "tel": "", "country": "", "city": "", "postal": "", "addr1": "", "addr2": "" },
-  "pcs": "1 kiện · 2.5 kg", "content": "Women dress", "declaredValue": 40
-}]}
+{ "success": true, "message": "Đã tạo 2 đơn", "data": {
+  "total": 3, "valid": 2, "invalid": 1, "created": 2,
+  "rows": [{ "line": 3, "ref": "ABC12345", "type": "PACK", "consignee": "ABC LOGISTICS US", "countryCode": "US", "country": "United States",
+    "city": "SAN ANGELO", "pieces": 1, "weightKg": 5, "chargeableKg": 7.2, "value": 100, "currency": "USD", "products": 1,
+    "errors": [], "warnings": [], "bill": "90000012" }]
+} }
 ```
 
-Phản hồi: `{ "success": true, "message": "Đã tạo 12 đơn", "data": Order[] }`.
+`bill` chỉ có ở `/orders/import`. Lỗi cả file (sai định dạng, thiếu cột, quá 100 dòng, chọn dịch vụ mà thiếu hub) → 400 kèm `message`.
 
 ---
 

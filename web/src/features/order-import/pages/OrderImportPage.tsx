@@ -1,102 +1,217 @@
 import { useState } from 'react';
 import { getErrorMessage } from '@/shared/api/http';
 import { BRANCHES, CARRIER_HUBS, CARRIERS } from '@/shared/config/domain';
-import { downloadTextFile, parseCsv, readFileAsText, toCsv } from '@/shared/lib/files';
 import { Button, Card, DataTable, FileDrop, FormGrid, Icon, LinkButton, Notice, PageHeader, SelectField, StatusPill, type Column } from '@/shared/ui';
-import { useBatchCreateOrders } from '../api';
-import { IMPORT_COLUMNS, missingHeaders, templateRows, toBatchOrder, validateRows, type ValidatedRow } from '../lib/import-rows';
+import { useCommitImport, usePreviewImport } from '../api';
+import { IMPORT_GUIDE, IMPORT_LIMITS, IMPORT_TEMPLATE_URL } from '../constants';
+import { checkImportFile, formatKg, formatMoney, rowState, serviceHubError, sortRows } from '../lib/import-rows';
+import type { ImportDefaults, ImportResult, ImportRow } from '../types';
 import styles from './OrderImportPage.module.css';
 
-/** Tối đa mỗi lần gửi — khớp giới hạn batch của API. */
-const BATCH_LIMIT = 100;
-const PREVIEW_COLS = IMPORT_COLUMNS.filter(c => ['ref', 'receiverCompany', 'country', 'city', 'pieces', 'weightKg', 'content'].includes(c.field));
+const TEMPLATE_NAME = 'Mau_Excel_Tao_Don.xlsx';
 
 export default function OrderImportPage() {
-  const [service, setService] = useState('Chuyên tuyến');
-  const [hub, setHub] = useState(CARRIER_HUBS['Chuyên tuyến']?.[0] ?? '');
-  const [branch, setBranch] = useState('TP.HCM');
-  const [fileName, setFileName] = useState('');
+  const [defaults, setDefaults] = useState<ImportDefaults>({ service: '', hub: '', branch: 'TP.HCM' });
+  const [file, setFile] = useState<File | null>(null);
   const [fileError, setFileError] = useState('');
-  const [rows, setRows] = useState<ValidatedRow[]>([]);
+  const [result, setResult] = useState<ImportResult | null>(null);
 
-  const valid = rows.filter(r => !r.errors.length);
-  const invalid = rows.length - valid.length;
+  const preview = usePreviewImport();
+  const commit = useCommitImport();
+  const hubError = serviceHubError(defaults);
+  const created = (result?.created ?? 0) > 0;
 
-  const submit = useBatchCreateOrders();
-
-  const onFile = async (file: File) => {
-    submit.reset();
-    setFileName(file.name);
-    setRows([]);
-    if (!/\.csv$/i.test(file.name)) return setFileError('Chỉ nhận file .csv. Với file Excel, hãy lưu lại dạng CSV UTF-8.');
-    const { headers, rows: raw } = parseCsv(await readFileAsText(file));
-    const missing = missingHeaders(headers);
-    if (missing.length) return setFileError(`File thiếu cột bắt buộc: ${missing.join(', ')}. Vui lòng dùng file mẫu.`);
-    if (!raw.length) return setFileError('File không có dòng dữ liệu nào.');
-    if (raw.length > BATCH_LIMIT) return setFileError(`Mỗi lần tối đa ${BATCH_LIMIT} đơn — file có ${raw.length} dòng. Vui lòng tách file.`);
-    setFileError('');
-    setRows(validateRows(raw));
+  const check = (f: File) => {
+    commit.reset();
+    setResult(null);
+    preview.mutate({ file: f, defaults }, { onSuccess: res => setResult(res.data) });
   };
 
-  const columns: ReadonlyArray<Column<ValidatedRow>> = [
-    { key: 'line', header: 'Dòng', width: 60, render: r => r.line },
-    ...PREVIEW_COLS.map(c => ({ key: c.field, header: c.header, render: (r: ValidatedRow) => r.data[c.field] || <span className={styles.muted}>—</span> })),
+  const onFile = (f: File) => {
+    setFile(f);
+    setResult(null);
+    preview.reset();
+    commit.reset();
+    const error = checkImportFile(f);
+    setFileError(error ?? '');
+    if (!error) check(f);
+  };
+
+  const create = () => {
+    if (!file || hubError) return;
+    commit.mutate({ file, defaults }, { onSuccess: res => setResult(res.data) });
+  };
+
+  const setService = (service: string) => setDefaults(d => ({ ...d, service, hub: CARRIER_HUBS[service]?.[0] ?? '' }));
+
+  const columns: ReadonlyArray<Column<ImportRow>> = [
+    { key: 'line', header: 'Dòng', width: 56, align: 'center', render: r => r.line },
+    { key: 'ref', header: 'Ref_No', render: r => r.ref || <span className={styles.muted}>—</span> },
+    { key: 'type', header: 'Loại', className: styles.nowrap, render: r => (r.type === 'DOC' ? 'Chứng từ' : 'Hàng hoá') },
     {
-      key: 'result',
-      header: 'Kiểm tra',
-      render: r => (r.errors.length ? <span className={styles.error}>{r.errors.join(' · ')}</span> : <StatusPill tone="brand">Hợp lệ</StatusPill>)
-    }
+      key: 'cnee',
+      header: 'Người nhận',
+      render: r => (
+        <div className={styles.cnee}>
+          <strong>{r.consignee || '—'}</strong>
+          <span className={styles.muted}>{[r.city, r.countryCode].filter(Boolean).join(', ')}</span>
+        </div>
+      )
+    },
+    { key: 'pcs', header: 'Kiện', width: 56, align: 'right', render: r => r.pieces },
+    { key: 'gw', header: 'Cân thực', align: 'right', className: styles.nowrap, render: r => formatKg(r.weightKg) },
+    { key: 'cw', header: 'Cân tính cước', align: 'right', className: styles.nowrap, render: r => <strong>{formatKg(r.chargeableKg)}</strong> },
+    { key: 'value', header: 'Giá trị', align: 'right', className: styles.nowrap, render: r => formatMoney(r.value, r.currency) },
+    { key: 'products', header: 'Mặt hàng', width: 72, align: 'right', render: r => r.products || '—' },
+    { key: 'result', header: 'Kết quả', width: '30%', render: r => <RowResult row={r} /> }
   ];
 
   return (
     <>
       <PageHeader
         title="Tạo đơn từ Excel"
-        description="Tạo nhiều đơn cùng lúc: chọn dịch vụ mặc định → điền file mẫu → tải lên → kiểm tra → tạo đơn."
+        description="Tạo nhiều đơn cùng lúc từ file Excel mẫu: chọn dịch vụ (nếu cần) → tải file lên → kiểm tra → tạo đơn."
         actions={
-          <Button size="sm" onClick={() => downloadTextFile('VietAn_Mau_Tao_Don.csv', toCsv(templateRows()))}>
+          <LinkButton to={IMPORT_TEMPLATE_URL} reloadDocument download={TEMPLATE_NAME} size="sm">
             <Icon name="download" size={15} /> Tải file mẫu
-          </Button>
+          </LinkButton>
         }
       />
       <div className="page-stack">
-        <Card title="1. Dịch vụ mặc định cho cả file">
+        <Card title="1. Dịch vụ áp cho cả file" subtitle="(không bắt buộc)">
           <FormGrid columns={3}>
-            <SelectField label="Dịch vụ" options={CARRIERS} value={service} onChange={e => { setService(e.target.value); setHub(CARRIER_HUBS[e.target.value]?.[0] ?? ''); }} />
-            <SelectField label="Hub" options={CARRIER_HUBS[service] ?? []} value={hub} onChange={e => setHub(e.target.value)} />
-            <SelectField label="Chi nhánh gửi" options={BRANCHES} value={branch} onChange={e => setBranch(e.target.value)} />
+            <SelectField
+              label="Dịch vụ"
+              placeholder="Không chọn — theo file"
+              options={CARRIERS}
+              value={defaults.service}
+              onChange={e => setService(e.target.value)}
+            />
+            <SelectField
+              label="Hub"
+              placeholder="Chọn hub"
+              required={!!defaults.service}
+              disabled={!defaults.service}
+              options={CARRIER_HUBS[defaults.service] ?? []}
+              value={defaults.hub}
+              error={hubError ?? undefined}
+              onChange={e => setDefaults(d => ({ ...d, hub: e.target.value }))}
+            />
+            <SelectField label="Chi nhánh gửi" options={BRANCHES} value={defaults.branch} onChange={e => setDefaults(d => ({ ...d, branch: e.target.value }))} />
           </FormGrid>
+          <p className={styles.hint}>Không bắt buộc chọn dịch vụ, nhưng nếu đã chọn dịch vụ thì cần chọn hub. Dịch vụ chọn ở đây áp cho mọi đơn trong file.</p>
         </Card>
 
         <Card title="2. Tải file lên">
-          <FileDrop accept=".csv,text/csv" onFile={f => void onFile(f)} title={fileName || 'Kéo & thả file CSV hoặc bấm để chọn'} hint={`Tối đa ${BATCH_LIMIT} đơn / lần · Excel: File → Save As → CSV UTF-8`} />
-          {fileError && <div className={styles.spaced}><Notice tone="danger">{fileError}</Notice></div>}
+          <FileDrop
+            accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            onFile={onFile}
+            disabled={preview.isPending || commit.isPending}
+            title={file?.name ?? 'Kéo & thả file Excel hoặc bấm để chọn'}
+            hint={`File .xlsx theo mẫu · tối đa ${IMPORT_LIMITS.maxRows} đơn / lần, ${IMPORT_LIMITS.maxMb} MB`}
+          />
+          <p className={styles.hint}>
+            Chưa có file? <a href={IMPORT_TEMPLATE_URL} download={TEMPLATE_NAME}>Tải xuống file mẫu import</a> — điền từ dòng 3 của sheet DATA, giữ nguyên dòng tiêu đề.
+          </p>
+          {fileError && <Notice tone="danger">{fileError}</Notice>}
+          {preview.isPending && <Notice tone="info">Đang kiểm tra file…</Notice>}
+          {preview.isError && <Notice tone="danger">{getErrorMessage(preview.error)}</Notice>}
         </Card>
 
-        {rows.length > 0 && (
+        {result && (
           <Card
             flush
             title="3. Kiểm tra & tạo đơn"
-            subtitle={`· ${valid.length} dòng hợp lệ${invalid ? `, ${invalid} dòng lỗi` : ''}`}
+            subtitle={`· ${result.total} dòng: ${result.valid} hợp lệ${result.invalid ? `, ${result.invalid} lỗi` : ''}`}
             actions={
-              <Button variant="primary" size="sm" disabled={!valid.length || submit.isPending || submit.isSuccess} onClick={() => submit.mutate(valid.map(r => toBatchOrder(r.data, { service, hub, branch })))}>
-                {submit.isPending ? 'Đang tạo…' : `Tạo ${valid.length} đơn`}
-              </Button>
+              <div className={styles.actions}>
+                {!created && file && (
+                  <Button size="sm" onClick={() => check(file)} disabled={preview.isPending || commit.isPending}>
+                    <Icon name="refresh" size={15} /> Kiểm tra lại
+                  </Button>
+                )}
+                <Button variant="primary" size="sm" disabled={!result.valid || !!hubError || commit.isPending || created} onClick={create}>
+                  {commit.isPending ? 'Đang tạo đơn…' : created ? `Đã tạo ${result.created} đơn` : `Tạo ${result.valid} đơn`}
+                </Button>
+              </div>
             }
           >
-            {invalid > 0 && <div className={styles.pad}><Notice tone="warning">Dòng lỗi sẽ bị bỏ qua. Sửa trong file rồi tải lên lại nếu cần.</Notice></div>}
-            {submit.isError && <div className={styles.pad}><Notice tone="danger">{getErrorMessage(submit.error)}</Notice></div>}
-            {submit.isSuccess && (
-              <div className={styles.pad}>
-                <Notice tone="success" title={submit.data.message ?? `Đã tạo ${valid.length} đơn`}>
-                  Đơn đã được cấp mã bill. <LinkButton to="/orders" size="sm" variant="ghost">Xem trong Đơn hàng của tôi</LinkButton>
+            <div className={styles.pad}>
+              {created ? (
+                <Notice tone="success" title={`Đã tạo ${result.created} đơn và cấp số vận đơn`}>
+                  Đơn nằm trong "Đơn hàng của tôi" — in bill, invoice ngay tại đó.{' '}
+                  <LinkButton to="/orders" size="sm" variant="ghost">Xem đơn hàng</LinkButton>
                 </Notice>
-              </div>
-            )}
-            <DataTable caption="Xem trước dữ liệu" columns={columns} rows={rows} rowKey={r => String(r.line)} minWidth={960} />
+              ) : result.invalid > 0 ? (
+                <Notice tone="warning">
+                  {result.valid ? `Chỉ ${result.valid} dòng hợp lệ được tạo đơn; dòng lỗi bị bỏ qua.` : 'Chưa có dòng nào hợp lệ.'} Sửa lỗi trong file rồi tải lên lại.
+                </Notice>
+              ) : (
+                <Notice tone="success">Tất cả dòng hợp lệ. Kiểm tra cảnh báo (nếu có) rồi bấm "Tạo {result.valid} đơn".</Notice>
+              )}
+              {commit.isError && <Notice tone="danger">{getErrorMessage(commit.error)}</Notice>}
+            </div>
+            <DataTable caption="Kết quả kiểm tra từng dòng" columns={columns} rows={sortRows(result.rows)} rowKey={r => String(r.line)} minWidth={1080} />
           </Card>
         )}
+
+        <Card>
+          <details className={styles.guide}>
+            <summary>Hướng dẫn điền file mẫu</summary>
+            <p>
+              Công cụ giúp tạo nhiều đơn cùng lúc: điền file mẫu, tải lên, hệ thống kiểm tra từng dòng rồi tạo đơn cho các dòng hợp lệ.
+              Mỗi đơn là 1 dòng trong sheet <strong>DATA</strong>, dữ liệu bắt đầu từ dòng 3 (dòng 2 là chú thích).
+            </p>
+            {IMPORT_GUIDE.map(section => (
+              <section key={section.title}>
+                <h3>{section.title}</h3>
+                <table className={styles.guideTable}>
+                  <thead>
+                    <tr><th>Cột</th><th>Mô tả</th></tr>
+                  </thead>
+                  <tbody>
+                    {section.columns.map(c => (
+                      <tr key={c.name}>
+                        <td><code>{c.name}</code></td>
+                        <td>{c.description}{c.required && <strong className={styles.required}> — bắt buộc</strong>}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {section.note && <p className={styles.note}>{section.note}</p>}
+              </section>
+            ))}
+            <h3>Quy trình thực hiện</h3>
+            <ol>
+              <li>Tải file mẫu Excel.</li>
+              <li>Điền đầy đủ thông tin vào các cột theo hướng dẫn trên.</li>
+              <li>Chọn dịch vụ / hub nếu muốn áp cho cả file, rồi tải file lên.</li>
+              <li>Xem kết quả kiểm tra, sửa dòng lỗi (nếu có).</li>
+              <li>Bấm "Tạo đơn" — đơn được cấp số vận đơn và có trong "Đơn hàng của tôi".</li>
+            </ol>
+          </details>
+        </Card>
       </div>
     </>
+  );
+}
+
+function RowResult({ row }: { row: ImportRow }) {
+  const state = rowState(row);
+  return (
+    <div className={styles.result}>
+      {state === 'created' && <StatusPill tone="success">Bill {row.bill}</StatusPill>}
+      {state === 'ok' && <StatusPill tone="brand">Hợp lệ</StatusPill>}
+      {row.errors.length > 0 && (
+        <ul className={styles.errors}>
+          {row.errors.map(e => <li key={e}>{e}</li>)}
+        </ul>
+      )}
+      {row.warnings.length > 0 && (
+        <ul className={styles.warnings}>
+          {row.warnings.map(w => <li key={w}>{w}</li>)}
+        </ul>
+      )}
+    </div>
   );
 }

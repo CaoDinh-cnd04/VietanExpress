@@ -49,7 +49,7 @@ npm run build      # xuất web/dist
 - **Quy đổi thể tích:** cân tính cước = `max(cân thực, D×R×C / 5000)`.
 - **Giới hạn kích thước theo hãng:** cảnh báo quá khổ / quá tải, chặn kiện hãng không nhận (`create-order/lib/carrier-limits.ts`).
 - **Vòng đời đơn:** Tạo đơn → Đơn nháp & chưa in → In & cấp bill (backend cấp mã, khóa đơn) → Đơn hàng của tôi.
-- **Import:** tạo đơn từ CSV (`order-import`), invoice từ CSV, CSV e-commerce 70 cột (gửi backend xử lý).
+- **Import:** tạo đơn từ file Excel mẫu `Mau_Excel_Tao_Don.xlsx` (`order-import`, backend đọc và kiểm tra từng dòng), invoice từ CSV, CSV e-commerce 70 cột (gửi backend xử lý).
 
 ## 5. Quy ước bắt buộc
 

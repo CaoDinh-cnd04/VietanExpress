@@ -71,12 +71,6 @@ public class LegacyOrderFactoryTests
     public void Dich_vu_dang_hang_gach_dung_hub(string hub, string carrier, string expected) =>
         Assert.Equal(expected, LegacyOrderFactory.ServiceName(hub, carrier));
 
-    [Fact]
-    public void Doc_so_kien_va_can_tu_chuoi_excel()
-    {
-        Assert.Equal((3, 12.5m), LegacyOrderFactory.ParsePieces("3 kiện · 12.5 kg"));
-        Assert.Equal((1, 0m), LegacyOrderFactory.ParsePieces("abc"));
-    }
 }
 
 public class LegacyOrderViewTests

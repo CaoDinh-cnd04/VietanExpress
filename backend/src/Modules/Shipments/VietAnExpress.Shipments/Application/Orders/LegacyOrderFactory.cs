@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Text.RegularExpressions;
 using VietAnExpress.Shipments.Domain;
 using VietAnExpress.Shipments.Infrastructure.Legacy;
 
@@ -13,7 +12,7 @@ internal sealed record LegacyCustomerRef(long LegacyCustomerId, string CompanyNa
 /// Quy ước ghi theo dữ liệu hệ thống cũ đang có: Service = 1, Status = 1 (đơn mới), Dich_Vu dạng "DHL|Singapore",
 /// ngày tạo là ngày (giờ Việt Nam). Chuỗi được cắt theo độ dài cột để không lỗi khi ghi.
 /// </summary>
-internal static partial class LegacyOrderFactory
+internal static class LegacyOrderFactory
 {
     private const int NewService = 1;
     private const int NewStatus = 1;
@@ -25,6 +24,7 @@ internal static partial class LegacyOrderFactory
         var weight = isDoc ? Num(p.Shipment.GrossWeight) : ChargeableWeight(p.Packages, Num(p.Shipment.GrossWeight));
         var goods = isDoc ? p.Goods.DocContent : p.Goods.Description;
         var value = p.Invoice.Items.Sum(i => Num(i.Qty) * Num(i.Price));
+        if (value == 0) value = Num(p.Invoice.DeclaredValue);
 
         return new LegacyOrder
         {
@@ -75,48 +75,6 @@ internal static partial class LegacyOrderFactory
         };
     }
 
-    public static LegacyOrder FromBatchRow(BatchOrderRow row, LegacyCustomerRef customer, long orderNumber, DateTime todayVn)
-    {
-        var (pieces, weight) = ParsePieces(row.Pcs);
-        return new LegacyOrder
-        {
-            CustomerId = customer.LegacyCustomerId,
-            CustomerName = Clip(customer.CompanyName, 250),
-            OrderNumber = orderNumber,
-            Awb = "",
-            SenderName = Clip(customer.CompanyName, 250),
-            SenderContactName = Clip(customer.ContactName, 100),
-            SenderPhone = Clip(customer.Phone, 50),
-            SenderEmail = Clip(customer.Email, 150),
-
-            ConsigneeName = Clip(Coalesce(row.Receiver.Company, row.Cnee), 250),
-            ConsigneeContactName = Clip(row.Receiver.Contact, 100),
-            ConsigneePhone = Clip(row.Receiver.Tel, 50),
-            ConsigneeEmail = "",
-            ConsigneeAddress1 = Clip(row.Receiver.Addr1, 250),
-            ConsigneeAddress2 = Clip(row.Receiver.Addr2, 250),
-            ConsigneeCity = Clip(row.Receiver.City, 50),
-            ConsigneePostalCode = Clip(row.Receiver.Postal, 50),
-            ConsigneeCountry = Clip(Coalesce(row.Receiver.Country, row.Ct), 50),
-
-            ServiceName = Clip(ServiceName(row.Hub, row.Service), 50),
-            GoodsName = Clip(Coalesce(row.Content, "GOODS"), 150),
-            Pieces = pieces,
-            WeightKg = Round(weight),
-            GoodsValue = row.DeclaredValue is { } v ? Round(v) : null,
-            Currency = "USD",
-            CustomerBill = Clip(row.Ref, 50),
-
-            Service = NewService,
-            Status = NewStatus,
-            CreateDate = todayVn.Date,
-            ModifyDate = todayVn.Date,
-            CreateUser = 0,
-            ModifyUser = 0,
-            CustomerStaffId = 0
-        };
-    }
-
     /// <summary>"DHL - Singapore" → "DHL|Singapore" (định dạng cột Dich_Vu của hệ thống cũ).</summary>
     public static string ServiceName(string hub, string carrier)
     {
@@ -135,22 +93,10 @@ internal static partial class LegacyOrderFactory
         return chargeable > 0 ? chargeable : grossWeight;
     }
 
-    [GeneratedRegex(@"(\d+)\s*kiện.*?([\d.,]+)\s*kg", RegexOptions.IgnoreCase)]
-    private static partial Regex PiecesPattern();
-
-    /// <summary>"3 kiện · 12.5 kg" → (3, 12.5).</summary>
-    public static (int Pieces, decimal WeightKg) ParsePieces(string text)
-    {
-        var m = PiecesPattern().Match(text ?? "");
-        return m.Success ? (int.Parse(m.Groups[1].Value, CultureInfo.InvariantCulture), Num(m.Groups[2].Value.Replace(',', '.'))) : (1, 0);
-    }
-
     private static decimal Num(string? value) =>
         decimal.TryParse(value?.Trim(), NumberStyles.Number, CultureInfo.InvariantCulture, out var n) && n > 0 ? n : 0;
 
     private static decimal Round(decimal value) => decimal.Round(value, 2, MidpointRounding.AwayFromZero);
-
-    private static string Coalesce(string? first, string fallback) => string.IsNullOrWhiteSpace(first) ? fallback : first;
 
     private static string? Clip(string? value, int max)
     {

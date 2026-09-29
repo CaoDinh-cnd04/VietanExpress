@@ -127,27 +127,3 @@ internal sealed class PrintDraftHandler(
         return new PrintDraftResponse($"Đã cấp mã vận đơn {bill}", bill);
     }
 }
-
-// ---------- Tạo nhiều đơn từ Excel ----------
-
-internal sealed record CreateOrdersBatchCommand(IReadOnlyList<BatchOrderRow> Orders) : IRequest<Result<IReadOnlyList<OrderDto>>>;
-
-internal sealed class CreateOrdersBatchHandler(
-    ShipmentsDbContext db, OrderAccess access, ILegacyOrderNumberAllocator numbers, TimeProvider clock)
-    : IRequestHandler<CreateOrdersBatchCommand, Result<IReadOnlyList<OrderDto>>>
-{
-    public async Task<Result<IReadOnlyList<OrderDto>>> Handle(CreateOrdersBatchCommand cmd, CancellationToken ct)
-    {
-        var writer = await access.WriterAsync(ct);
-        if (writer.IsFailure) return Result.Failure<IReadOnlyList<OrderDto>>(writer.Error);
-
-        var today = VietnamTime.ToVietnam(clock.GetUtcNow()).Date;
-        var orders = new List<Infrastructure.Legacy.LegacyOrder>();
-        foreach (var row in cmd.Orders)
-            orders.Add(LegacyOrderFactory.FromBatchRow(row, writer.Value, await numbers.NextAsync(ct), today));
-
-        db.LegacyOrders.AddRange(orders);
-        await db.SaveChangesAsync(ct);
-        return orders.Select(o => LegacyOrderView.ToDto(o, today)).ToList();
-    }
-}

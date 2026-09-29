@@ -23,23 +23,6 @@ internal sealed class SaveDraftCommandValidator : AbstractValidator<SaveDraftCom
     }
 }
 
-internal sealed class CreateOrdersBatchCommandValidator : AbstractValidator<CreateOrdersBatchCommand>
-{
-    public const int MaxOrders = 100;
-
-    public CreateOrdersBatchCommandValidator()
-    {
-        RuleFor(x => x.Orders)
-            .NotEmpty().WithMessage("Chưa có đơn nào để tạo")
-            .Must(o => o.Count <= MaxOrders).WithMessage($"Tối đa {MaxOrders} đơn mỗi lần");
-        RuleForEach(x => x.Orders).ChildRules(o =>
-        {
-            o.RuleFor(r => r.Cnee).NotEmpty().WithMessage("Thiếu tên người nhận");
-            o.RuleFor(r => r.Ct).NotEmpty().WithMessage("Thiếu nước đến");
-        });
-    }
-}
-
 internal sealed class PrintOrdersQueryValidator : AbstractValidator<PrintOrdersQuery>
 {
     public PrintOrdersQueryValidator()
