@@ -1,17 +1,18 @@
 import { cx } from '@/shared/lib/cx';
 import { Icon } from '@/shared/ui';
-import { WIZARD_STEPS } from '../constants';
+import type { WizardStep } from '../constants';
 import styles from './form.module.css';
 
 interface StepIndicatorProps {
+  steps: ReadonlyArray<WizardStep>;
   current: number;
   onSelect: (step: number) => void;
 }
 
-export function StepIndicator({ current, onSelect }: StepIndicatorProps) {
+export function StepIndicator({ steps, current, onSelect }: StepIndicatorProps) {
   return (
     <ol className={styles.steps} aria-label="Các bước tạo đơn">
-      {WIZARD_STEPS.map((s, i) => {
+      {steps.map((s, i) => {
         const state = i < current ? 'done' : i === current ? 'active' : 'todo';
         return (
           <li key={s.title}>

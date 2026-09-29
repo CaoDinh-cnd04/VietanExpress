@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FormProvider, type FieldErrors } from 'react-hook-form';
+import { FormProvider, useWatch, type FieldErrors } from 'react-hook-form';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { getErrorMessage } from '@/shared/api/http';
 import { Button, Card, LinkButton, PageHeader, SegmentedControl, useToast } from '@/shared/ui';
@@ -16,7 +16,7 @@ import { ShipmentSection } from '../components/ShipmentSection';
 import { ShipperSection } from '../components/ShipperSection';
 import { StepIndicator } from '../components/StepIndicator';
 import { SurchargeConfirmDialog } from '../components/SurchargeConfirmDialog';
-import { WIZARD_STEPS } from '../constants';
+import { WIZARD_STEPS, WIZARD_STEPS_DOC } from '../constants';
 import { useCreateOrderForm } from '../hooks/useCreateOrderForm';
 import { readAutosave, useOrderPrefill } from '../hooks/useOrderPrefill';
 import { useShipmentSync } from '../hooks/useShipmentSync';
@@ -33,7 +33,6 @@ const MODE_OPTIONS = [
 ] as const;
 
 const MODE_ROUTES: Record<CreateMode, string> = { wizard: '/orders/new', quick: '/orders/new/quick' };
-const LAST_STEP = WIZARD_STEPS.length - 1;
 const PACKAGES_STEP = 1;
 
 /** Cuộn tới ô lỗi đầu tiên sau khi kiểm tra không đạt. */
@@ -58,7 +57,7 @@ export default function CreateOrderPage({ mode }: { mode: CreateMode }) {
   const [initial] = useState(() => (search ? undefined : readAutosave()));
   const form = useCreateOrderForm(initial);
   const { draftId, finishAutosave } = useOrderPrefill(form);
-  const { onShipmentInput, onPackagesInput, docConverted } = useShipmentSync(form);
+  const { onShipmentInput, onPackagesInput, onTypeChange, docConverted } = useShipmentSync(form);
   const saveDraft = useSaveDraft();
   const updateDraft = useUpdateDraft();
   const quote = useQuote();
@@ -66,13 +65,18 @@ export default function CreateOrderPage({ mode }: { mode: CreateMode }) {
   const [confirm, setConfirm] = useState<{ quote: ServiceQuote | null; warnings: PackageWarning[] } | null>(null);
 
   const isWizard = mode === 'wizard';
-  const showStep = (i: number) => !isWizard || step === i;
+  // Chứng từ (DOC): chỉ khai nội dung — ẩn bảng kiện và Invoice, wizard còn 2 bước. Hàng hoá (PACK): đủ 3 bước.
+  const isPack = useWatch({ control: form.control, name: 'shipment.type' }) === 'PACK';
+  const steps = isPack ? WIZARD_STEPS : WIZARD_STEPS_DOC;
+  const lastStep = steps.length - 1;
+  const current = Math.min(step, lastStep); // đang ở bước Invoice mà đổi sang DOC → lùi về bước cuối
+  const showStep = (i: number) => !isWizard || current === i;
   const saving = saveDraft.isPending || updateDraft.isPending;
 
   const goToStep = async (target: number) => {
     // Lùi bước luôn được; tiến bước phải qua kiểm tra các bước đang đứng
-    if (target > step) {
-      for (let s = step; s < target; s++) {
+    if (target > current) {
+      for (let s = current; s < target; s++) {
         const ok = await form.trigger([...STEP_FIELDS[s]!]);
         if (!ok) {
           setStep(s);
@@ -149,7 +153,7 @@ export default function CreateOrderPage({ mode }: { mode: CreateMode }) {
     <FormProvider {...form}>
       <PageHeader
         title={draftId ? 'Sửa đơn nháp' : 'Tạo đơn hàng'}
-        description={isWizard ? `${WIZARD_STEPS.length} bước · tự lưu trong phiên` : 'Điền tất cả trên 1 trang · tự lưu trong phiên'}
+        description={isWizard ? `${steps.length} bước · tự lưu trong phiên` : 'Điền tất cả trên 1 trang · tự lưu trong phiên'}
         actions={
           <>
             <HelpLinksMenu />
@@ -158,7 +162,7 @@ export default function CreateOrderPage({ mode }: { mode: CreateMode }) {
         }
       />
 
-      {isWizard && <StepIndicator current={step} onSelect={i => void goToStep(i)} />}
+      {isWizard && <StepIndicator steps={steps} current={current} onSelect={i => void goToStep(i)} />}
 
       <form className={styles.form} onSubmit={e => void submit(e)} noValidate>
         {showStep(0) && (
@@ -166,7 +170,7 @@ export default function CreateOrderPage({ mode }: { mode: CreateMode }) {
             <div className={styles.column}>
               <ShipperSection />
               <ServiceSection />
-              <ShipmentSection onShipmentInput={onShipmentInput} docConverted={docConverted} />
+              <ShipmentSection onShipmentInput={onShipmentInput} onTypeChange={onTypeChange} docConverted={docConverted} />
             </div>
             <div className={styles.column}>
               <ReceiverSection />
@@ -177,20 +181,20 @@ export default function CreateOrderPage({ mode }: { mode: CreateMode }) {
         {showStep(1) && (
           <>
             <GoodsSection />
-            <PackagesTable onPackagesInput={onPackagesInput} />
+            {isPack && <PackagesTable onPackagesInput={onPackagesInput} />}
             <AddonsSection />
           </>
         )}
 
-        {showStep(2) && <InvoiceSection />}
+        {isPack && showStep(2) && <InvoiceSection />}
 
         <footer className={styles.footer}>
-          {isWizard && step > 0 && <Button onClick={() => void goToStep(step - 1)}>Quay lại</Button>}
+          {isWizard && current > 0 && <Button onClick={() => void goToStep(current - 1)}>Quay lại</Button>}
           <Button variant="ghost" onClick={saveAsDraft} disabled={busy}>Lưu nháp</Button>
           <span className={styles.spacer} />
-          {isWizard && step < LAST_STEP ? (
-            <Button variant="primary" onClick={() => void goToStep(step + 1)}>
-              Tiếp tục: {WIZARD_STEPS[step + 1]!.title}
+          {isWizard && current < lastStep ? (
+            <Button variant="primary" onClick={() => void goToStep(current + 1)}>
+              Tiếp tục: {steps[current + 1]!.title}
             </Button>
           ) : (
             <Button variant="primary" type="submit" disabled={busy}>

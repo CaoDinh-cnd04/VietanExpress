@@ -7,6 +7,9 @@ import styles from './form.module.css';
 
 interface ShipmentSectionProps {
   onShipmentInput: () => void;
+  /** Khách tự bấm chọn loại hàng. */
+  onTypeChange: () => void;
+  /** PACK hiện tại do hệ thống tự chuyển từ chứng từ quá cân. */
   docConverted: boolean;
 }
 
@@ -15,7 +18,7 @@ const TYPE_OPTIONS = [
   { value: 'PACK', label: 'Hàng hóa (PACK)' }
 ] as const;
 
-export function ShipmentSection({ onShipmentInput, docConverted }: ShipmentSectionProps) {
+export function ShipmentSection({ onShipmentInput, onTypeChange, docConverted }: ShipmentSectionProps) {
   const bind = useFieldBinder();
   const { control } = useFormContext<CreateOrderValues>();
   const type = useWatch({ control, name: 'shipment.type' });
@@ -31,7 +34,7 @@ export function ShipmentSection({ onShipmentInput, docConverted }: ShipmentSecti
           control={control}
           name="shipment.type"
           render={({ field }) => (
-            <SegmentedControl ariaLabel="Loại hàng" options={TYPE_OPTIONS} value={field.value} onChange={v => { field.onChange(v); onShipmentInput(); }} />
+            <SegmentedControl ariaLabel="Loại hàng" options={TYPE_OPTIONS} value={field.value} onChange={v => { field.onChange(v); onTypeChange(); }} />
           )}
         />
       </div>
@@ -41,7 +44,7 @@ export function ShipmentSection({ onShipmentInput, docConverted }: ShipmentSecti
       </FormGrid>
       <p className={styles.hint}>
         {type === 'DOC'
-          ? `Chứng từ trên ${RULES.docMaxWeightKg}kg sẽ tự chuyển sang hàng hóa (PACK).`
+          ? `Chứng từ chỉ cần khai nội dung. Trên ${RULES.docMaxWeightKg}kg sẽ tự chuyển sang hàng hóa (PACK) và khai chi tiết kiện, Invoice.`
           : derived
             ? 'Đơn có nhiều dòng kiện — tổng được tính từ bảng kiện ở bước 2.'
             : 'Khai kích thước từng kiện ở bước 2 để tính trọng lượng quy đổi.'}

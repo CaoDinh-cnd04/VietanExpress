@@ -34,6 +34,28 @@ export function summarizePackages(packages: ReadonlyArray<PackageValues>): Packa
 export const isDocOverweight = (type: 'DOC' | 'PACK', grossWeight: string): boolean =>
   type === 'DOC' && toNumber(grossWeight) > RULES.docMaxWeightKg;
 
+export interface CargoTypeState {
+  type: 'DOC' | 'PACK';
+  /** PACK do hệ thống tự chuyển (chứng từ quá cân) — khác PACK do khách tự chọn. */
+  autoConverted: boolean;
+}
+
+/**
+ * Áp quy tắc DOC ↔ PACK theo cân nặng khai ở "Thông tin đơn hàng":
+ * - Chứng từ > 2kg → tự chuyển PACK (đánh dấu autoConverted).
+ * - PACK do hệ thống tự chuyển mà cân giảm về ≤ 2kg → trả lại chứng từ.
+ * - PACK khách tự chọn thì giữ nguyên dù cân nhẹ.
+ */
+export function applyDocWeightRule(
+  state: CargoTypeState,
+  grossWeight: string
+): CargoTypeState & { change: 'toPack' | 'toDoc' | null } {
+  if (isDocOverweight(state.type, grossWeight)) return { type: 'PACK', autoConverted: true, change: 'toPack' };
+  if (state.type === 'PACK' && state.autoConverted && toNumber(grossWeight) <= RULES.docMaxWeightKg)
+    return { type: 'DOC', autoConverted: false, change: 'toDoc' };
+  return { ...state, change: null };
+}
+
 export const lineTotal = (item: Pick<InvoiceItemValues, 'qty' | 'price'>): number => round(toNumber(item.qty) * toNumber(item.price));
 
 export const invoiceTotal = (items: ReadonlyArray<InvoiceItemValues>): number => round(items.reduce((s, it) => s + lineTotal(it), 0));

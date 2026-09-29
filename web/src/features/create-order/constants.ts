@@ -41,6 +41,14 @@ export const WIZARD_STEPS = [
   { title: 'Invoice & phí', description: 'Khai hàng, shipping fee' }
 ] as const;
 
+/** Chứng từ (DOC): không khai kiện / Invoice → chỉ 2 bước. */
+export const WIZARD_STEPS_DOC = [
+  WIZARD_STEPS[0],
+  { title: 'Nội dung chứng từ', description: 'Nội dung, dịch vụ thêm' }
+] as const;
+
+export type WizardStep = { readonly title: string; readonly description: string };
+
 /** Liên kết tra cứu (khung "Hỗ trợ" của Bill Online cũ). `url` để trống = chưa có trang. */
 export const HELP_LINKS: ReadonlyArray<{ group: string; links: ReadonlyArray<{ label: string; url?: string }> }> = [
   { group: 'Hướng dẫn', links: [{ label: 'Video hướng dẫn tạo bill' }, { label: 'Tra cứu mã HS' }] },

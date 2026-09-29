@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createOrderSchema, defaultValues, emptyInvoiceItem, emptyPackage } from '../schema';
-import { buildDraftPayload, invoiceTotal, isDocOverweight, summarizePackages, volumetricWeight } from './shipment';
+import { applyDocWeightRule, buildDraftPayload, invoiceTotal, isDocOverweight, summarizePackages, volumetricWeight } from './shipment';
 
 const pkg = (over: Partial<ReturnType<typeof emptyPackage>>) => ({ ...emptyPackage(), ...over });
 
@@ -21,6 +21,20 @@ describe('summarizePackages', () => {
       pkg({ qty: '1', weight: '5' })
     ]);
     expect(s).toEqual({ pieces: 3, grossWeight: 11, volumetricWeight: 24, chargeableWeight: 24 });
+  });
+});
+
+describe('applyDocWeightRule', () => {
+  it('chứng từ ≤ 2kg giữ nguyên, > 2kg tự chuyển PACK', () => {
+    expect(applyDocWeightRule({ type: 'DOC', autoConverted: false }, '2')).toEqual({ type: 'DOC', autoConverted: false, change: null });
+    expect(applyDocWeightRule({ type: 'DOC', autoConverted: false }, '2.5')).toEqual({ type: 'PACK', autoConverted: true, change: 'toPack' });
+  });
+  it('PACK do hệ thống tự chuyển: cân giảm về ≤ 2kg thì trả lại chứng từ', () => {
+    expect(applyDocWeightRule({ type: 'PACK', autoConverted: true }, '1')).toEqual({ type: 'DOC', autoConverted: false, change: 'toDoc' });
+    expect(applyDocWeightRule({ type: 'PACK', autoConverted: true }, '3')).toEqual({ type: 'PACK', autoConverted: true, change: null });
+  });
+  it('PACK khách tự chọn thì giữ nguyên dù cân nhẹ', () => {
+    expect(applyDocWeightRule({ type: 'PACK', autoConverted: false }, '1')).toEqual({ type: 'PACK', autoConverted: false, change: null });
   });
 });
 
