@@ -1,11 +1,15 @@
-/** Khách hàng đang đăng nhập — GET /me. */
+/** Khách hàng đang đăng nhập — GET /me (hồ sơ ở dbo.TCustomer). */
 export interface SessionUser {
   customerCode: string;
   companyName: string;
-  contactName?: string;
-  email?: string;
-  avatarUrl?: string;
-  defaultBranch?: string;
+  contactName?: string | null;
+  email?: string | null;
+  avatarUrl?: string | null;
+  defaultBranch?: string | null;
+  /** Dùng để điền sẵn người gửi khi tạo đơn. */
+  phone?: string | null;
+  address?: string | null;
+  taxCode?: string | null;
 }
 
 /**

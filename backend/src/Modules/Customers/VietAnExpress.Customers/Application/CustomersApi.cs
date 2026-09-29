@@ -12,14 +12,17 @@ internal sealed class CustomersApi(CustomersDbContext db) : ICustomersApi
         return c is null ? null : ToSummary(c);
     }
 
-    /// <summary>Tên / email / SĐT: ưu tiên thông tin người liên hệ, không có thì lấy của công ty.</summary>
+    /// <summary>
+    /// Tên / email / SĐT: ưu tiên thông tin người liên hệ, không có thì lấy của công ty.
+    /// SĐT: ContactPhone → Tel → Phone (dữ liệu cũ hay ghi lẫn tên vào cột Phone, Tel thường chỉ có số).
+    /// </summary>
     internal static CustomerSummary ToSummary(LegacyCustomer c) => new(
         c.Id,
         Clean(c.Code) ?? c.Id.ToString(System.Globalization.CultureInfo.InvariantCulture),
         Clean(c.CompanyName) ?? Clean(c.ContactName) ?? "",
         Clean(c.ContactName),
         Clean(c.ContactEmail) ?? Clean(c.Email),
-        Clean(c.ContactPhone) ?? Clean(c.Phone),
+        Clean(c.ContactPhone) ?? Clean(c.Tel) ?? Clean(c.Phone),
         Clean(c.Address1),
         Clean(c.TaxCode));
 

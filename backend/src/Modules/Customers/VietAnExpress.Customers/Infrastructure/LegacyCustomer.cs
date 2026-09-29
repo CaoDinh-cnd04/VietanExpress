@@ -17,6 +17,7 @@ internal sealed class LegacyCustomer
     public string? Email { get; private set; }
     public string? ContactPhone { get; private set; }
     public string? Phone { get; private set; }
+    public string? Tel { get; private set; }
     public string? Address1 { get; private set; }
     public string? TaxCode { get; private set; }
     public int? Status { get; private set; }
