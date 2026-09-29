@@ -1,4 +1,3 @@
-import { RULES } from '../constants';
 import type { CreateOrderValues } from '../schema';
 
 type Shipper = CreateOrderValues['shipper'];
@@ -7,25 +6,14 @@ type Shipper = CreateOrderValues['shipper'];
 export interface CustomerProfile {
   companyName: string;
   contactName?: string | null;
-  phone?: string | null;
-  email?: string | null;
-  address?: string | null;
-  taxCode?: string | null;
 }
 
 /**
- * Giá trị người gửi điền sẵn từ hồ sơ khách: chỉ các ô đang trống (đơn nhân bản / mở lại nháp giữ nguyên dữ liệu đã có).
- * Địa chỉ cắt theo độ dài tối đa của ô.
+ * Người gửi điền sẵn từ hồ sơ khách: chỉ tên công ty và người liên hệ — các ô khác khách tự nhập.
+ * Chỉ điền ô đang trống (đơn nhân bản / mở lại nháp giữ nguyên dữ liệu đã có).
  */
 export function shipperFromProfile(current: Shipper, profile: CustomerProfile): Partial<Shipper> {
-  const source: Partial<Shipper> = {
-    company: profile.companyName,
-    contact: profile.contactName ?? '',
-    tel: profile.phone ?? '',
-    email: profile.email ?? '',
-    address: (profile.address ?? '').slice(0, RULES.shipperAddressMax),
-    taxId: profile.taxCode ?? ''
-  };
+  const source: Partial<Shipper> = { company: profile.companyName, contact: profile.contactName ?? '' };
   const fill: Partial<Shipper> = {};
   for (const [key, value] of Object.entries(source) as Array<[keyof Shipper, string]>) {
     const v = value.trim();

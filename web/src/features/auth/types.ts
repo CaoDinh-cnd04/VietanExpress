@@ -6,10 +6,6 @@ export interface SessionUser {
   email?: string | null;
   avatarUrl?: string | null;
   defaultBranch?: string | null;
-  /** Dùng để điền sẵn người gửi khi tạo đơn. */
-  phone?: string | null;
-  address?: string | null;
-  taxCode?: string | null;
 }
 
 /**

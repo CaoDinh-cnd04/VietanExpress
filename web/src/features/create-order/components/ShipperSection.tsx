@@ -17,7 +17,7 @@ export function ShipperSection() {
   const [picking, setPicking] = useState(false);
   const senders = useSenders();
 
-  // Người gửi mặc định = khách đang đăng nhập (hồ sơ dbo.TCustomer) — chỉ điền ô còn trống.
+  // Tên công ty + người liên hệ lấy theo khách đang đăng nhập (dbo.TCustomer) — chỉ điền ô còn trống; ô khác khách tự nhập.
   const session = useSession();
   const profile = session.data?.status === 'authenticated' ? session.data.user : null;
   useEffect(() => {

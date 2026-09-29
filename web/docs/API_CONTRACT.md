@@ -214,7 +214,7 @@ Gợi ý bảng SQL: `Services`, `ServiceZones`, `ServiceCountryZones`, `Service
 | POST | `/auth/login` | **Mới** | `{ username, password, remember }` — `username` là tên đăng nhập của khách (`dbo.TCustomer.Login_UserName`), mật khẩu so với `Login_Password`. Đúng: đặt cookie phiên (httpOnly; `remember: false` → cookie hết khi đóng trình duyệt) và trả `{ data: SessionUser }`. Sai: 401 + `message` |
 | POST | `/auth/refresh` | Có sẵn | Đổi refresh token (cookie) lấy phiên mới — frontend tự gọi 1 lần khi gặp 401 |
 | POST | `/auth/logout` | **Mới** | Xóa cookie phiên |
-| GET | `/me` | **Mới** | `{ data: SessionUser }` (`customerCode, companyName, contactName, email, phone, address, taxCode` từ `dbo.TCustomer` — form Tạo đơn dùng để điền sẵn người gửi) — chưa đăng nhập / hết phiên trả **401**. Trang ngoài (`/`, `/login`) và lớp chặn portal dựa vào endpoint này |
+| GET | `/me` | **Mới** | `{ data: SessionUser }` (`customerCode, companyName, contactName, email` từ `dbo.TCustomer` — form Tạo đơn điền sẵn tên công ty và người liên hệ của người gửi) — chưa đăng nhập / hết phiên trả **401**. Trang ngoài (`/`, `/login`) và lớp chặn portal dựa vào endpoint này |
 
 `SessionUser`: `{ customerCode, companyName, contactName?, email?, avatarUrl?, defaultBranch? }`.
 
