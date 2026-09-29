@@ -210,7 +210,15 @@ internal static class OrderSheet
             .Border.SetInsideBorder(XLBorderStyleValues.Thin).Border.SetInsideBorderColor(XLColor.FromHtml("#CCDDD3"));
         if (orders.Count > 0) ws.Range(headerRow, 1, r, Headers.Length).SetAutoFilter();
         ws.SheetView.FreezeRows(headerRow);
-        ws.Columns().AdjustToContents(headerRow, total, 8, 45);
+        try
+        {
+            ws.Columns().AdjustToContents(headerRow, total, 8, 45);
+        }
+        catch (Exception)
+        {
+            // Máy chủ Linux không có font để đo chữ → đặt độ rộng cố định, vẫn xuất được file.
+            ws.Columns().Width = 16;
+        }
 
         using var stream = new MemoryStream();
         book.SaveAs(stream);

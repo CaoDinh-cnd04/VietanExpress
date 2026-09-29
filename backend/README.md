@@ -109,6 +109,13 @@ dotnet test --solution VietAnExpress.slnx
 - Refresh token chỉ lưu dạng hash và được xoay vòng mỗi lần dùng. Nếu một token đã bị thu hồi mà vẫn được gửi lại, mọi phiên của user đó bị thu hồi.
 - Đăng nhập sai 5 lần thì tài khoản bị khoá 15 phút.
 
+## Deploy: Render (backend) + Vercel (frontend)
+
+- **Backend** chạy bằng Docker trên Render, theo  ở thư mục gốc repo (Render Dashboard → New → Blueprint). Render cấp cổng qua biến , kiểm tra sức khoẻ qua , và **chỉ deploy khi CI trên GitHub đạt**.
+- **Frontend** trên Vercel (thư mục gốc dự án: ). File  chuyển tiếp  sang Render. Nhờ vậy, với trình duyệt, API và web cùng tên miền và cookie đăng nhập hoạt động. **Không** đặt  trỏ thẳng sang Render: cookie  sẽ không được gửi sang tên miền khác.
+- **Biến môi trường cần nhập trên Render:**  (SQL Server truy cập được từ Internet), .  do Render tự sinh;  đã đặt sẵn trong .
+- Đổi tên dịch vụ trên Render thì sửa lại tên miền trong .
+
 ## 6. Cầu nối dữ liệu hệ thống cũ (tạm thời)
 
 Khách hàng và vận đơn thật hiện vẫn nằm ở `dbo.TCustomer` và `dbo.MaVanDon`. Backend **chỉ đọc** 2 bảng này, không ghi hay sửa:

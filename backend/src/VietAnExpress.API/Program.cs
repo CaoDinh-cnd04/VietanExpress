@@ -15,6 +15,7 @@ using VietAnExpress.SharedKernel.Persistence;
 using VietAnExpress.SharedKernel.Web;
 using VietAnExpress.Shipments;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.HttpOverrides;
 
 Log.Logger = new LoggerConfiguration().WriteTo.Console().CreateBootstrapLogger();
 
@@ -22,10 +23,28 @@ try
 {
     var builder = WebApplication.CreateBuilder(args);
 
-    builder.Host.UseSerilog((context, services, logger) => logger
-        .ReadFrom.Configuration(context.Configuration)
-        .ReadFrom.Services(services)
-        .Enrich.FromLogContext());
+    // Render / Docker: nền tảng cấp cổng qua biến PORT và tự lo HTTPS ở proxy phía trước.
+    var platformPort = Environment.GetEnvironmentVariable("PORT");
+    if (!string.IsNullOrEmpty(platformPort)) builder.WebHost.UseUrls($"http://0.0.0.0:{platformPort}");
+
+    // Sau proxy (Vercel → Render): lấy IP thật của khách (giới hạn đăng nhập theo IP) và scheme https (cookie Secure).
+    builder.Services.Configure<ForwardedHeadersOptions>(o =>
+    {
+        o.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+        o.KnownIPNetworks.Clear(); // proxy của nền tảng không có IP cố định
+        o.KnownProxies.Clear();
+        o.ForwardLimit = 2;        // Vercel + Render
+    });
+
+    builder.Host.UseSerilog((context, services, logger) =>
+    {
+        logger.ReadFrom.Configuration(context.Configuration)
+            .ReadFrom.Services(services)
+            .Enrich.FromLogContext();
+        // Máy dev: ghi thêm file logs/. Trên Render / Docker chỉ ghi console (nền tảng tự thu log, ổ đĩa container không bền).
+        if (context.HostingEnvironment.IsDevelopment())
+            logger.WriteTo.File("logs/vietan-.log", rollingInterval: RollingInterval.Day, retainedFileCountLimit: 30);
+    });
 
     // ---------- Module ----------
     // Thêm module mới: 1 dòng AddXxxModule + thêm assembly vào mảng dưới.
@@ -131,6 +150,7 @@ try
     var app = builder.Build();
 
     // ---------- Pipeline HTTP ----------
+    app.UseForwardedHeaders();
     app.UseExceptionHandler();
     app.UseSerilogRequestLogging();
 
@@ -148,7 +168,8 @@ try
     if (!app.Environment.IsDevelopment())
     {
         app.UseHsts();
-        app.UseHttpsRedirection();
+        // Chạy sau proxy của nền tảng (có PORT) thì proxy đã ép HTTPS; tự chuyển hướng sẽ làm hỏng health check nội bộ.
+        if (string.IsNullOrEmpty(platformPort)) app.UseHttpsRedirection();
     }
 
     app.UseCors();
@@ -159,7 +180,9 @@ try
     app.MapControllers();
     app.MapHealthChecks("/health").AllowAnonymous();
 
-    await RunStartupTasksAsync(app.Services, app.Lifetime.ApplicationStopping);
+    // Migrate + seed khi khởi động. Tắt bằng Database:RunStartupTasks=false (vd kiểm tra container không có DB trong CI).
+    if (app.Configuration.GetValue("Database:RunStartupTasks", true))
+        await RunStartupTasksAsync(app.Services, app.Lifetime.ApplicationStopping);
     await app.RunAsync();
 }
 catch (Exception ex) when (ex is not HostAbortedException)

@@ -8,7 +8,20 @@ namespace VietAnExpress.SharedKernel.Application;
 /// </summary>
 public static class VietnamTime
 {
-    private static readonly TimeZoneInfo Zone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+    private static readonly TimeZoneInfo Zone = LoadZone();
+
+    /// <summary>Container tối giản có thể thiếu dữ liệu múi giờ → dùng UTC+7 cố định (Việt Nam không có giờ mùa hè).</summary>
+    private static TimeZoneInfo LoadZone()
+    {
+        try
+        {
+            return TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+        }
+        catch (Exception e) when (e is TimeZoneNotFoundException or InvalidTimeZoneException)
+        {
+            return TimeZoneInfo.CreateCustomTimeZone("Asia/Ho_Chi_Minh", TimeSpan.FromHours(7), "Giờ Việt Nam", "Giờ Việt Nam");
+        }
+    }
 
     public static DateTimeOffset ToVietnam(DateTimeOffset utc) => TimeZoneInfo.ConvertTime(utc, Zone);
 

@@ -1,0 +1,10 @@
+**/bin/
+**/obj/
+**/logs/
+**/TestResults/
+publish/
+tests/
+.vs/
+*.user
+Dockerfile
+.dockerignore
