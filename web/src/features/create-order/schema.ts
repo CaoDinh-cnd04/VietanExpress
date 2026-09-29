@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { CARRIER_HUBS, MULTI_CATEGORY, RULES } from './constants';
+import { DEFAULT_SERVICE, MULTI_CATEGORY, RULES } from './constants';
 
 /*
  * Schema form tạo đơn — nguồn duy nhất cho kiểu dữ liệu + quy tắc kiểm tra.
@@ -134,7 +134,7 @@ export const emptyInvoiceItem = (): InvoiceItemValues => ({ descEn: '', descVi: 
 
 export const defaultValues = (): CreateOrderValues => ({
   shipper: { company: '', contact: '', tel: '', address: '', taxId: '', email: '', country: 'Vietnam', branch: 'TP.HCM' },
-  service: { carrier: 'Chuyên tuyến', hub: CARRIER_HUBS['Chuyên tuyến']?.[0] ?? '', reference: '' },
+  service: { carrier: DEFAULT_SERVICE.carrier, hub: DEFAULT_SERVICE.hub, reference: '' },
   shipment: { type: 'PACK', pieces: '1', grossWeight: '' },
   receiver: { country: '', city: '', company: '', contact: '', tel: '', phoneCode: '', taxId: '', email: '', postal: '', state: '', addr1: '', addr2: '', addr3: '' },
   goods: { category: '', description: '', docContent: '', multi: [] },

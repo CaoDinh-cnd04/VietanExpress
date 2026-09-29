@@ -1,6 +1,6 @@
 /** Hằng số nghiệp vụ tạo đơn. Thêm hãng / hub / đơn vị mới: sửa ở đây, UI tự cập nhật. */
 
-export { CARRIER_HUBS, CARRIERS } from '@/shared/config/domain';
+export { CARRIER_HUBS, CARRIERS, DEFAULT_SERVICE, defaultHub, hubOptions } from '@/shared/config/domain';
 
 export { COUNTRIES } from '@/shared/config/domain';
 

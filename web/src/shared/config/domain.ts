@@ -16,15 +16,44 @@ export const COUNTRIES = [
   'United Arab Emirates', 'Saudi Arabia', 'India', 'Philippines', 'Indonesia', 'Cambodia', 'Laos', 'Bolivia'
 ] as const;
 
-/** Hãng / dịch vụ → danh sách hub. Backend sẽ trả qua GET /services/hubs; tạm khai ở đây. */
-export const CARRIER_HUBS: Record<string, readonly string[]> = {
-  Aramex: ['Aramex - Dubai', 'Aramex - GCC'],
-  DHL: ['DHL - Singapore', 'DHL - Hong Kong', 'DHL - VN'],
-  Fedex: ['Fedex - US', 'Fedex - EU'],
-  UPS: ['UPS - US', 'UPS - EU'],
-  'Chuyên tuyến': ['Chuyên tuyến - Singapore', 'Chuyên tuyến - EU', 'Chuyên tuyến - AU_Toll Vip', 'Chuyên tuyến - China'],
-  'Ủy quyền Việt An': ['UQ - Standard'],
-  Ecommerce: ['Ecom - Asia'],
-  SEA: ['SEA - Full']
+/** Tên hub theo hãng — đúng danh sách của hệ thống cũ. */
+const HUB_NAMES: Record<string, readonly string[]> = {
+  Aramex: ['Dubai'],
+  DHL: ['VN', 'SIN VIP', 'Singapore', 'UK', 'Dubai'],
+  Fedex: ['SIN 1', 'SIN 2', 'SIN 3 (FICP)', 'Singapore', 'UK', 'VN'],
+  UPS: ['Dubai', 'Singapore', 'UK', 'VN Saver', 'TaiWan', 'VN Expedited'],
+  'Chuyên tuyến': [
+    'Sin (Đông Lạnh)', 'Singapore', 'UK', 'AU_AuPost', 'AU_Toll (T.Phẩm/M.Phẩm)', 'AU_Toll Vip (Hàng thường)', 'Canada', 'Dubai',
+    'Indonesia', 'Korea', 'Laos', 'Saudi', 'USA', 'USA - Sea', 'EU', 'Japan', 'Malaysia', 'China', 'India'
+  ],
+  'Ủy quyền Việt An': ['Tự chọn'],
+  Ecommerce: ['SING POST', 'Việt An'],
+  SEA: ['Australia', 'Dubai', 'Indonesia', 'Malaysia', 'Philippine', 'Singapore', 'USA']
 };
+
+/**
+ * Hãng / dịch vụ → hub. Giá trị hub dạng "Hãng - Hub" (vd "DHL - Singapore"); backend ghi MaVanDon.Dich_Vu = "DHL|Singapore".
+ * Backend sẽ trả qua GET /services/hubs; tạm khai ở đây.
+ */
+export const CARRIER_HUBS: Record<string, readonly string[]> = Object.fromEntries(
+  Object.entries(HUB_NAMES).map(([carrier, hubs]) => [carrier, hubs.map(h => `${carrier} - ${h}`)])
+);
 export const CARRIERS = Object.keys(CARRIER_HUBS);
+
+/** "Chuyên tuyến - USA - Sea" → "USA - Sea" (tên hub hiển thị trong ô chọn). */
+export function hubLabel(hub: string): string {
+  const carrier = CARRIERS.find(c => hub.startsWith(`${c} - `));
+  return carrier ? hub.slice(carrier.length + 3) : hub;
+}
+
+/** Lựa chọn cho ô Hub: giá trị đầy đủ, nhãn chỉ tên hub. */
+export const hubOptions = (carrier: string) => (CARRIER_HUBS[carrier] ?? []).map(value => ({ value, label: hubLabel(value) }));
+
+/** Hub mặc định khi đổi hãng: hãng chỉ có 1 hub thì chọn luôn, nhiều hub thì để khách chọn. */
+export function defaultHub(carrier: string): string {
+  const hubs = CARRIER_HUBS[carrier] ?? [];
+  return hubs.length === 1 ? hubs[0]! : '';
+}
+
+/** Dịch vụ mặc định của đơn mới. */
+export const DEFAULT_SERVICE = { carrier: 'Chuyên tuyến', hub: 'Chuyên tuyến - Singapore' } as const;

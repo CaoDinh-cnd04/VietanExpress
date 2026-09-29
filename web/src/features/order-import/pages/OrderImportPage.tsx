@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { getErrorMessage } from '@/shared/api/http';
-import { BRANCHES, CARRIER_HUBS, CARRIERS } from '@/shared/config/domain';
+import { BRANCHES, CARRIERS, defaultHub, hubOptions } from '@/shared/config/domain';
 import { Button, Card, DataTable, FileDrop, FormGrid, Icon, LinkButton, Notice, PageHeader, SelectField, StatusPill, type Column } from '@/shared/ui';
 import { useCommitImport, usePreviewImport } from '../api';
 import { IMPORT_GUIDE, IMPORT_LIMITS, IMPORT_TEMPLATE_URL } from '../constants';
@@ -42,7 +42,7 @@ export default function OrderImportPage() {
     commit.mutate({ file, defaults }, { onSuccess: res => setResult(res.data) });
   };
 
-  const setService = (service: string) => setDefaults(d => ({ ...d, service, hub: CARRIER_HUBS[service]?.[0] ?? '' }));
+  const setService = (service: string) => setDefaults(d => ({ ...d, service, hub: defaultHub(service) }));
 
   const columns: ReadonlyArray<Column<ImportRow>> = [
     { key: 'line', header: 'Dòng', width: 56, align: 'center', render: r => r.line },
@@ -92,7 +92,7 @@ export default function OrderImportPage() {
               placeholder="Chọn hub"
               required={!!defaults.service}
               disabled={!defaults.service}
-              options={CARRIER_HUBS[defaults.service] ?? []}
+              options={hubOptions(defaults.service)}
               value={defaults.hub}
               error={hubError ?? undefined}
               onChange={e => setDefaults(d => ({ ...d, hub: e.target.value }))}

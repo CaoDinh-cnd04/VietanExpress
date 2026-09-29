@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useFieldArray, useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
-import { BRANCHES, CARRIER_HUBS, CARRIERS, COUNTRIES } from '@/shared/config/domain';
+import { BRANCHES, CARRIERS, COUNTRIES, DEFAULT_SERVICE, defaultHub, hubOptions } from '@/shared/config/domain';
 import { Button, Card, FormGrid, Icon, SelectField, TextField } from '@/shared/ui';
 import { useCreateManualEcomOrder } from '../api';
 import { ECOM_SOURCES, GOODS_TYPES, MAX_PRODUCTS } from '../constants';
@@ -51,8 +51,8 @@ const defaults = (): FormValues => ({
   cnee: '',
   ct: '',
   address: '',
-  service: 'Chuyên tuyến',
-  hub: CARRIER_HUBS['Chuyên tuyến']?.[0] ?? '',
+  service: DEFAULT_SERVICE.carrier,
+  hub: DEFAULT_SERVICE.hub,
   kg: '',
   products: [emptyProduct()],
   customs: { declaredValue: '', goodsType: GOODS_TYPES[0], receiverId: '', ioss: '', eori: '', vat: '', salesLink: '', paymentRef: '', manufacturer: '' }
@@ -96,9 +96,9 @@ export function ManualEcomForm() {
             required
             options={CARRIERS}
             error={e.service?.message}
-            {...register('service', { onChange: ev => setValue('hub', CARRIER_HUBS[ev.target.value as string]?.[0] ?? '') })}
+            {...register('service', { onChange: ev => setValue('hub', defaultHub(ev.target.value as string)) })}
           />
-          <SelectField label="Hub" required options={CARRIER_HUBS[service] ?? []} error={e.hub?.message} {...register('hub')} />
+          <SelectField label="Hub" required options={hubOptions(service)} error={e.hub?.message} {...register('hub')} />
         </FormGrid>
         <datalist id="va-ecom-countries">{COUNTRIES.map(c => <option key={c} value={c} />)}</datalist>
 

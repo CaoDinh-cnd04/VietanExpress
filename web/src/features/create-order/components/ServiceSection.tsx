@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useFormContext, useWatch } from 'react-hook-form';
 import { Card, FormGrid, SelectField, TextField } from '@/shared/ui';
-import { CARRIER_HUBS, CARRIERS } from '../constants';
+import { CARRIER_HUBS, CARRIERS, defaultHub, hubOptions } from '../constants';
 import { useFieldBinder } from '../hooks/useFieldBinder';
 import type { CreateOrderValues } from '../schema';
 
@@ -13,11 +13,11 @@ export function ServiceSection() {
   const carrier = useWatch({ control, name: 'service.carrier' });
   const hubs = CARRIER_HUBS[carrier] ?? NO_HUBS;
 
-  // Đổi hãng (bằng tay hoặc điền sẵn) → chọn hub đầu tiên nếu hub hiện tại không thuộc hãng mới.
+  // Đổi hãng (bằng tay hoặc điền sẵn) → hub hiện tại không thuộc hãng mới thì bỏ chọn (hãng chỉ có 1 hub thì chọn luôn).
   // Chạy sau render để danh sách hub mới đã có trong <select>.
   useEffect(() => {
-    if (!hubs.includes(getValues('service.hub'))) setValue('service.hub', hubs[0] ?? '', { shouldDirty: true });
-  }, [hubs, getValues, setValue]);
+    if (!hubs.includes(getValues('service.hub'))) setValue('service.hub', defaultHub(carrier), { shouldDirty: true });
+  }, [hubs, carrier, getValues, setValue]);
 
   return (
     <Card title="Dịch vụ" subtitle="(Services)">
@@ -29,7 +29,7 @@ export function ServiceSection() {
           options={CARRIERS}
           {...bind('service.carrier')}
         />
-        <SelectField label="Hub" required placeholder="Chọn hub" options={hubs} {...bind('service.hub')} />
+        <SelectField label="Hub" required placeholder="Chọn hub" options={hubOptions(carrier)} {...bind('service.hub')} />
         <TextField label="Số tham chiếu (mã đơn hàng của bạn)" wide {...bind('service.reference')} />
       </FormGrid>
     </Card>

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { useWatch, type UseFormReturn } from 'react-hook-form';
 import { useSearchParams } from 'react-router-dom';
-import { CARRIER_HUBS, CARRIERS } from '@/shared/config/domain';
+import { CARRIER_HUBS, CARRIERS, defaultHub } from '@/shared/config/domain';
 import { useDebouncedCallback } from '@/shared/lib/useDebouncedCallback';
 import { useDrafts } from '@/features/drafts/api';
 import { useOrder } from '@/features/orders/api';
@@ -70,7 +70,7 @@ export function useOrderPrefill(form: UseFormReturn<CreateOrderValues>): { draft
     form.reset({
       ...base,
       receiver: { ...base.receiver, ...(full.receiver ?? {}), company: full.receiver?.company ?? o.cnee, country: full.receiver?.country ?? o.ct },
-      service: { carrier: carrierName, hub: CARRIER_HUBS[carrierName]?.includes(route) ? route : CARRIER_HUBS[carrierName]?.[0] ?? '', reference: '' },
+      service: { carrier: carrierName, hub: CARRIER_HUBS[carrierName]?.includes(route) ? route : defaultHub(carrierName), reference: '' },
       shipper: { ...base.shipper, ...(full.shipper ?? {}), branch: o.branch || base.shipper.branch },
       shipment: { ...base.shipment, type: o.type },
       goods: { ...base.goods, description: o.type === 'PACK' ? o.content : '', docContent: o.type === 'DOC' ? o.content : '' }
