@@ -109,12 +109,30 @@ dotnet test --solution VietAnExpress.slnx
 - Refresh token chỉ lưu dạng hash và được xoay vòng mỗi lần dùng. Nếu một token đã bị thu hồi mà vẫn được gửi lại, mọi phiên của user đó bị thu hồi.
 - Đăng nhập sai 5 lần thì tài khoản bị khoá 15 phút.
 
-## Deploy: Render (backend) + Vercel (frontend)
+## Deploy: Vercel (frontend) + máy chủ nội bộ (backend, qua ngrok)
 
-- **Backend** chạy bằng Docker trên Render, theo `render.yaml` ở thư mục gốc repo (Render Dashboard → New → Blueprint). Render cấp cổng qua biến `PORT`, kiểm tra sức khoẻ qua `/health`, và **chỉ deploy khi CI trên GitHub đạt**.
-- **Frontend** trên Vercel (thư mục gốc dự án: `web/`). File `web/vercel.json` chuyển tiếp `/api/*` sang Render. Nhờ vậy, với trình duyệt, API và web cùng tên miền và cookie đăng nhập hoạt động. **Không** đặt `VITE_API_BASE_URL` trỏ thẳng sang Render: cookie `SameSite=Strict` sẽ không được gửi sang tên miền khác.
-- **Biến môi trường cần nhập trên Render:** `ConnectionStrings__Default` (SQL Server truy cập được từ Internet), `Identity__Seed__AdminPassword`. `Jwt__Secret` do Render tự sinh; `Database__MigrateOnStartup=true` đã đặt sẵn trong `render.yaml`.
-- Đổi tên dịch vụ trên Render thì sửa lại tên miền trong `web/vercel.json`.
+```
+Trình duyệt ──► Vercel (web + hàm web/api/proxy.ts) ──► https://<tên-miền>.ngrok-free.app ──► ngrok (service) ──► http://localhost:5080 (VietAnExpressApi) ──► SQL Server
+```
+
+Trình duyệt chỉ làm việc với tên miền Vercel, nên cookie đăng nhập (`SameSite=Strict`) hoạt động bình thường. Hàm proxy trên Vercel làm 2 việc: thêm header `ngrok-skip-browser-warning` để ngrok gói miễn phí không chèn trang cảnh báo, và trả 503 kèm câu tiếng Việt khi máy chủ tắt.
+
+**Cài trên máy chủ (1 lần; mở "Windows PowerShell" bằng Run as administrator):**
+```powershell
+cd D:\Viet-An-Express\backend
+.\scripts\install-service.ps1                            # build → C:\VietAnExpress\api, tạo service VietAnExpressApi (cổng 5080)
+.\scripts\setup-ngrok.ps1 -Domain <tên-miền>.ngrok-free.app   # ngrok chạy dạng service
+```
+- `install-service.ps1` lấy connection string và `Jwt:Secret` từ User Secrets của máy, ghi vào `C:\VietAnExpress\api\appsettings.Production.json` (chỉ admin và service đọc được, **không** nằm trong repo). Service chạy bằng tài khoản `NT SERVICE\VietAnExpressApi`, được cấp `db_owner` trên database; tự chạy khi bật máy và tự khởi động lại khi lỗi. Log nằm ở `C:\VietAnExpress\api\logs\`.
+- **Cập nhật bản mới:** `git pull` rồi chạy lại `install-service.ps1`.
+- **Gỡ:** `uninstall-service.ps1` (thêm `-RemoveFiles` để xoá thư mục cài đặt).
+
+**Trên Vercel:**
+- Root Directory = `web`.
+- Environment Variable `BACKEND_URL = https://<tên-miền>.ngrok-free.app`, rồi Redeploy.
+- **Không** đặt `VITE_API_BASE_URL` (để mặc định `/api/v1`).
+
+Máy chủ phải luôn bật và có mạng. Khi máy tắt, portal báo "Máy chủ Việt An đang tạm dừng".
 
 ## 6. Cầu nối dữ liệu hệ thống cũ (tạm thời)
 

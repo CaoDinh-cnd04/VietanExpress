@@ -1,4 +1,4 @@
-# Backend Việt An Express — image chạy trên Render (hoặc bất kỳ nơi nào chạy Docker).
+# Backend Việt An Express — image Docker (tuỳ chọn; hiện backend chạy dạng Windows Service trên máy chủ nội bộ).
 # Build (từ thư mục backend/):  docker build -t vietan-api .
 # Chạy thử:  docker run -p 8080:8080 -e ConnectionStrings__Default="..." -e Jwt__Secret="..." vietan-api
 

@@ -16,24 +16,34 @@ using VietAnExpress.SharedKernel.Web;
 using VietAnExpress.Shipments;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.Extensions.Hosting.WindowsServices;
 
 Log.Logger = new LoggerConfiguration().WriteTo.Console().CreateBootstrapLogger();
 
 try
 {
-    var builder = WebApplication.CreateBuilder(args);
+    // Thư mục gốc = thư mục chứa file chạy khi: là Windows Service (thư mục hiện tại là System32 của Windows),
+    // hoặc chạy .exe từ thư mục khác. `dotnet run` khi dev vẫn dùng thư mục project như cũ.
+    var useInstallDir = WindowsServiceHelpers.IsWindowsService()
+        || !File.Exists(Path.Combine(Directory.GetCurrentDirectory(), "appsettings.json"));
+    var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+    {
+        Args = args,
+        ContentRootPath = useInstallDir ? AppContext.BaseDirectory : null
+    });
+    builder.Host.UseWindowsService(o => o.ServiceName = "VietAnExpressApi"); // không phải service thì không làm gì
 
     // Render / Docker: nền tảng cấp cổng qua biến PORT và tự lo HTTPS ở proxy phía trước.
     var platformPort = Environment.GetEnvironmentVariable("PORT");
     if (!string.IsNullOrEmpty(platformPort)) builder.WebHost.UseUrls($"http://0.0.0.0:{platformPort}");
 
-    // Sau proxy (Vercel → Render): lấy IP thật của khách (giới hạn đăng nhập theo IP) và scheme https (cookie Secure).
+    // Sau proxy (Vercel → ngrok): lấy IP thật của khách (giới hạn đăng nhập theo IP) và scheme https (cookie Secure).
     builder.Services.Configure<ForwardedHeadersOptions>(o =>
     {
         o.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
         o.KnownIPNetworks.Clear(); // proxy của nền tảng không có IP cố định
         o.KnownProxies.Clear();
-        o.ForwardLimit = 2;        // Vercel + Render
+        o.ForwardLimit = 2;        // Vercel + ngrok
     });
 
     builder.Host.UseSerilog((context, services, logger) =>
@@ -41,9 +51,10 @@ try
         logger.ReadFrom.Configuration(context.Configuration)
             .ReadFrom.Services(services)
             .Enrich.FromLogContext();
-        // Máy dev: ghi thêm file logs/. Trên Render / Docker chỉ ghi console (nền tảng tự thu log, ổ đĩa container không bền).
-        if (context.HostingEnvironment.IsDevelopment())
-            logger.WriteTo.File("logs/vietan-.log", rollingInterval: RollingInterval.Day, retainedFileCountLimit: 30);
+        // Máy dev và Windows Service: ghi thêm file logs/ (service không có console). Docker chỉ ghi console.
+        if (context.HostingEnvironment.IsDevelopment() || WindowsServiceHelpers.IsWindowsService())
+            logger.WriteTo.File(Path.Combine(context.HostingEnvironment.ContentRootPath, "logs", "vietan-.log"),
+                rollingInterval: RollingInterval.Day, retainedFileCountLimit: 30);
     });
 
     // ---------- Module ----------

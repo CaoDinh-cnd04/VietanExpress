@@ -3,7 +3,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://vietan-express-api.onrender.com/api/:path*"
+      "destination": "/api/proxy?__path=:path*"
     },
     {
       "source": "/((?!api/).*)",
