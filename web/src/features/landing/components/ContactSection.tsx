@@ -1,6 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { getErrorMessage, isNotImplemented } from '@/shared/api/http';
+import { useI18n } from '@/shared/i18n';
 import { Button, FormGrid, Icon, Notice, TextAreaField, TextField, useToast, type IconName } from '@/shared/ui';
 import { useSendContact } from '../api';
 import { BRANCHES, COMPANY, CONTACTS } from '../constants';
@@ -16,6 +17,7 @@ const INFO: ReadonlyArray<{ icon: IconName; label: string; value: string; href: 
 ];
 
 export function ContactSection() {
+  const { t } = useI18n();
   return (
     <Section id="lien-he" eyebrow="Liên hệ" title="Cần báo giá hay tư vấn gửi hàng?" lead="Để lại lời nhắn, nhân viên Việt An sẽ gọi lại cho bạn trong giờ làm việc.">
       <div className={styles.layout}>
@@ -26,19 +28,19 @@ export function ContactSection() {
                 <Icon name={i.icon} size={20} />
               </span>
               <span>
-                <span className={styles.infoLabel}>{i.label}</span>
-                <span className={styles.infoValue}>{i.value}</span>
+                <span className={styles.infoLabel}>{t(i.label)}</span>
+                <span className={styles.infoValue}>{t(i.value)}</span>
               </span>
             </a>
           ))}
           <div className={styles.branches}>
-            <span className={styles.infoLabel}>Chi nhánh</span>
+            <span className={styles.infoLabel}>{t('Chi nhánh')}</span>
             <ul>
               {BRANCHES.map(b => (
                 <li key={b.city}>
                   <Icon name="mapPin" size={14} />
-                  {b.city}
-                  {b.note && <span className={styles.note}>{b.note}</span>}
+                  {t(b.city)}
+                  {b.note && <span className={styles.note}>{t(b.note)}</span>}
                 </li>
               ))}
             </ul>
@@ -51,6 +53,7 @@ export function ContactSection() {
 }
 
 function ContactForm() {
+  const { t } = useI18n();
   const send = useSendContact();
   const toast = useToast();
   const { register, handleSubmit, formState, reset } = useForm<ContactRequest>({
@@ -70,11 +73,11 @@ function ContactForm() {
 
   return (
     <form className={styles.form} onSubmit={e => void submit(e)} noValidate>
-      <h3 className={styles.formTitle}>Gửi lời nhắn</h3>
+      <h3 className={styles.formTitle}>{t('Gửi lời nhắn')}</h3>
       {send.isError &&
         (isNotImplemented(send.error) ? (
           <Notice title="Chức năng gửi lời nhắn đang được kết nối máy chủ">
-            Vui lòng gọi <a href={CONTACTS.hotline.href}>{CONTACTS.hotline.label}</a> hoặc nhắn{' '}
+            {t('Vui lòng gọi')} <a href={CONTACTS.hotline.href}>{CONTACTS.hotline.label}</a> {t('hoặc nhắn')}{' '}
             <a href={CONTACTS.zalo.href} target="_blank" rel="noreferrer">
               Zalo
             </a>
@@ -98,7 +101,7 @@ function ContactForm() {
       />
       <Button variant="primary" type="submit" className={styles.submit} disabled={send.isPending}>
         <Icon name="send" size={16} />
-        {send.isPending ? 'Đang gửi…' : 'Gửi lời nhắn'}
+        {t(send.isPending ? 'Đang gửi…' : 'Gửi lời nhắn')}
       </Button>
     </form>
   );

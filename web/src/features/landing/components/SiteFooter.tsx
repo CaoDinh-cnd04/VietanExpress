@@ -1,8 +1,10 @@
+import { useI18n } from '@/shared/i18n';
 import { COMPANY, CONTACTS, NAV, SERVICES } from '../constants';
 import { copyrightRange } from '../lib/company';
 import styles from './SiteFooter.module.css';
 
 export function SiteFooter() {
+  const { t } = useI18n();
   return (
     <footer className={styles.footer}>
       <div className={styles.inner}>
@@ -11,30 +13,30 @@ export function SiteFooter() {
             <img src="/logo.webp" alt="" width={40} height={40} />
             <span>{COMPANY.name}</span>
           </div>
-          <p>Chuyển phát nhanh quốc tế door-to-door. Nhanh chóng – Chính xác – An toàn – Tiết kiệm.</p>
+          <p>{t('Chuyển phát nhanh quốc tế door-to-door. Nhanh chóng – Chính xác – An toàn – Tiết kiệm.')}</p>
         </div>
-        <nav aria-label="Liên kết trang">
-          <h3>Khám phá</h3>
+        <nav aria-label={t('Liên kết trang')}>
+          <h3>{t('Khám phá')}</h3>
           <ul>
             {NAV.map(n => (
               <li key={n.id}>
-                <a href={`#${n.id}`}>{n.label}</a>
+                <a href={`#${n.id}`}>{t(n.label)}</a>
               </li>
             ))}
           </ul>
         </nav>
         <div>
-          <h3>Dịch vụ</h3>
+          <h3>{t('Dịch vụ')}</h3>
           <ul>
             {SERVICES.slice(0, 4).map(s => (
-              <li key={s.title}>{s.title}</li>
+              <li key={s.title}>{t(s.title)}</li>
             ))}
           </ul>
         </div>
         <div>
-          <h3>Liên hệ</h3>
+          <h3>{t('Liên hệ')}</h3>
           <ul>
-            <li>{COMPANY.address}</li>
+            <li>{t(COMPANY.address)}</li>
             <li>
               Tel: <a href={CONTACTS.phone.href}>{CONTACTS.phone.label}</a>
             </li>

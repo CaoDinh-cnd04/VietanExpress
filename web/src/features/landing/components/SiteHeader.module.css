@@ -89,6 +89,42 @@
   color: inherit;
 }
 
+/* Nút VI / EN — viền theo màu chữ để hợp cả nền hero lẫn nền trắng */
+.lang {
+  display: flex;
+  height: 32px;
+  padding: 2px;
+  border: 1px solid color-mix(in srgb, currentColor 35%, transparent);
+  border-radius: var(--radius-sm);
+}
+
+.lang button {
+  min-width: 30px;
+  padding: 0 var(--space-2);
+  border: 0;
+  border-radius: calc(var(--radius-sm) - 2px);
+  background: none;
+  color: inherit;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  opacity: 0.8;
+}
+
+.lang button:hover {
+  opacity: 1;
+}
+
+.lang .langOn {
+  background: var(--color-brand);
+  color: #fff;
+  opacity: 1;
+}
+
+.header:not(.solid) .lang .langOn {
+  background: #fff;
+  color: var(--color-hero-from);
+}
+
 /* Trên nền hero xanh: nút chính đổi sang nền trắng cho nổi */
 .header:not(.solid) .cta {
   background: #fff;

@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { getErrorMessage, isNotImplemented } from '@/shared/api/http';
+import { useI18n } from '@/shared/i18n';
 import { cx } from '@/shared/lib/cx';
 import { useCopyToClipboard } from '@/shared/lib/useCopyToClipboard';
 import { Button, Icon, Notice, StatusPill } from '@/shared/ui';
@@ -20,6 +21,7 @@ import styles from './TrackingPage.module.css';
  * Link dùng được để gửi cho người nhận — không cần đăng nhập.
  */
 export default function TrackingPage() {
+  const { t } = useI18n();
   const { bills: billsParam } = useParams();
   const [params] = useSearchParams();
   const navigate = useNavigate();
@@ -32,8 +34,9 @@ export default function TrackingPage() {
   const current = results?.find(r => r.bill === active);
 
   useEffect(() => {
-    document.title = active ? `Tra cứu ${active} — ${COMPANY.name}` : `Tra cứu vận đơn — ${COMPANY.name}`;
-  }, [active]);
+    const page = active ? t('Tra cứu {bill}', { bill: active }) : t('Tra cứu vận đơn');
+    document.title = `${page} — ${COMPANY.name}`;
+  }, [active, t]);
 
   const select = (bill: string) => void navigate(trackingPath(bills, bill), { replace: true });
 
@@ -43,13 +46,13 @@ export default function TrackingPage() {
 
       <section className={styles.hero}>
         <div className={styles.container}>
-          <nav className={styles.crumbs} aria-label="Vị trí trang">
-            <Link to="/">Trang chủ</Link>
+          <nav className={styles.crumbs} aria-label={t('Vị trí trang')}>
+            <Link to="/">{t('Trang chủ')}</Link>
             <Icon name="chevronRight" size={14} />
-            <span>Tra cứu vận đơn</span>
+            <span>{t('Tra cứu vận đơn')}</span>
           </nav>
-          <h1 className={styles.title}>Theo dõi vận đơn</h1>
-          <p className={styles.lead}>Nhập số vận đơn Việt An hoặc mã vận đơn của hãng để xem hành trình kiện hàng.</p>
+          <h1 className={styles.title}>{t('Theo dõi vận đơn')}</h1>
+          <p className={styles.lead}>{t('Nhập số vận đơn Việt An hoặc mã vận đơn của hãng để xem hành trình kiện hàng.')}</p>
           <SearchBar key={billsParam ?? ''} initial={bills} busy={tracking.isFetching}
             onSearch={next => void navigate(trackingPath(next))} />
         </div>
@@ -59,20 +62,20 @@ export default function TrackingPage() {
         {bills.length === 0 ? (
           <div className={styles.placeholder}>
             <Icon name="search" size={28} />
-            <p>Nhập số vận đơn ở ô phía trên để bắt đầu tra cứu.</p>
+            <p>{t('Nhập số vận đơn ở ô phía trên để bắt đầu tra cứu.')}</p>
           </div>
         ) : (
           <>
             <div className={styles.toolbar}>
               <p className={styles.summary}>
-                {bills.length > 1 ? `${bills.length} vận đơn` : 'Kết quả tra cứu'}
+                {bills.length > 1 ? t('{n} vận đơn', { n: bills.length }) : t('Kết quả tra cứu')}
               </p>
               <div className={styles.tools}>
-                <Button size="sm" onClick={() => void copy(window.location.href, 'Đã sao chép link tra cứu')}>
-                  <Icon name="share" size={14} /> Chia sẻ link
+                <Button size="sm" onClick={() => void copy(window.location.href, t('Đã sao chép link tra cứu'))}>
+                  <Icon name="share" size={14} /> {t('Chia sẻ link')}
                 </Button>
                 <Button size="sm" onClick={() => window.print()} disabled={!current?.found}>
-                  <Icon name="printer" size={14} /> In
+                  <Icon name="printer" size={14} /> {t('In')}
                 </Button>
               </div>
             </div>
@@ -86,7 +89,7 @@ export default function TrackingPage() {
                 {tracking.error ? (
                   <TrackingError error={tracking.error} />
                 ) : tracking.isPending ? (
-                  <div className={styles.skeleton} aria-busy="true" aria-label="Đang tra cứu" />
+                  <div className={styles.skeleton} aria-busy="true" aria-label={t('Đang tra cứu')} />
                 ) : current?.found ? (
                   <TrackingDetail key={current.bill} result={current} />
                 ) : (
@@ -106,6 +109,7 @@ export default function TrackingPage() {
 }
 
 function SearchBar({ initial, busy, onSearch }: { initial: string[]; busy: boolean; onSearch: (bills: string[]) => void }) {
+  const { t } = useI18n();
   const [text, setText] = useState(() => initial.join(', '));
   const [error, setError] = useState<string>();
 
@@ -113,7 +117,7 @@ function SearchBar({ initial, busy, onSearch }: { initial: string[]; busy: boole
     e.preventDefault();
     const { bills, invalid } = parseBills(text);
     if (bills.length === 0) {
-      setError(invalid.length > 0 ? `Số vận đơn không hợp lệ: ${invalid.join(', ')}` : 'Nhập ít nhất 1 số vận đơn');
+      setError(invalid.length > 0 ? t('Số vận đơn không hợp lệ: {bills}', { bills: invalid.join(', ') }) : t('Nhập ít nhất 1 số vận đơn'));
       return;
     }
     setError(undefined);
@@ -122,25 +126,25 @@ function SearchBar({ initial, busy, onSearch }: { initial: string[]; busy: boole
 
   return (
     <form className={styles.search} onSubmit={submit} noValidate role="search">
-      <label htmlFor="tracking-input" className="visually-hidden">Số vận đơn</label>
+      <label htmlFor="tracking-input" className="visually-hidden">{t('Số vận đơn')}</label>
       <div className={cx(styles.searchBox, error && styles.searchInvalid)}>
         <Icon name="search" size={18} />
         <input
           id="tracking-input"
           value={text}
           onChange={e => setText(e.target.value)}
-          placeholder="VD: 6165957 — nhiều số cách nhau bằng dấu phẩy"
+          placeholder={t('VD: 6165957 — nhiều số cách nhau bằng dấu phẩy')}
           autoComplete="off"
           spellCheck={false}
           aria-invalid={error ? true : undefined}
           aria-describedby="tracking-hint"
         />
         <Button variant="primary" type="submit" disabled={busy}>
-          {busy ? 'Đang tra…' : 'Tra cứu'}
+          {t(busy ? 'Đang tra…' : 'Tra cứu')}
         </Button>
       </div>
       <p id="tracking-hint" className={cx(styles.hint, error && styles.hintError)}>
-        {error ?? `Tối đa ${MAX_TRACK_BILLS} số mỗi lần`}
+        {error ?? t('Tối đa {max} số mỗi lần', { max: MAX_TRACK_BILLS })}
       </p>
     </form>
   );
@@ -153,8 +157,9 @@ function BillList({ bills, results, active, loading, onSelect }: {
   loading: boolean;
   onSelect: (bill: string) => void;
 }) {
+  const { t } = useI18n();
   return (
-    <nav className={styles.list} aria-label="Danh sách vận đơn">
+    <nav className={styles.list} aria-label={t('Danh sách vận đơn')}>
       {bills.map(bill => {
         const r = results?.find(x => x.bill === bill);
         const status = r?.found ? TRACK_STATUS[r.status] : undefined;
@@ -163,11 +168,11 @@ function BillList({ bills, results, active, loading, onSelect }: {
             aria-current={bill === active ? 'true' : undefined} onClick={() => onSelect(bill)}>
             <span className={styles.listBill}>{bill}</span>
             {loading ? (
-              <span className={styles.listPending}>Đang tra…</span>
+              <span className={styles.listPending}>{t('Đang tra…')}</span>
             ) : status ? (
               <StatusPill tone={status.tone}>{status.label}</StatusPill>
             ) : (
-              <StatusPill tone="neutral">Không tìm thấy</StatusPill>
+              <StatusPill tone="neutral">{'Không tìm thấy'}</StatusPill>
             )}
             {r?.found && r.destination && <span className={styles.listMeta}><Icon name="globe" size={12} /> {r.destination}</span>}
           </button>
@@ -178,38 +183,41 @@ function BillList({ bills, results, active, loading, onSelect }: {
 }
 
 function NotFound({ bill }: { bill: string }) {
+  const { t } = useI18n();
   return (
     <div className={styles.notFound}>
       <span className={styles.notFoundIcon}><Icon name="search" size={26} /></span>
-      <h2>Không tìm thấy vận đơn {bill}</h2>
+      <h2>{t('Không tìm thấy vận đơn {bill}', { bill })}</h2>
       <p>
-        Vui lòng kiểm tra lại số vận đơn. Vận đơn mới tạo có thể cần vài giờ để hiện thông tin —
-        hoặc gọi hotline <a href={CONTACTS.hotline.href}>{CONTACTS.hotline.label}</a> để được hỗ trợ.
+        {t('Vui lòng kiểm tra lại số vận đơn. Vận đơn mới tạo có thể cần vài giờ để hiện thông tin — hoặc gọi hotline')}{' '}
+        <a href={CONTACTS.hotline.href}>{CONTACTS.hotline.label}</a> {t('để được hỗ trợ.')}
       </p>
     </div>
   );
 }
 
 function TrackingError({ error }: { error: unknown }) {
+  const { t } = useI18n();
   return isNotImplemented(error) ? (
     <Notice title="Tra cứu vận đơn đang được kết nối máy chủ">
-      Vui lòng gọi <a href={CONTACTS.phone.href}>{CONTACTS.phone.label}</a> hoặc hotline{' '}
-      <a href={CONTACTS.hotline.href}>{CONTACTS.hotline.label}</a> để được hỗ trợ.
+      {t('Vui lòng gọi')} <a href={CONTACTS.phone.href}>{CONTACTS.phone.label}</a> {t('hoặc hotline')}{' '}
+      <a href={CONTACTS.hotline.href}>{CONTACTS.hotline.label}</a> {t('để được hỗ trợ.')}
     </Notice>
   ) : (
     <Notice tone="danger" title="Không tra cứu được">
-      {getErrorMessage(error, 'Không kết nối được máy chủ').replace(/[.!]$/, '')}. Vui lòng thử lại sau hoặc gọi hotline{' '}
+      {t(getErrorMessage(error, 'Không kết nối được máy chủ')).replace(/[.!]$/, '')}. {t('Vui lòng thử lại sau hoặc gọi hotline')}{' '}
       <a href={CONTACTS.hotline.href}>{CONTACTS.hotline.label}</a>.
     </Notice>
   );
 }
 
 function HelpCard() {
+  const { t } = useI18n();
   return (
     <aside className={styles.help}>
       <div>
-        <p className={styles.helpTitle}>Cần hỗ trợ về vận đơn?</p>
-        <p className={styles.helpText}>Đội chăm sóc khách hàng Việt An sẵn sàng hỗ trợ bạn.</p>
+        <p className={styles.helpTitle}>{t('Cần hỗ trợ về vận đơn?')}</p>
+        <p className={styles.helpText}>{t('Đội chăm sóc khách hàng Việt An sẵn sàng hỗ trợ bạn.')}</p>
       </div>
       <div className={styles.helpActions}>
         <a className={styles.helpLink} href={CONTACTS.hotline.href}><Icon name="phone" size={16} /> {CONTACTS.hotline.label}</a>

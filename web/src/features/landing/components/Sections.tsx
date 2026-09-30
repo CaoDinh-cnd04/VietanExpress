@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { PORTAL_HOME } from '@/features/auth';
+import { useI18n } from '@/shared/i18n';
 import { cx } from '@/shared/lib/cx';
 import { Button, Icon, LinkButton, Modal } from '@/shared/ui';
 import { COMPANY, CONTACTS, GALLERY, LANES, PORTAL_FEATURES, SERVICES, STEPS, VALUES } from '../constants';
@@ -19,15 +20,16 @@ interface SectionProps {
 
 /** Khung 1 phần của trang ngoài: nhãn nhỏ + tiêu đề + mô tả + nội dung. */
 export function Section({ id, eyebrow, title, lead, tone = 'plain', children }: SectionProps) {
+  const { t } = useI18n();
   return (
     <section id={id} className={cx(styles.section, tone === 'muted' && styles.muted)} aria-labelledby={`${id}-title`}>
       <div className={styles.container}>
         <header className={styles.sectionHead}>
-          <span className={styles.eyebrow}>{eyebrow}</span>
+          <span className={styles.eyebrow}>{t(eyebrow)}</span>
           <h2 id={`${id}-title`} className={styles.title}>
-            {title}
+            {t(title)}
           </h2>
-          {lead && <p className={styles.lead}>{lead}</p>}
+          {lead && <p className={styles.lead}>{t(lead)}</p>}
         </header>
         {children}
       </div>
@@ -36,6 +38,7 @@ export function Section({ id, eyebrow, title, lead, tone = 'plain', children }: 
 }
 
 export function ServicesSection() {
+  const { t } = useI18n();
   return (
     <Section
       id="dich-vu"
@@ -49,8 +52,8 @@ export function ServicesSection() {
             <span className={styles.iconBox}>
               <Icon name={s.icon} size={22} />
             </span>
-            <h3 className={styles.cardTitle}>{s.title}</h3>
-            <p className={styles.cardText}>{s.desc}</p>
+            <h3 className={styles.cardTitle}>{t(s.title)}</h3>
+            <p className={styles.cardText}>{t(s.desc)}</p>
           </article>
         ))}
       </div>
@@ -59,6 +62,7 @@ export function ServicesSection() {
 }
 
 export function LanesSection() {
+  const { t } = useI18n();
   return (
     <Section
       id="tuyen"
@@ -68,19 +72,19 @@ export function LanesSection() {
       lead="Ngoài các tuyến dưới đây, Việt An nhận gửi đi hầu hết quốc gia qua mạng lưới hãng quốc tế."
     >
       <Carousel
-        ariaLabel="Các tuyến chuyên"
+        ariaLabel={t('Các tuyến chuyên')}
         items={[
           ...LANES.map(l => ({
             key: l.code,
             node: (
               <article className={styles.lane}>
                 <div className={styles.laneArt}>
-                  <LaneArt code={l.code} landmark={l.landmark} />
-                  <img className={styles.laneFlag} src={`/flags/${l.code.toLowerCase()}.svg`} alt={`Cờ ${l.country}`} loading="lazy" />
+                  <LaneArt code={l.code} landmark={t(l.landmark)} />
+                  <img className={styles.laneFlag} src={`/flags/${l.code.toLowerCase()}.svg`} alt={t('Cờ {country}', { country: t(l.country) })} loading="lazy" />
                 </div>
                 <div className={styles.laneBody}>
-                  <span className={styles.laneName}>Gửi hàng đi {l.country}</span>
-                  <span className={styles.laneDesc}>Việt Nam → {l.country}</span>
+                  <span className={styles.laneName}>{t('Gửi hàng đi {country}', { country: t(l.country) })}</span>
+                  <span className={styles.laneDesc}>{t('Việt Nam')} → {t(l.country)}</span>
                 </div>
               </article>
             )
@@ -92,10 +96,10 @@ export function LanesSection() {
                 <span className={styles.laneMoreIcon}>
                   <Icon name="globe" size={32} />
                 </span>
-                <span className={styles.laneName}>Nước khác?</span>
-                <span className={styles.laneDesc}>Gửi đi hầu hết quốc gia qua DHL, FedEx, UPS, TNT</span>
+                <span className={styles.laneName}>{t('Nước khác?')}</span>
+                <span className={styles.laneDesc}>{t('Gửi đi hầu hết quốc gia qua DHL, FedEx, UPS, TNT')}</span>
                 <span className={styles.textLink}>
-                  Hỏi giá ngay <Icon name="arrowRight" size={16} />
+                  {t('Hỏi giá ngay')} <Icon name="arrowRight" size={16} />
                 </span>
               </a>
             )
@@ -108,22 +112,26 @@ export function LanesSection() {
 
 
 export function AboutSection() {
+  const { t } = useI18n();
   const [photo, setPhoto] = useState<number | null>(null);
   const current = photo === null ? undefined : GALLERY[photo];
   const step = (delta: number) => setPhoto(p => (p === null ? p : (p + delta + GALLERY.length) % GALLERY.length));
 
   return (
-    <Section id="ve-chung-toi" eyebrow="Về chúng tôi" title={`${yearsSince(COMPANY.foundedYear)} năm đồng hành cùng hàng Việt ra thế giới`}>
+    <Section id="ve-chung-toi" eyebrow="Về chúng tôi" title={t('{n} năm đồng hành cùng hàng Việt ra thế giới', { n: yearsSince(COMPANY.foundedYear) })}>
       <div className={styles.about}>
-        <img className={styles.aboutPhoto} src="/landing/hero.jpg" alt="Trụ sở Việt An Express, 14 Sam Sơn, TP. Hồ Chí Minh" loading="lazy" />
+        <img className={styles.aboutPhoto} src="/landing/hero.jpg" alt={t('Trụ sở Việt An Express, 14 Sam Sơn, TP. Hồ Chí Minh')} loading="lazy" />
         <div className={styles.aboutBody}>
           <p>
-            Tham gia thị trường chuyển phát từ năm {COMPANY.foundedYear}, Việt An Express tập trung vào dịch vụ door-to-door và là đại lý gom
-            hàng cho các hãng quốc tế hàng đầu tại Việt Nam như DHL, FedEx, UPS, TNT.
+            {t(
+              'Tham gia thị trường chuyển phát từ năm {year}, Việt An Express tập trung vào dịch vụ door-to-door và là đại lý gom hàng cho các hãng quốc tế hàng đầu tại Việt Nam như DHL, FedEx, UPS, TNT.',
+              { year: COMPANY.foundedYear }
+            )}
           </p>
           <p>
-            Trụ sở tại TP. Hồ Chí Minh cùng chi nhánh Hà Nội, Cần Thơ và Bảo Lộc giúp bạn gửi hàng nhanh và thuận tiện hơn. Trạng thái bưu
-            phẩm được cập nhật liên tục để bạn theo dõi mọi lúc, mọi nơi.
+            {t(
+              'Trụ sở tại TP. Hồ Chí Minh cùng chi nhánh Hà Nội, Cần Thơ và Bảo Lộc giúp bạn gửi hàng nhanh và thuận tiện hơn. Trạng thái bưu phẩm được cập nhật liên tục để bạn theo dõi mọi lúc, mọi nơi.'
+            )}
           </p>
           <ul className={styles.values}>
             {VALUES.map(v => (
@@ -132,8 +140,8 @@ export function AboutSection() {
                   <Icon name={v.icon} size={20} />
                 </span>
                 <div>
-                  <strong>{v.title}</strong>
-                  <p className={styles.cardText}>{v.desc}</p>
+                  <strong>{t(v.title)}</strong>
+                  <p className={styles.cardText}>{t(v.desc)}</p>
                 </div>
               </li>
             ))}
@@ -141,10 +149,10 @@ export function AboutSection() {
         </div>
       </div>
 
-      <h3 className={styles.subTitle}>Hình ảnh hoạt động</h3>
+      <h3 className={styles.subTitle}>{t('Hình ảnh hoạt động')}</h3>
       <div className={styles.gallery}>
         {GALLERY.map((g, i) => (
-          <button key={g.src} type="button" className={styles.galleryItem} onClick={() => setPhoto(i)} aria-label={`Xem ảnh: ${g.alt}`}>
+          <button key={g.src} type="button" className={styles.galleryItem} onClick={() => setPhoto(i)} aria-label={t('Xem ảnh: {name}', { name: t(g.alt) })}>
             <img src={g.src} alt="" loading="lazy" />
           </button>
         ))}
@@ -158,12 +166,12 @@ export function AboutSection() {
           onClose={() => setPhoto(null)}
           footer={
             <>
-              <Button onClick={() => step(-1)}>Ảnh trước</Button>
-              <Button onClick={() => step(1)}>Ảnh sau</Button>
+              <Button onClick={() => step(-1)}>{t('Ảnh trước')}</Button>
+              <Button onClick={() => step(1)}>{t('Ảnh sau')}</Button>
             </>
           }
         >
-          <img className={styles.lightbox} src={current.src} alt={current.alt} />
+          <img className={styles.lightbox} src={current.src} alt={t(current.alt)} />
         </Modal>
       )}
     </Section>
@@ -171,6 +179,7 @@ export function AboutSection() {
 }
 
 export function PortalSection({ loggedIn, onLogin }: { loggedIn: boolean; onLogin: () => void }) {
+  const { t } = useI18n();
   return (
     <Section
       id="portal"
@@ -183,8 +192,8 @@ export function PortalSection({ loggedIn, onLogin }: { loggedIn: boolean; onLogi
         {STEPS.map((s, i) => (
           <li key={s.title} className={styles.step}>
             <span className={styles.stepNo}>{i + 1}</span>
-            <strong>{s.title}</strong>
-            <span className={styles.cardText}>{s.desc}</span>
+            <strong>{t(s.title)}</strong>
+            <span className={styles.cardText}>{t(s.desc)}</span>
           </li>
         ))}
       </ol>
@@ -195,8 +204,8 @@ export function PortalSection({ loggedIn, onLogin }: { loggedIn: boolean; onLogi
               <Icon name={f.icon} size={20} />
             </span>
             <div>
-              <h3 className={styles.cardTitle}>{f.title}</h3>
-              <p className={styles.cardText}>{f.desc}</p>
+              <h3 className={styles.cardTitle}>{t(f.title)}</h3>
+              <p className={styles.cardText}>{t(f.desc)}</p>
             </div>
           </article>
         ))}
@@ -204,15 +213,15 @@ export function PortalSection({ loggedIn, onLogin }: { loggedIn: boolean; onLogi
       <div className={styles.center}>
         {loggedIn ? (
           <LinkButton to={PORTAL_HOME} variant="primary" className={styles.bigButton}>
-            Vào portal <Icon name="arrowRight" size={16} />
+            {t('Vào portal')} <Icon name="arrowRight" size={16} />
           </LinkButton>
         ) : (
           <Button variant="primary" className={styles.bigButton} onClick={onLogin}>
-            Đăng nhập portal <Icon name="arrowRight" size={16} />
+            {t('Đăng nhập portal')} <Icon name="arrowRight" size={16} />
           </Button>
         )}
         <p className={styles.cardText}>
-          Chưa có tài khoản? Gọi <a href={CONTACTS.hotline.href}>{CONTACTS.hotline.label}</a> để được cấp.
+          {t('Chưa có tài khoản? Gọi')} <a href={CONTACTS.hotline.href}>{CONTACTS.hotline.label}</a> {t('để được cấp.')}
         </p>
       </div>
     </Section>

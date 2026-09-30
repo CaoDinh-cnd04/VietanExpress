@@ -3,6 +3,7 @@ import { common } from './common';
 import { createOrder } from './create-order';
 import { drafts } from './drafts';
 import { ecommerce } from './ecommerce';
+import { landing } from './landing';
 import { orders } from './orders';
 import { pricing } from './pricing';
 import { support } from './support';
@@ -21,5 +22,6 @@ export const EN: Readonly<Record<string, string>> = {
   ...account,
   ...support,
   ...pricing,
-  ...ecommerce
+  ...ecommerce,
+  ...landing
 };

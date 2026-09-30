@@ -1,4 +1,5 @@
 import { useId, type ReactNode } from 'react';
+import { useI18n } from '@/shared/i18n';
 import styles from './LaneArt.module.css';
 
 /*
@@ -113,11 +114,12 @@ const SKYLINE: ReadonlyArray<[x: number, w: number, h: number]> = [
 ];
 
 export function LaneArt({ code, landmark }: { code: string; landmark: string }) {
+  const { t } = useI18n();
   const id = useId();
   const sky = `${id}-sky`;
 
   return (
-    <svg className={styles.art} viewBox="0 0 280 160" role="img" aria-label={`Máy bay chở hàng Việt An tới ${landmark}`}>
+    <svg className={styles.art} viewBox="0 0 280 160" role="img" aria-label={t('Máy bay chở hàng Việt An tới {place}', { place: landmark })}>
       <defs>
         <linearGradient id={sky} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" className={styles.skyTop} />

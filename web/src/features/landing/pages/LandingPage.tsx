@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useSession } from '@/features/auth';
+import { useI18n } from '@/shared/i18n';
 import { Icon } from '@/shared/ui';
 import { ContactSection } from '../components/ContactSection';
 import { FloatingContact } from '../components/FloatingContact';
@@ -19,6 +20,7 @@ import styles from './LandingPage.module.css';
  * Tra cứu vận đơn chuyển sang trang /tracking/MA1,MA2; link cũ `?track=` được chuyển hướng tới đó.
  */
 export default function LandingPage() {
+  const { t } = useI18n();
   const [params] = useSearchParams();
   const { search } = useLocation();
   const navigate = useNavigate();
@@ -28,11 +30,11 @@ export default function LandingPage() {
   const legacyTrack = billsFromQuery(params.get('track'));
 
   useEffect(() => {
-    document.title = `${COMPANY.name} — Chuyển phát nhanh quốc tế`;
+    document.title = `${COMPANY.name} — ${t('Chuyển phát nhanh quốc tế')}`;
     // Vào từ trang khác với /#muc → cuộn tới mục sau khi trang dựng xong.
     const id = window.location.hash.slice(1);
     if (id) requestAnimationFrame(() => document.getElementById(id)?.scrollIntoView());
-  }, []);
+  }, [t]);
 
   const track = (bills: string[]) => void navigate(trackingPath(bills));
 
@@ -59,18 +61,18 @@ export default function LandingPage() {
           <div className={styles.heroInner}>
             <div className={styles.heroText}>
               <span className={styles.badge}>
-                <Icon name="globe" size={14} /> Chuyển phát nhanh quốc tế từ {COMPANY.foundedYear}
+                <Icon name="globe" size={14} /> {t('Chuyển phát nhanh quốc tế từ {year}', { year: COMPANY.foundedYear })}
               </span>
               <h1 className={styles.heroTitle}>
-                Gửi hàng đi nước ngoài <span className={styles.accent}>nhanh, an toàn, tiết kiệm</span>
+                {t('Gửi hàng đi nước ngoài')} <span className={styles.accent}>{t('nhanh, an toàn, tiết kiệm')}</span>
               </h1>
               <p className={styles.heroLead}>
-                Door-to-door tới hầu hết các quốc gia qua DHL, FedEx, UPS, TNT. Lấy hàng tận nơi, đóng gói miễn phí và cập nhật hành trình liên tục.
+                {t('Door-to-door tới hầu hết các quốc gia qua DHL, FedEx, UPS, TNT. Lấy hàng tận nơi, đóng gói miễn phí và cập nhật hành trình liên tục.')}
               </p>
               <dl className={styles.stats}>
                 {stats.map(s => (
                   <div key={s.label}>
-                    <dt>{s.label}</dt>
+                    <dt>{t(s.label)}</dt>
                     <dd>{s.value}</dd>
                   </div>
                 ))}
@@ -79,7 +81,7 @@ export default function LandingPage() {
             <HeroPanel initialBills={[]} onTrack={track} tracking={false} />
           </div>
           <div className={styles.carriers}>
-            <span>Đại lý gom hàng cho các hãng</span>
+            <span>{t('Đại lý gom hàng cho các hãng')}</span>
             <ul>
               {CARRIERS.map(c => (
                 <li key={c}>{c}</li>

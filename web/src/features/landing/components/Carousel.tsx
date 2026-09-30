@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type PointerEvent, type ReactNode } from 'react';
+import { useI18n } from '@/shared/i18n';
 import { cx } from '@/shared/lib/cx';
 import { Icon } from '@/shared/ui';
 import { activeIndex, nextLeft, prevLeft, type ScrollState } from '../lib/carousel';
@@ -22,6 +23,7 @@ const DRAG_THRESHOLD = 6;
  * Dựa trên cuộn ngang gốc của trình duyệt + scroll-snap, nên bàn phím và trackpad cũng dùng được.
  */
 export function Carousel({ items, ariaLabel, interval = 3500 }: CarouselProps) {
+  const { t } = useI18n();
   const viewport = useRef<HTMLUListElement>(null);
   const [state, setState] = useState<ScrollState>({ left: 0, max: 0, step: 0 });
   const [hovered, setHovered] = useState(false);
@@ -143,7 +145,7 @@ export function Carousel({ items, ariaLabel, interval = 3500 }: CarouselProps) {
           <button
             type="button"
             className={styles.arrow}
-            aria-label="Xem thẻ trước"
+            aria-label={t('Xem thẻ trước')}
             onClick={() => {
               userAction();
               go(prevLeft(state));
@@ -157,7 +159,7 @@ export function Carousel({ items, ariaLabel, interval = 3500 }: CarouselProps) {
                 key={i}
                 type="button"
                 className={cx(styles.dot, i === current && styles.dotActive)}
-                aria-label={`Tới vị trí ${i + 1}`}
+                aria-label={t('Tới vị trí {n}', { n: i + 1 })}
                 aria-current={i === current}
                 onClick={() => {
                   userAction();
@@ -169,7 +171,7 @@ export function Carousel({ items, ariaLabel, interval = 3500 }: CarouselProps) {
           <button
             type="button"
             className={styles.arrow}
-            aria-label="Xem thẻ tiếp theo"
+            aria-label={t('Xem thẻ tiếp theo')}
             onClick={() => {
               userAction();
               go(nextLeft(state));

@@ -15,41 +15,12 @@ const sources = import.meta.glob<string>(['/src/**/*.{ts,tsx}', '!/src/**/*.test
   eager: true
 });
 
-/**
- * Thư mục đã dịch xong — test bắt buộc với các thư mục này. Đang dịch dần theo đợt; xong hết thì bỏ bộ lọc.
- */
-const DONE = [
-  '/src/app/',
-  '/src/shared/',
-  '/src/features/auth/',
-  '/src/features/onboarding/',
-  '/src/features/create-order/',
-  '/src/features/drafts/',
-  '/src/features/orders/',
-  '/src/features/order-import/',
-  '/src/features/account/',
-  '/src/features/dashboard/',
-  '/src/features/notifications/',
-  '/src/features/pickups/',
-  '/src/features/troubles/',
-  '/src/features/support/',
-  '/src/features/pricing/',
-  '/src/features/ecommerce/'
-];
-// Xem trước thư mục đang dịch: I18N_EXTRA=/src/features/create-order/ npx vitest run src/shared/i18n
-const env = (globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env ?? {};
-const EXTRA = (env.I18N_EXTRA ?? '').split(',').filter(Boolean);
-const inScope = (file: string) => [...DONE, ...EXTRA].some(p => file.startsWith(p));
-
 describe('bản tiếng Anh', () => {
   it('mọi chữ tiếng Việt trong giao diện đều đã bọc t() và có bản dịch', () => {
     const problems: string[] = [];
     for (const [file, source] of Object.entries(sources)) {
-      if (!inScope(file)) continue;
       for (const f of findUntranslated(source, has, text => NO_TRANSLATE.has(text)) as Finding[]) problems.push(`${file} [${f.kind}] ${f.text}`);
     }
-    // Đang xem trước thư mục chưa xong: in đủ danh sách (thông báo lỗi của vitest bị cắt ngắn).
-    if (EXTRA.length && problems.length) console.log(problems.join('\n'));
     expect(problems, `${problems.length} chỗ chưa dịch:\n${problems.join('\n')}`).toEqual([]);
   });
 

@@ -20,11 +20,11 @@ const QUICK_ACTIONS: ReadonlyArray<{ to: string; label: string; icon: IconName }
   { to: '/pickups', label: 'Đặt lịch pickup', icon: 'truck' }
 ];
 
-const COLUMNS: ReadonlyArray<Column<Order>> = [
+const columns = (t: (text: string) => string): ReadonlyArray<Column<Order>> => [
   { key: 'bill', header: 'VA Bill', render: o => <span className="mono">{o.bill}</span> },
   { key: 'cnee', header: 'Người nhận', render: o => o.cnee },
   { key: 'ct', header: 'Nước đến', render: o => o.ct },
-  { key: 'pcs', header: 'Kiện / cân', render: o => o.pcs },
+  { key: 'pcs', header: 'Kiện / cân', render: o => t(o.pcs) },
   { key: 'st', header: 'Trạng thái', render: o => <StatusPill tone={ORDER_STATUS[o.st].tone}>{ORDER_STATUS[o.st].label}</StatusPill> }
 ];
 
@@ -64,7 +64,7 @@ export default function DashboardPage() {
 
         <div className={styles.grid}>
           <Card flush title="Đơn mới nhất" actions={<LinkButton to="/orders" size="sm" variant="ghost">{t('Xem tất cả')}</LinkButton>}>
-            <DataTable caption="Đơn mới nhất" columns={COLUMNS} rows={orders.data?.items ?? []} rowKey={o => o.bill} loading={orders.isLoading} minWidth={560} empty={{ title: 'Chưa có đơn hàng' }} />
+            <DataTable caption="Đơn mới nhất" columns={columns(t)} rows={orders.data?.items ?? []} rowKey={o => o.bill} loading={orders.isLoading} minWidth={560} empty={{ title: 'Chưa có đơn hàng' }} />
           </Card>
 
           <div className="page-stack">
