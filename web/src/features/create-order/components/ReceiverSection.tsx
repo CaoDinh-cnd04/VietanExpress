@@ -3,6 +3,7 @@ import { useFormContext, useWatch } from 'react-hook-form';
 import { ApiError } from '@/shared/api/http';
 import { Button, Card, FormGrid, TextField, useToast } from '@/shared/ui';
 import { useDebouncedCallback } from '@/shared/lib/useDebouncedCallback';
+import { sanitizePhone } from '@/shared/lib/phone';
 import { useCountries, usePostalLookup, useReceivers, useSaveReceiver } from '../api';
 import { COUNTRIES, RULES } from '../constants';
 import { useFieldBinder, type FieldName } from '../hooks/useFieldBinder';
@@ -121,7 +122,7 @@ export function ReceiverSection() {
         <TextField label="Tỉnh / bang (state)" {...bind('receiver.state')} />
         <TextField label="Tên công ty (company name)" required wide {...bind('receiver.company')} />
         <TextField label="Người liên hệ (contact name)" required {...bind('receiver.contact')} />
-        <TextField label="Điện thoại (tel)" required type="tel" prefix={dialCode || undefined} {...bind('receiver.tel')} />
+        <TextField label="Điện thoại (tel)" required type="tel" prefix={dialCode || undefined} {...bind('receiver.tel', { onChange: e => { const clean = sanitizePhone(e.target.value); if (clean !== e.target.value) setValue('receiver.tel', clean, { shouldDirty: true }); } })} />
         <TextField label="Tax ID" {...bind('receiver.taxId')} />
         <TextField label="Email" type="email" {...bind('receiver.email')} />
         {addressField('addr1', 'Địa chỉ 1 (address 1)', addr1, true)}

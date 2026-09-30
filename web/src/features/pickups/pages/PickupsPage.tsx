@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { BRANCHES } from '@/shared/config/domain';
 import { formatIsoDate, todayIso } from '@/shared/lib/format';
+import { isPhone, PHONE_MESSAGE, sanitizePhone } from '@/shared/lib/phone';
 import { Button, Card, EmptyState, FormGrid, PageHeader, SelectField, StatusPill, TextAreaField, TextField, type Tone } from '@/shared/ui';
 import { useCreatePickup, usePickups, type PickupStatus } from '../api';
 import styles from './PickupsPage.module.css';
@@ -21,7 +22,7 @@ const schema = z.object({
   branch: z.string().min(1, 'Chọn chi nhánh'),
   address: z.string().trim().min(1, 'Nhập địa chỉ lấy hàng'),
   contact: z.string().trim().min(1, 'Nhập người liên hệ'),
-  phone: z.string().trim().min(8, 'Số điện thoại không hợp lệ'),
+  phone: z.string().trim().refine(isPhone, PHONE_MESSAGE),
   pcs: optionalNumber,
   weightKg: optionalNumber,
   note: z.string()
@@ -33,7 +34,7 @@ const defaults = (): FormValues => ({ date: todayIso(1), slot: '', branch: 'TP.H
 export default function PickupsPage() {
   const { data = [], isLoading } = usePickups();
   const create = useCreatePickup();
-  const { register, handleSubmit, reset, formState } = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: defaults() });
+  const { register, handleSubmit, reset, setValue, formState } = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: defaults() });
   const err = (k: keyof FormValues) => formState.errors[k]?.message;
 
   const submit = handleSubmit(v =>
@@ -54,7 +55,7 @@ export default function PickupsPage() {
               <SelectField label="Khung giờ" required placeholder="Chọn khung giờ" options={PICKUP_SLOTS} error={err('slot')} {...register('slot')} />
               <TextField label="Địa chỉ lấy hàng" required wide error={err('address')} {...register('address')} />
               <TextField label="Người liên hệ" required error={err('contact')} {...register('contact')} />
-              <TextField label="Số điện thoại" required type="tel" error={err('phone')} {...register('phone')} />
+              <TextField label="Số điện thoại" required type="tel" error={err('phone')} {...register('phone', { onChange: e => { const clean = sanitizePhone(e.target.value); if (clean !== e.target.value) setValue('phone', clean); } })} />
               <TextField label="Số kiện dự kiến" type="number" min={1} suffix="kiện" error={err('pcs')} {...register('pcs')} />
               <TextField label="Tổng cân dự kiến" type="number" min={0} step="any" suffix="kg" error={err('weightKg')} {...register('weightKg')} />
               <SelectField label="Chi nhánh phụ trách" required options={BRANCHES} error={err('branch')} {...register('branch')} />

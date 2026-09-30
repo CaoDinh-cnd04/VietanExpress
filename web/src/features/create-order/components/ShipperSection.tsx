@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useFormContext, useWatch } from 'react-hook-form';
 import { useSession } from '@/features/auth';
 import { BRANCHES } from '@/shared/config/domain';
+import { sanitizePhone } from '@/shared/lib/phone';
 import { Button, Card, FormGrid, SelectField, TextField } from '@/shared/ui';
 import { useSenders } from '../api';
 import { RULES } from '../constants';
@@ -16,6 +17,11 @@ export function ShipperSection() {
   const address = useWatch({ control, name: 'shipper.address' }) ?? '';
   const [picking, setPicking] = useState(false);
   const senders = useSenders();
+  // Ô điện thoại: bỏ chữ cái / ký tự lạ ngay khi gõ hoặc dán.
+  const keepPhone = (name: 'shipper.tel', value: string) => {
+    const clean = sanitizePhone(value);
+    if (clean !== value) setValue(name, clean, { shouldDirty: true });
+  };
 
   // Tên công ty + người liên hệ lấy theo khách đang đăng nhập (dbo.TCustomer) — chỉ điền ô còn trống; ô khác khách tự nhập.
   const session = useSession();
@@ -35,7 +41,7 @@ export function ShipperSection() {
       <FormGrid>
         <TextField label="Tên công ty / người gửi" required wide {...bind('shipper.company')} />
         <TextField label="Người liên hệ (contact name)" required {...bind('shipper.contact')} />
-        <TextField label="Điện thoại (tel)" required type="tel" {...bind('shipper.tel')} />
+        <TextField label="Điện thoại (tel)" required type="tel" {...bind('shipper.tel', { onChange: e => keepPhone('shipper.tel', e.target.value) })} />
         <TextField
           label="Địa chỉ lấy hàng"
           required

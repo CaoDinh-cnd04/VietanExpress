@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { isPhone, PHONE_MESSAGE } from '@/shared/lib/phone';
 import { DEFAULT_SERVICE, MULTI_CATEGORY, RULES } from './constants';
 
 /*
@@ -45,7 +46,7 @@ export const createOrderSchema = z
     shipper: z.object({
       company: required(),
       contact: required(),
-      tel: required(),
+      tel: required().refine(isPhone, PHONE_MESSAGE),
       address: required().max(RULES.shipperAddressMax, maxLen(RULES.shipperAddressMax)),
       taxId: optional,
       email: optionalEmail,
@@ -67,7 +68,7 @@ export const createOrderSchema = z
       city: required(),
       company: required(),
       contact: required(),
-      tel: required(),
+      tel: required().refine(isPhone, PHONE_MESSAGE),
       /** Mã điện thoại theo nước đến, vd "+1" — tự điền, lưu vào ConsigneePhoneCode. Có thể thiếu ở nháp cũ. */
       phoneCode: z.string().optional(),
       taxId: optional,
