@@ -1,4 +1,5 @@
 import { isNotImplemented } from '@/shared/api/http';
+import { useI18n } from '@/shared/i18n';
 import { EmptyState, Modal, Notice } from '@/shared/ui';
 import { useOrderPhotos } from '../api';
 import type { Order } from '../types';
@@ -6,12 +7,13 @@ import styles from './OrderPhotosDialog.module.css';
 
 /** Ảnh kiện chụp trên cân tại kho — căn cứ đối chiếu khối lượng & tình trạng hàng. */
 export function OrderPhotosDialog({ order, onClose }: { order: Order | null; onClose: () => void }) {
+  const { t } = useI18n();
   const photos = useOrderPhotos(order?.bill ?? null);
 
   return (
-    <Modal open={!!order} size="lg" title={order ? `Ảnh kiện hàng · ${order.bill}` : ''} onClose={onClose}>
+    <Modal open={!!order} size="lg" title={order ? t('Ảnh kiện hàng · {bill}', { bill: order.bill }) : ''} onClose={onClose}>
       {photos.isLoading ? (
-        <p className={styles.muted}>Đang tải ảnh…</p>
+        <p className={styles.muted}>{t('Đang tải ảnh…')}</p>
       ) : photos.isError ? (
         <Notice tone={isNotImplemented(photos.error) ? 'warning' : 'danger'}>
           {isNotImplemented(photos.error) ? 'Chức năng xem ảnh đang được kết nối máy chủ.' : 'Không tải được ảnh, vui lòng thử lại.'}
@@ -23,9 +25,9 @@ export function OrderPhotosDialog({ order, onClose }: { order: Order | null; onC
           {photos.data.map((p, i) => (
             <figure key={p.url} className={styles.card}>
               <a href={p.url} target="_blank" rel="noreferrer">
-                <img src={p.url} alt={p.caption ?? `Ảnh kiện ${i + 1}`} loading="lazy" />
+                <img src={p.url} alt={p.caption ?? t('Ảnh kiện {n}', { n: i + 1 })} loading="lazy" />
               </a>
-              <figcaption>{p.caption ?? `Kiện ${i + 1}`}{p.takenAt ? ` · ${p.takenAt}` : ''}</figcaption>
+              <figcaption>{p.caption ?? t('Kiện {n}', { n: i + 1 })}{p.takenAt ? ` · ${p.takenAt}` : ''}</figcaption>
             </figure>
           ))}
         </div>

@@ -1,3 +1,4 @@
+import { useI18n } from '@/shared/i18n';
 import { cx } from '@/shared/lib/cx';
 import { StatusPill } from '@/shared/ui';
 import { ORDER_STATUS } from '../constants';
@@ -36,6 +37,7 @@ const COLUMNS: ReadonlyArray<{ label: string; sort?: OrderSortField; className?:
 export function OrdersTable(props: OrdersTableProps) {
   const { orders, offset, sortBy, sortDir, onSort, selected, onToggle, onToggleAll, actions, loading } = props;
   const allChecked = orders.length > 0 && orders.every(o => selected.has(o.bill));
+  const { t } = useI18n();
 
   return (
     <div className={styles.scroll}>
@@ -43,18 +45,18 @@ export function OrdersTable(props: OrdersTableProps) {
         <thead>
           <tr>
             <th className={styles.colCheck}>
-              <input type="checkbox" aria-label="Chọn tất cả đơn trên trang" checked={allChecked} onChange={e => onToggleAll(e.target.checked)} />
+              <input type="checkbox" aria-label={t('Chọn tất cả đơn trên trang')} checked={allChecked} onChange={e => onToggleAll(e.target.checked)} />
             </th>
             <th className={styles.colNo}>#</th>
             {COLUMNS.map(col => (
               <th key={col.label} className={col.className} aria-sort={col.sort && col.sort === sortBy ? (sortDir === 'asc' ? 'ascending' : 'descending') : undefined}>
                 {col.sort ? (
                   <button type="button" className={styles.sortBtn} onClick={() => onSort(col.sort!)}>
-                    {col.label}
+                    {t(col.label)}
                     <span className={styles.sortMark}>{col.sort === sortBy ? (sortDir === 'asc' ? '▲' : '▼') : ''}</span>
                   </button>
                 ) : (
-                  col.label
+                  t(col.label)
                 )}
               </th>
             ))}
@@ -66,7 +68,7 @@ export function OrdersTable(props: OrdersTableProps) {
           ))}
           {!orders.length && (
             <tr>
-              <td colSpan={COLUMNS.length + 2} className={styles.empty}>{loading ? 'Đang tải…' : 'Không có đơn nào khớp bộ lọc.'}</td>
+              <td colSpan={COLUMNS.length + 2} className={styles.empty}>{t(loading ? 'Đang tải…' : 'Không có đơn nào khớp bộ lọc.')}</td>
             </tr>
           )}
         </tbody>
@@ -84,10 +86,12 @@ interface OrderRowProps {
 }
 
 function Nil({ children = '—' }: { children?: string }) {
-  return <span className={styles.nil}>{children}</span>;
+  const { t } = useI18n();
+  return <span className={styles.nil}>{t(children)}</span>;
 }
 
 function OrderRow({ order: o, index, checked, onToggle, actions }: OrderRowProps) {
+  const { t } = useI18n();
   const status = ORDER_STATUS[o.st];
   const estimate = estimatePodDate(o);
 
@@ -99,7 +103,7 @@ function OrderRow({ order: o, index, checked, onToggle, actions }: OrderRowProps
       }}
     >
       <td className={styles.colCheck}>
-        <input type="checkbox" aria-label={`Chọn đơn ${o.bill}`} checked={checked} onChange={() => onToggle(o.bill)} />
+        <input type="checkbox" aria-label={t('Chọn đơn {bill}', { bill: o.bill })} checked={checked} onChange={() => onToggle(o.bill)} />
       </td>
       <td className={styles.colNo}>{index}</td>
       <td>{o.ref ? <span className="mono">{o.ref}</span> : <Nil />}</td>
@@ -110,21 +114,21 @@ function OrderRow({ order: o, index, checked, onToggle, actions }: OrderRowProps
       <td className={styles.colCnee}><span className={styles.cnee}>{o.cnee}</span></td>
       <td>
         <div>{o.ct}</div>
-        <div className={styles.route}>{o.route}</div>
+        <div className={styles.route}>{t(o.route)}</div>
       </td>
       <td>
-        {o.sent ? <div className="tabular">{o.sent}</div> : <Nil>Chưa gửi</Nil>}
-        {o.connect && <div className={cx('mono', styles.sub)} title="Mã tracking hãng / last-mile">{o.connect}</div>}
+        {o.sent ? <div className="tabular">{o.sent}</div> : <Nil>{'Chưa gửi'}</Nil>}
+        {o.connect && <div className={cx('mono', styles.sub)} title={t('Mã tracking hãng / last-mile')}>{o.connect}</div>}
       </td>
       <td>
         {o.pod ? (
           <>
             <div className="tabular">{o.pod.date} {o.pod.time}</div>
-            <div className={styles.sub}>Ký: {o.pod.signer}</div>
+            <div className={styles.sub}>{t('Ký: {name}', { name: o.pod.signer })}</div>
           </>
         ) : estimate ? (
           <>
-            <div className={styles.sub}>Dự kiến</div>
+            <div className={styles.sub}>{t('Dự kiến')}</div>
             <div className="tabular">{estimate}</div>
           </>
         ) : (
@@ -134,7 +138,7 @@ function OrderRow({ order: o, index, checked, onToggle, actions }: OrderRowProps
       <td><TrackingLinks bill={o.bill} /></td>
       <td className={styles.colCreated}>
         <div className="tabular">{datePart(o.created)}</div>
-        <div className={styles.sub}>{o.pcs}</div>
+        <div className={styles.sub}>{t(o.pcs)}</div>
         <div className={styles.content}>{o.content}</div>
       </td>
       <td className={styles.colActions}><OrderRowActions order={o} actions={actions} /></td>

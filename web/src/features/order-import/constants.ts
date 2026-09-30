@@ -16,6 +16,15 @@ export interface GuideSection {
   note?: string;
 }
 
+/** Các bước tạo đơn từ Excel (phần hướng dẫn cuối trang). */
+export const IMPORT_STEPS: readonly string[] = [
+  'Tải file mẫu Excel.',
+  'Điền đầy đủ thông tin vào các cột theo hướng dẫn trên.',
+  'Chọn dịch vụ / hub nếu muốn áp cho cả file, rồi tải file lên.',
+  'Xem kết quả kiểm tra, sửa dòng lỗi (nếu có).',
+  'Bấm "Tạo đơn" — đơn được cấp số vận đơn và có trong "Đơn hàng của tôi".'
+];
+
 /** Bảng hướng dẫn cột — theo sheet "HƯỚNG DẪN" của file mẫu. */
 export const IMPORT_GUIDE: readonly GuideSection[] = [
   {

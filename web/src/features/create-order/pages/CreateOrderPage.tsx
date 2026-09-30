@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { FormProvider, useWatch, type FieldErrors } from 'react-hook-form';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { getErrorMessage } from '@/shared/api/http';
+import { useI18n } from '@/shared/i18n';
 import { Button, Card, LinkButton, PageHeader, SegmentedControl, useToast } from '@/shared/ui';
 import { DraftsTable, useSaveDraft, useUpdateDraft } from '@/features/drafts';
 import { useQuote, type ServiceQuote } from '@/features/pricing';
@@ -54,6 +55,7 @@ export default function CreateOrderPage({ mode }: { mode: CreateMode }) {
   const navigate = useNavigate();
   const { search } = useLocation();
   const toast = useToast();
+  const { t } = useI18n();
   const [initial] = useState(() => (search ? undefined : readAutosave()));
   const form = useCreateOrderForm(initial);
   const { draftId, finishAutosave } = useOrderPrefill(form);
@@ -153,7 +155,7 @@ export default function CreateOrderPage({ mode }: { mode: CreateMode }) {
     <FormProvider {...form}>
       <PageHeader
         title={draftId ? 'Sửa đơn nháp' : 'Tạo đơn hàng'}
-        description={isWizard ? `${steps.length} bước · tự lưu trong phiên` : 'Điền tất cả trên 1 trang · tự lưu trong phiên'}
+        description={isWizard ? t('{n} bước · tự lưu trong phiên', { n: steps.length }) : 'Điền tất cả trên 1 trang · tự lưu trong phiên'}
         actions={
           <>
             <HelpLinksMenu />
@@ -189,23 +191,23 @@ export default function CreateOrderPage({ mode }: { mode: CreateMode }) {
         {isPack && showStep(2) && <InvoiceSection />}
 
         <footer className={styles.footer}>
-          {isWizard && current > 0 && <Button onClick={() => void goToStep(current - 1)}>Quay lại</Button>}
-          <Button variant="ghost" onClick={saveAsDraft} disabled={busy}>Lưu nháp</Button>
+          {isWizard && current > 0 && <Button onClick={() => void goToStep(current - 1)}>{t('Quay lại')}</Button>}
+          <Button variant="ghost" onClick={saveAsDraft} disabled={busy}>{t('Lưu nháp')}</Button>
           <span className={styles.spacer} />
           {isWizard && current < lastStep ? (
             <Button variant="primary" onClick={() => void goToStep(current + 1)}>
-              Tiếp tục: {steps[current + 1]!.title}
+              {t('Tiếp tục: {step}', { step: t(steps[current + 1]!.title) })}
             </Button>
           ) : (
             <Button variant="primary" type="submit" disabled={busy}>
-              {quote.isPending ? 'Đang kiểm tra phụ phí…' : saving ? 'Đang lưu…' : draftId ? 'Lưu & sẵn sàng in' : 'Tạo đơn hàng'}
+              {t(quote.isPending ? 'Đang kiểm tra phụ phí…' : saving ? 'Đang lưu…' : draftId ? 'Lưu & sẵn sàng in' : 'Tạo đơn hàng')}
             </Button>
           )}
         </footer>
       </form>
 
       {!isWizard && (
-        <Card flush title="Đơn nháp & chưa in" subtitle="· bấm In để cấp mã bill" actions={<LinkButton to="/drafts" size="sm" variant="ghost">Mở trang đầy đủ</LinkButton>} className={styles.drafts}>
+        <Card flush title="Đơn nháp & chưa in" subtitle="· bấm In để cấp mã bill" actions={<LinkButton to="/drafts" size="sm" variant="ghost">{t('Mở trang đầy đủ')}</LinkButton>} className={styles.drafts}>
           <DraftsTable limit={10} />
         </Card>
       )}

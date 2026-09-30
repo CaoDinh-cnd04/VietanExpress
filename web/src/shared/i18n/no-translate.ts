@@ -14,6 +14,8 @@ export const NO_TRANSLATE: ReadonlySet<string> = new Set([
   'Hải Phòng',
   'Bình Dương',
   'Đồng Nai',
+  // Dữ liệu mẫu trong file CSV mẫu (giữ nguyên tiếng Việt)
+  'Váy hoa nữ',
   // Ký hiệu tiền đồng
   'đ',
   // Lỗi dành cho lập trình viên, không hiện cho khách

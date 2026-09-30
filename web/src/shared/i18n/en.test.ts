@@ -18,8 +18,20 @@ const sources = import.meta.glob<string>(['/src/**/*.{ts,tsx}', '!/src/**/*.test
 /**
  * Thư mục đã dịch xong — test bắt buộc với các thư mục này. Đang dịch dần theo đợt; xong hết thì bỏ bộ lọc.
  */
-const DONE = ['/src/app/', '/src/shared/', '/src/features/auth/', '/src/features/onboarding/'];
-const inScope = (file: string) => DONE.some(p => file.startsWith(p));
+const DONE = [
+  '/src/app/',
+  '/src/shared/',
+  '/src/features/auth/',
+  '/src/features/onboarding/',
+  '/src/features/create-order/',
+  '/src/features/drafts/',
+  '/src/features/orders/',
+  '/src/features/order-import/'
+];
+// Xem trước thư mục đang dịch: I18N_EXTRA=/src/features/create-order/ npx vitest run src/shared/i18n
+const env = (globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env ?? {};
+const EXTRA = (env.I18N_EXTRA ?? '').split(',').filter(Boolean);
+const inScope = (file: string) => [...DONE, ...EXTRA].some(p => file.startsWith(p));
 
 describe('bản tiếng Anh', () => {
   it('mọi chữ tiếng Việt trong giao diện đều đã bọc t() và có bản dịch', () => {
@@ -29,6 +41,22 @@ describe('bản tiếng Anh', () => {
       for (const f of findUntranslated(source, has, text => NO_TRANSLATE.has(text)) as Finding[]) problems.push(`${file} [${f.kind}] ${f.text}`);
     }
     expect(problems, `${problems.length} chỗ chưa dịch:\n${problems.join('\n')}`).toEqual([]);
+  });
+
+  it('khoá khai ở nhiều file từ điển phải cùng bản dịch', () => {
+    const parts = import.meta.glob<Record<string, Record<string, string>>>(['./en/*.ts', '!./en/index.ts'], { eager: true });
+    const seen = new Map<string, { file: string; value: string }>();
+    const conflicts: string[] = [];
+    for (const [file, mod] of Object.entries(parts)) {
+      for (const dict of Object.values(mod)) {
+        for (const [key, value] of Object.entries(dict)) {
+          const prev = seen.get(key);
+          if (prev && prev.value !== value) conflicts.push(`${key}: ${prev.file} "${prev.value}" ≠ ${file} "${value}"`);
+          seen.set(key, { file, value });
+        }
+      }
+    }
+    expect(conflicts).toEqual([]);
   });
 
   it('bản dịch không để trống', () => {

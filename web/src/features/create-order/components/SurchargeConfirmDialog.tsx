@@ -1,3 +1,4 @@
+import { useI18n } from '@/shared/i18n';
 import { formatVnd } from '@/shared/lib/format';
 import { Button, Modal, Notice } from '@/shared/ui';
 import type { ServiceQuote } from '@/features/pricing';
@@ -15,6 +16,7 @@ interface SurchargeConfirmDialogProps {
 
 /** Xác nhận trước khi tạo đơn có phụ phí / cảnh báo quá khổ, quá tải. */
 export function SurchargeConfirmDialog({ open, quote, warnings, busy, onConfirm, onCancel }: SurchargeConfirmDialogProps) {
+  const { t } = useI18n();
   return (
     <Modal
       open={open}
@@ -23,22 +25,22 @@ export function SurchargeConfirmDialog({ open, quote, warnings, busy, onConfirm,
       footerNote="Giá là ước tính theo biểu giá hiện hành"
       footer={
         <>
-          <Button onClick={onCancel}>Xem lại đơn</Button>
-          <Button variant="primary" onClick={onConfirm} disabled={busy}>{busy ? 'Đang lưu…' : 'Đồng ý tạo đơn'}</Button>
+          <Button onClick={onCancel}>{t('Xem lại đơn')}</Button>
+          <Button variant="primary" onClick={onConfirm} disabled={busy}>{t(busy ? 'Đang lưu…' : 'Đồng ý tạo đơn')}</Button>
         </>
       }
     >
       <div className={styles.confirm}>
         {quote?.hasSurcharge && (
           <dl className={styles.totals}>
-            <div><dt>Phụ thu kích thước / trọng lượng</dt><dd className={styles.warnText}>{formatVnd(quote.surcharges)}</dd></div>
-            <div><dt>Cước ước tính (gồm FSC, VAT)</dt><dd className={styles.emphasis}>{formatVnd(quote.totalFare)}</dd></div>
+            <div><dt>{t('Phụ thu kích thước / trọng lượng')}</dt><dd className={styles.warnText}>{formatVnd(quote.surcharges)}</dd></div>
+            <div><dt>{t('Cước ước tính (gồm FSC, VAT)')}</dt><dd className={styles.emphasis}>{formatVnd(quote.totalFare)}</dd></div>
           </dl>
         )}
         {warnings.map(w => (
           <Notice key={w.title} tone="warning" title={w.title}>{w.detail}</Notice>
         ))}
-        <p>Bạn có chắc muốn tiếp tục tạo đơn hàng này?</p>
+        <p>{t('Bạn có chắc muốn tiếp tục tạo đơn hàng này?')}</p>
       </div>
     </Modal>
   );

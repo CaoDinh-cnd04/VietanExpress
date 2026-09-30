@@ -3,7 +3,8 @@
  * - Chuỗi trong nháy đơn / kép có dấu tiếng Việt → phải có trong từ điển EN (hoặc trong NO_TRANSLATE).
  * - Chữ tiếng Việt viết thẳng trong JSX (<p>Xin chào</p>) hoặc trong template literal → phải bọc t().
  */
-const VIET = /[À-ỹĐđ]/;
+/** Chữ có dấu tiếng Việt (bỏ × ÷ nằm giữa dải Latin-1). */
+const VIET = /[À-ÖØ-öø-ỹĐđ]/;
 
 /** Bỏ chú thích (// và /* *\/) để không bắt nhầm; giữ nguyên chuỗi có "//" như URL. */
 export function stripComments(source: string): string {
@@ -37,9 +38,16 @@ export function findUntranslated(
     const plain = raw.replace(/\$\{[^}]*\}/g, '').trim();
     if (VIET.test(plain) && !ignore(plain)) out.push({ kind: 'template', text: raw.trim() });
   }
-  for (const m of code.matchAll(/>([^<>{}]*[À-ỹĐđ][^<>{}]*)</g)) {
-    const text = (m[1] ?? '').trim();
-    if (text && !ignore(text) && !text.includes('=>') && !/[;()]\s*$/.test(text)) out.push({ kind: 'jsx-text', text });
+  // Chữ JSX, kể cả xen biểu thức: <span>{n} đơn nháp</span> → phần ngoài {…} là "đơn nháp".
+  // Bỏ chuỗi (đã xét ở trên) và mọi {…} lồng nhau trước, chỉ còn chữ viết thẳng giữa các thẻ.
+  let jsx = code.replace(/'(?:[^'\\\n]|\\.)*'|"(?:[^"\\\n]|\\.)*"|`[^`]*`/g, '""');
+  for (let prev = ''; prev !== jsx; ) {
+    prev = jsx;
+    jsx = jsx.replace(/\{[^{}]*\}/g, ' ');
+  }
+  for (const m of jsx.matchAll(/>([^<>]*)</g)) {
+    const text = (m[1] ?? '').replace(/\s+/g, ' ').trim();
+    if (text && VIET.test(text) && !ignore(text)) out.push({ kind: 'jsx-text', text });
   }
   return out;
 }

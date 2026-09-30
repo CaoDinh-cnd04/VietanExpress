@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useI18n } from '@/shared/i18n';
 import { Modal } from '@/shared/ui';
 import styles from './form.module.css';
 
@@ -19,6 +20,7 @@ interface AddressPickerDialogProps {
 
 /** Hộp thoại chọn nhanh từ danh sách (hồ sơ người gửi / sổ địa chỉ), có ô tìm kiếm. */
 export function AddressPickerDialog({ open, title, items, loading, onClose }: AddressPickerDialogProps) {
+  const { t } = useI18n();
   const [query, setQuery] = useState('');
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -27,9 +29,9 @@ export function AddressPickerDialog({ open, title, items, loading, onClose }: Ad
 
   return (
     <Modal open={open} title={title} onClose={onClose}>
-      <input className={styles.pickerSearch} placeholder="Tìm nhanh…" value={query} onChange={e => setQuery(e.target.value)} aria-label="Tìm trong danh sách" autoFocus />
+      <input className={styles.pickerSearch} placeholder={t('Tìm nhanh…')} value={query} onChange={e => setQuery(e.target.value)} aria-label={t('Tìm trong danh sách')} autoFocus />
       {loading ? (
-        <p className={styles.pickerEmpty}>Đang tải…</p>
+        <p className={styles.pickerEmpty}>{t('Đang tải…')}</p>
       ) : filtered.length ? (
         <ul className={styles.pickerList}>
           {filtered.map(item => (
@@ -47,13 +49,13 @@ export function AddressPickerDialog({ open, title, items, loading, onClose }: Ad
                   <strong>{item.title}</strong>
                   <span>{item.subtitle}</span>
                 </span>
-                <span className={styles.pickerGo}>Chọn</span>
+                <span className={styles.pickerGo}>{t('Chọn')}</span>
               </button>
             </li>
           ))}
         </ul>
       ) : (
-        <p className={styles.pickerEmpty}>Không tìm thấy.</p>
+        <p className={styles.pickerEmpty}>{t('Không tìm thấy.')}</p>
       )}
     </Modal>
   );

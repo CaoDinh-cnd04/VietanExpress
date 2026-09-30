@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useFormContext, useWatch } from 'react-hook-form';
+import { useI18n } from '@/shared/i18n';
 import { Card, FormGrid, SelectField, TextField } from '@/shared/ui';
 import { CARRIER_HUBS, CARRIERS, defaultHub, hubOptions } from '../constants';
 import { useFieldBinder } from '../hooks/useFieldBinder';
@@ -9,6 +10,7 @@ const NO_HUBS: readonly string[] = [];
 
 export function ServiceSection() {
   const bind = useFieldBinder();
+  const { lang } = useI18n();
   const { control, setValue, getValues } = useFormContext<CreateOrderValues>();
   const carrier = useWatch({ control, name: 'service.carrier' });
   const hubs = CARRIER_HUBS[carrier] ?? NO_HUBS;
@@ -20,7 +22,7 @@ export function ServiceSection() {
   }, [hubs, carrier, getValues, setValue]);
 
   return (
-    <Card title="Dịch vụ" subtitle="(Services)">
+    <Card title="Dịch vụ" subtitle={lang === 'vi' ? '(Services)' : undefined}>
       <FormGrid>
         <SelectField
           label="Dịch vụ"

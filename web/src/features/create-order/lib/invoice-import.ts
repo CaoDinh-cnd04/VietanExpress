@@ -1,3 +1,4 @@
+import { fill } from '@/shared/i18n';
 import { parseCsv } from '@/shared/lib/files';
 import { UNITS } from '../constants';
 import type { InvoiceItemValues } from '../schema';
@@ -33,9 +34,9 @@ export function parseInvoiceCsv(text: string): InvoiceImportResult {
     const get = (header: string) => lower[header.toLowerCase()] ?? '';
     const item = Object.fromEntries(INVOICE_COLUMNS.map(c => [c.field, get(c.header)])) as unknown as InvoiceItemValues;
     const line = i + 2;
-    if (!item.descEn) return skipped.push(`Dòng ${line}: thiếu DescriptionEN`);
-    if (!(Number(item.qty) > 0)) return skipped.push(`Dòng ${line}: Qty không hợp lệ`);
-    if (item.price === '' || !(Number(item.price) >= 0)) return skipped.push(`Dòng ${line}: UnitPrice không hợp lệ`);
+    if (!item.descEn) return skipped.push(fill('Dòng {line}: thiếu DescriptionEN', { line }));
+    if (!(Number(item.qty) > 0)) return skipped.push(fill('Dòng {line}: Qty không hợp lệ', { line }));
+    if (item.price === '' || !(Number(item.price) >= 0)) return skipped.push(fill('Dòng {line}: UnitPrice không hợp lệ', { line }));
     const unit = UNITS.find(u => u.toUpperCase() === item.unit.toUpperCase());
     items.push({ ...item, origin: item.origin || 'VN', unit: unit ?? 'PCS' });
   });

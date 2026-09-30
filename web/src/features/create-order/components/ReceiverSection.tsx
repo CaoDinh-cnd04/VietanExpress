@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useFormContext, useWatch } from 'react-hook-form';
 import { ApiError } from '@/shared/api/http';
 import { Button, Card, FormGrid, TextField, useToast } from '@/shared/ui';
+import { useI18n } from '@/shared/i18n';
 import { useDebouncedCallback } from '@/shared/lib/useDebouncedCallback';
 import { sanitizePhone } from '@/shared/lib/phone';
 import { useCountries, usePostalLookup, useReceivers, useSaveReceiver } from '../api';
@@ -17,6 +18,7 @@ const MAX = RULES.receiverAddressMax;
 export function ReceiverSection() {
   const bind = useFieldBinder();
   const toast = useToast();
+  const { t, lang } = useI18n();
   const { control, setValue, getValues, clearErrors } = useFormContext<CreateOrderValues>();
   const [addr1 = '', addr2 = '', addr3 = ''] = useWatch({ control, name: ['receiver.addr1', 'receiver.addr2', 'receiver.addr3'] });
   const [picking, setPicking] = useState(false);
@@ -111,9 +113,9 @@ export function ReceiverSection() {
   return (
     <Card
       title="Thông tin người nhận"
-      subtitle="(Receiver)"
+      subtitle={lang === 'vi' ? '(Receiver)' : undefined}
       className={styles.fill}
-      actions={<Button size="sm" onClick={() => setPicking(true)}>Sổ địa chỉ</Button>}
+      actions={<Button size="sm" onClick={() => setPicking(true)}>{t('Sổ địa chỉ')}</Button>}
     >
       <FormGrid>
         <TextField label="Nước đến (country)" required list="va-countries" autoComplete="country-name" {...bind('receiver.country', { onChange: onCountryInput })} />
@@ -133,10 +135,10 @@ export function ReceiverSection() {
         {countryList.map(c => <option key={c.code} value={c.name} />)}
       </datalist>
 
-      <p className={styles.warning}>Hệ thống kiểm tra VSVX chỉ mang tính chất tham khảo. Vui lòng tự kiểm tra VSVX với hãng trước khi gửi hàng.</p>
+      <p className={styles.warning}>{t('Hệ thống kiểm tra VSVX chỉ mang tính chất tham khảo. Vui lòng tự kiểm tra VSVX với hãng trước khi gửi hàng.')}</p>
       <div className={styles.inlineActions}>
-        <Button size="sm" onClick={saveToBook} disabled={save.isPending}>Lưu vào sổ địa chỉ</Button>
-        <span className={styles.hint}>Lưu để lần sau chọn nhanh.</span>
+        <Button size="sm" onClick={saveToBook} disabled={save.isPending}>{t('Lưu vào sổ địa chỉ')}</Button>
+        <span className={styles.hint}>{t('Lưu để lần sau chọn nhanh.')}</span>
       </div>
 
       <AddressPickerDialog

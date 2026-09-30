@@ -5,7 +5,8 @@ export type Vars = Record<string, string | number>;
 
 export type Dictionary = Readonly<Record<string, string>>;
 
-const fill = (text: string, vars?: Vars) =>
+/** Điền {biến} vào câu (không dịch) — để hàm thuần tạo câu tiếng Việt có số liệu, component dịch sau. */
+export const fill = (text: string, vars?: Vars) =>
   vars ? text.replace(/\{(\w+)\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m)) : text;
 
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -14,6 +15,8 @@ interface Template {
   regex: RegExp;
   names: string[];
   target: string;
+  /** Số ký tự cố định (không tính biến) — mẫu cụ thể hơn được thử trước. */
+  literal: number;
 }
 
 /**
@@ -34,8 +37,10 @@ function compileTemplates(dict: Dictionary): Template[] {
           return '(.+?)';
         })
         .join('');
-      return { regex: new RegExp(`^${pattern}$`), names, target };
-    });
+      return { regex: new RegExp(`^${pattern}$`), names, target, literal: key.replace(/\{\w+\}/g, '').length };
+    })
+    // Mẫu nhiều chữ cố định khớp trước: "Kiện {i}: vượt giới hạn…" không bị "Kiện {n}" nuốt mất.
+    .sort((a, b) => b.literal - a.literal);
 }
 
 /** Bộ dịch cho 1 từ điển: exact match trước, rồi khớp mẫu có biến; không có → giữ tiếng Việt. */

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useFormContext, useWatch } from 'react-hook-form';
 import { useSession } from '@/features/auth';
 import { BRANCHES } from '@/shared/config/domain';
+import { useI18n } from '@/shared/i18n';
 import { sanitizePhone } from '@/shared/lib/phone';
 import { Button, Card, FormGrid, SelectField, TextField } from '@/shared/ui';
 import { useSenders } from '../api';
@@ -13,6 +14,7 @@ import { AddressPickerDialog } from './AddressPickerDialog';
 
 export function ShipperSection() {
   const bind = useFieldBinder();
+  const { t, lang } = useI18n();
   const { setValue, getValues, control } = useFormContext<CreateOrderValues>();
   const address = useWatch({ control, name: 'shipper.address' }) ?? '';
   const [picking, setPicking] = useState(false);
@@ -35,8 +37,8 @@ export function ShipperSection() {
   return (
     <Card
       title="Thông tin người gửi"
-      subtitle="(Shipper)"
-      actions={<Button size="sm" onClick={() => setPicking(true)}>Đổi hồ sơ</Button>}
+      subtitle={lang === 'vi' ? '(Shipper)' : undefined}
+      actions={<Button size="sm" onClick={() => setPicking(true)}>{t('Đổi hồ sơ')}</Button>}
     >
       <FormGrid>
         <TextField label="Tên công ty / người gửi" required wide {...bind('shipper.company')} />

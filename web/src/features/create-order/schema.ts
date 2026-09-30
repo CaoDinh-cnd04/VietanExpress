@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { fill } from '@/shared/i18n';
 import { isPhone, PHONE_MESSAGE } from '@/shared/lib/phone';
 import { DEFAULT_SERVICE, MULTI_CATEGORY, RULES } from './constants';
 
@@ -10,7 +11,7 @@ import { DEFAULT_SERVICE, MULTI_CATEGORY, RULES } from './constants';
 const REQUIRED = 'Bắt buộc';
 const required = (message = REQUIRED) => z.string().trim().min(1, message);
 const optional = z.string().trim();
-const maxLen = (max: number) => `Tối đa ${max} ký tự`;
+const maxLen = (max: number) => fill('Tối đa {n} ký tự', { n: max });
 
 const isNumber = (v: string) => v.trim() !== '' && Number.isFinite(Number(v));
 /** Số (dạng chuỗi) ≥ min; `integer` để bắt số nguyên. */

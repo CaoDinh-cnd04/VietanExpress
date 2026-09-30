@@ -1,4 +1,5 @@
 import { useFormContext, useWatch } from 'react-hook-form';
+import { useI18n } from '@/shared/i18n';
 import { Card, FormGrid, SelectField, TextField } from '@/shared/ui';
 import { useCategories } from '../api';
 import { MULTI_CATEGORY } from '../constants';
@@ -9,6 +10,7 @@ import { MultiCategoryTable } from './MultiCategoryTable';
 /** Nội dung hàng: PACK → nhóm hàng + mô tả (có gợi ý theo nhóm); DOC → nội dung chứng từ. */
 export function GoodsSection() {
   const bind = useFieldBinder();
+  const { t } = useI18n();
   const { control } = useFormContext<CreateOrderValues>();
   const [type, category] = useWatch({ control, name: ['shipment.type', 'goods.category'] });
   const { data: categories = [] } = useCategories();
@@ -31,7 +33,7 @@ export function GoodsSection() {
           label="Nhóm hàng hóa"
           placeholder="Chọn nhóm hàng"
           options={[
-            { value: MULTI_CATEGORY, label: `${MULTI_CATEGORY} (nhiều nhóm trong 1 kiện)` },
+            { value: MULTI_CATEGORY, label: t('{name} (nhiều nhóm trong 1 kiện)', { name: t(MULTI_CATEGORY) }) },
             ...[...categories].sort((a, b) => Number(b.isFavorite) - Number(a.isFavorite)).map(c => ({ value: c.name, label: c.isFavorite ? `★ ${c.name}` : c.name }))
           ]}
           {...bind('goods.category')}

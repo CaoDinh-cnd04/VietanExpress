@@ -76,7 +76,7 @@ export function draftDetail(payload: unknown): DraftDetail {
     packages: packages.map(p => ({
       qty: orDash(p.qty),
       packaging: orDash(p.packaging),
-      size: text(p.length) ? `${text(p.length)} × ${text(p.width)} × ${text(p.height)} cm` : '—',
+      size: text(p.length) ? [text(p.length), text(p.width), text(p.height)].join(' × ') + ' cm' : '—',
       weight: text(p.weight) ? `${text(p.weight)} kg` : '—'
     })),
     packageTotals: packages.length ? summarizePackages(packages) : null,

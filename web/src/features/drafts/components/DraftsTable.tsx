@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useI18n } from '@/shared/i18n';
 import { Button, DataTable, Icon, LinkButton, StatusPill, type Column } from '@/shared/ui';
 import { useDeleteDraft, useDrafts, usePrintDraft, type Draft } from '../api';
 import styles from '../pages/DraftsPage.module.css';
@@ -11,18 +12,19 @@ export function DraftsTable({ limit }: { limit?: number }) {
   const remove = useDeleteDraft();
   const rows = limit ? data.slice(0, limit) : data;
   const [viewing, setViewing] = useState<Draft | null>(null);
+  const { t } = useI18n();
 
   const columns: ReadonlyArray<Column<Draft>> = [
-    { key: 'st', header: 'Trạng thái', width: 100, render: d => (d.stt === 'ready' ? <StatusPill tone="info">Chưa in</StatusPill> : <StatusPill>Nháp</StatusPill>) },
+    { key: 'st', header: 'Trạng thái', width: 100, render: d => (d.stt === 'ready' ? <StatusPill tone="info">{t('Chưa in')}</StatusPill> : <StatusPill>{t('Nháp')}</StatusPill>) },
     {
       key: 'cnee',
       header: 'Người nhận',
-      render: d => <span className={styles.strong}>{d.cnee || '—'}</span>
+      render: d => <span className={styles.strong}>{t(d.cnee || '—')}</span>
     },
     { key: 'ct', header: 'Nước đến', render: d => d.ct },
-    { key: 'svc', header: 'Dịch vụ', render: d => <span className={styles.muted}>{d.service}</span> },
-    { key: 'pcs', header: 'Kiện / cân', render: d => d.pcs },
-    { key: 'content', header: 'Nội dung', render: d => d.content },
+    { key: 'svc', header: 'Dịch vụ', render: d => <span className={styles.muted}>{t(d.service)}</span> },
+    { key: 'pcs', header: 'Kiện / cân', render: d => t(d.pcs) },
+    { key: 'content', header: 'Nội dung', render: d => t(d.content) },
     { key: 'date', header: 'Tạo lúc', render: d => <span className={`${styles.muted} tabular`}>{d.date}</span> },
     {
       key: 'act',
@@ -33,12 +35,12 @@ export function DraftsTable({ limit }: { limit?: number }) {
         const printing = print.isPending && print.variables === d.id;
         return (
           <div className={styles.actions}>
-            <Button size="sm" onClick={() => setViewing(d)}><Icon name="eye" size={15} /> Xem</Button>
-            <LinkButton size="sm" to={`/orders/new/quick?draft=${encodeURIComponent(d.id)}`}><Icon name="edit" size={15} /> {ready ? 'Sửa' : 'Tiếp tục'}</LinkButton>
-            <Button size="sm" variant="primary" onClick={() => print.mutate(d.id)} disabled={!ready || printing} title={ready ? undefined : 'Hoàn thiện đơn trước khi in'}>
-              {printing ? 'Đang in…' : 'In & cấp bill'}
+            <Button size="sm" onClick={() => setViewing(d)}><Icon name="eye" size={15} /> {t('Xem')}</Button>
+            <LinkButton size="sm" to={`/orders/new/quick?draft=${encodeURIComponent(d.id)}`}><Icon name="edit" size={15} /> {t(ready ? 'Sửa' : 'Tiếp tục')}</LinkButton>
+            <Button size="sm" variant="primary" onClick={() => print.mutate(d.id)} disabled={!ready || printing} title={ready ? undefined : t('Hoàn thiện đơn trước khi in')}>
+              {t(printing ? 'Đang in…' : 'In & cấp bill')}
             </Button>
-            <Button size="sm" iconOnly variant="danger" onClick={() => remove.mutate(d.id)} aria-label={`Xóa đơn nháp ${d.cnee}`}>
+            <Button size="sm" iconOnly variant="danger" onClick={() => remove.mutate(d.id)} aria-label={t('Xóa đơn nháp {name}', { name: d.cnee })}>
               <Icon name="trash" size={15} />
             </Button>
           </div>
@@ -59,7 +61,7 @@ export function DraftsTable({ limit }: { limit?: number }) {
         onRowClick={setViewing}
         empty={
           isError
-            ? { title: 'Không tải được đơn nháp', action: <Button onClick={() => void refetch()}>Thử lại</Button> }
+            ? { title: 'Không tải được đơn nháp', action: <Button onClick={() => void refetch()}>{t('Thử lại')}</Button> }
             : { title: 'Chưa có đơn nháp', description: 'Đơn đang làm dở hoặc chưa in sẽ hiện ở đây.' }
         }
       />

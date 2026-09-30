@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
+import { useI18n } from '@/shared/i18n';
 import { Button, Card, EmptyState, LinkButton, PageHeader, Pagination, Tabs } from '@/shared/ui';
 import { useOrders } from '../api';
 import { ReportTroubleDialog } from '@/features/troubles';
@@ -14,6 +15,7 @@ import type { Order, OrderActions, OrderSortField } from '../types';
 import styles from './OrdersPage.module.css';
 
 export default function OrdersPage() {
+  const { t } = useI18n();
   const print = usePrintDocuments();
   const exportOrders = useExportOrders();
   const { filters, update, reset } = useOrderFilters();
@@ -52,17 +54,17 @@ export default function OrdersPage() {
       <PageHeader
         title="Đơn hàng của tôi"
         description="Tra cứu, theo dõi và in bill các đơn đã tạo."
-        actions={<LinkButton to="/orders/new" variant="primary" size="sm">Tạo đơn mới</LinkButton>}
+        actions={<LinkButton to="/orders/new" variant="primary" size="sm">{t('Tạo đơn mới')}</LinkButton>}
       />
 
       <OrderFilterBar filters={filters} onChange={update} onReset={reset} />
 
       <Card flush>
         <Tabs
-          ariaLabel="Lọc theo trạng thái"
+          ariaLabel={t('Lọc theo trạng thái')}
           value={filters.status}
           onChange={status => update({ status })}
-          items={STATUS_TABS.map(t => ({ ...t, count: summary?.statusCounts[t.key] }))}
+          items={STATUS_TABS.map(tab => ({ ...tab, count: summary?.statusCounts[tab.key] }))}
         />
         <OrderSummaryBar
           totalPieces={summary?.totalPieces ?? 0}
@@ -80,7 +82,7 @@ export default function OrdersPage() {
           <EmptyState
             title="Không tải được danh sách đơn"
             description="Kiểm tra kết nối tới máy chủ rồi thử lại."
-            action={<Button onClick={() => void refetch()}>Thử lại</Button>}
+            action={<Button onClick={() => void refetch()}>{t('Thử lại')}</Button>}
           />
         ) : (
           <OrdersTable
@@ -98,7 +100,7 @@ export default function OrdersPage() {
         )}
 
         <footer className={styles.footer}>
-          <span>{data?.total ?? 0} đơn hàng</span>
+          <span>{t('{n} đơn hàng', { n: data?.total ?? 0 })}</span>
           {data && (
             <Pagination page={data.page} totalPages={data.totalPages} total={data.total} pageSize={data.pageSize} onChange={page => update({ page })} />
           )}

@@ -1,14 +1,16 @@
 import { Controller, useFormContext } from 'react-hook-form';
+import { useI18n } from '@/shared/i18n';
 import { Card } from '@/shared/ui';
 import { ADDONS } from '../constants';
 import type { CreateOrderValues } from '../schema';
 import styles from './form.module.css';
 
-/** Tùy chọn dịch vụ (Service options) — chọn nhiều, hiển thị song ngữ Việt / Anh. */
+/** Tùy chọn dịch vụ — chọn nhiều. Giá trị lưu là tên tiếng Việt; hiển thị theo ngôn ngữ đang chọn. */
 export function AddonsSection() {
+  const { t } = useI18n();
   const { control } = useFormContext<CreateOrderValues>();
   return (
-    <Card title="Tùy chọn dịch vụ" subtitle="(Service options)">
+    <Card title="Tùy chọn dịch vụ">
       <Controller
         control={control}
         name="addons"
@@ -24,10 +26,8 @@ export function AddonsSection() {
                     onChange={() => field.onChange(checked ? field.value.filter(x => x !== a.name) : [...field.value, a.name])}
                   />
                   <span>
-                    <strong>{a.name}</strong>
-                    <small>{a.description}</small>
-                    <strong className={styles.checkEn} lang="en">{a.nameEn}</strong>
-                    <small lang="en">{a.descriptionEn}</small>
+                    <strong>{t(a.name)}</strong>
+                    <small>{t(a.description)}</small>
                   </span>
                 </label>
               );

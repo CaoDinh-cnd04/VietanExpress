@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ApiError, http } from '@/shared/api/http';
+import { useI18n } from '@/shared/i18n';
 import { downloadBlob, fileNameFromDisposition } from '@/shared/lib/files';
 import { useToast } from '@/shared/ui';
 import { fetchOrdersExport, fetchPrintHtml, orderKeys } from './api';
@@ -17,6 +18,7 @@ const errorMessage = (e: unknown) => (e instanceof ApiError ? e.message : 'Có l
  */
 export function usePrintDocuments() {
   const toast = useToast();
+  const { t } = useI18n();
   return useCallback(
     async (bills: readonly string[], doc: PrintDoc) => {
       if (bills.length === 0) return;
@@ -25,8 +27,9 @@ export function usePrintDocuments() {
         toast.show('Trình duyệt đang chặn cửa sổ in — hãy cho phép pop-up cho trang này', 'error');
         return;
       }
-      win.document.title = 'Đang chuẩn bị bản in…';
-      win.document.body.innerHTML = '<p style="font:14px system-ui,sans-serif;padding:24px;color:#4d6456">Đang chuẩn bị bản in…</p>';
+      const preparing = t('Đang chuẩn bị bản in…');
+      win.document.title = preparing;
+      win.document.body.innerHTML = `<p style="font:14px system-ui,sans-serif;padding:24px;color:#4d6456">${preparing}</p>`;
       try {
         const html = await fetchPrintHtml(bills, doc);
         win.document.open();
@@ -37,7 +40,7 @@ export function usePrintDocuments() {
         toast.show(errorMessage(e), 'error');
       }
     },
-    [toast]
+    [toast, t]
   );
 }
 

@@ -1,10 +1,11 @@
+import { fill } from '@/shared/i18n';
 import { IMPORT_LIMITS } from '../constants';
 import type { ImportDefaults, ImportRow } from '../types';
 
 /** Chỉ nhận .xlsx theo file mẫu (backend đọc bằng ClosedXML). */
 export function checkImportFile(file: { name: string; size: number }): string | null {
   if (!/\.xlsx$/i.test(file.name)) return 'Chỉ nhận file Excel .xlsx — vui lòng dùng file mẫu.';
-  if (file.size > IMPORT_LIMITS.maxMb * 1024 * 1024) return `File quá lớn (tối đa ${IMPORT_LIMITS.maxMb} MB).`;
+  if (file.size > IMPORT_LIMITS.maxMb * 1024 * 1024) return fill('File quá lớn (tối đa {mb} MB).', { mb: IMPORT_LIMITS.maxMb });
   return null;
 }
 

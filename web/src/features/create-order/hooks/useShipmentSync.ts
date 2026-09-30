@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
+import { useI18n } from '@/shared/i18n';
 import { useToast } from '@/shared/ui';
 import { RULES } from '../constants';
 import { applyDocWeightRule, summarizePackages, toNumber } from '../lib/shipment';
@@ -18,6 +19,7 @@ const OPTS = { shouldDirty: true } as const;
 export function useShipmentSync(form: UseFormReturn<CreateOrderValues>) {
   const { getValues, setValue } = form;
   const toast = useToast();
+  const { t } = useI18n();
   /** PACK hiện tại do hệ thống tự chuyển (không phải khách chọn) — quyết định có hiện thông báo / trả lại DOC không. */
   const [autoConverted, setAutoConverted] = useState(false);
 
@@ -29,14 +31,14 @@ export function useShipmentSync(form: UseFormReturn<CreateOrderValues>) {
       if (next.change === 'toPack') {
         setValue('shipment.type', 'PACK', OPTS);
         if (goods.docContent && !goods.description) setValue('goods.description', goods.docContent, OPTS);
-        toast.show(`Tài liệu trên ${RULES.docMaxWeightKg}kg được tính là hàng hóa — đã chuyển sang PACK.`);
+        toast.show(t('Tài liệu trên {kg}kg được tính là hàng hóa — đã chuyển sang PACK.', { kg: RULES.docMaxWeightKg }));
       } else if (next.change === 'toDoc') {
         setValue('shipment.type', 'DOC', OPTS);
         if (goods.description && !goods.docContent) setValue('goods.docContent', goods.description, OPTS);
-        toast.show(`Cân nặng không quá ${RULES.docMaxWeightKg}kg — đã chuyển lại chứng từ (DOC).`);
+        toast.show(t('Cân nặng không quá {kg}kg — đã chuyển lại chứng từ (DOC).', { kg: RULES.docMaxWeightKg }));
       }
     },
-    [getValues, setValue, toast]
+    [getValues, setValue, toast, t]
   );
 
   /** Khách tự bấm chọn Chứng từ / Hàng hoá: là lựa chọn chủ động, không còn là "tự chuyển". */

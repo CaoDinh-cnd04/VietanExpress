@@ -1,3 +1,4 @@
+import { fill } from '@/shared/i18n';
 import { RULES } from '../constants';
 import type { CreateOrderValues, InvoiceItemValues, PackageValues } from '../schema';
 
@@ -71,7 +72,7 @@ export function buildDraftPayload(v: CreateOrderValues, status: 'draft' | 'ready
     service: v.service.hub || v.service.carrier || '—',
     branch: v.shipper.branch,
     ref: v.service.reference,
-    pcs: `${toNumber(v.shipment.pieces) || 1} kiện · ${weight} kg`,
+    pcs: fill('{pcs} kiện · {kg} kg', { pcs: toNumber(v.shipment.pieces) || 1, kg: weight }),
     content: isPack ? v.goods.description || 'Hàng hóa' : v.goods.docContent || 'Chứng từ',
     payload: v as unknown as Record<string, unknown>
   };

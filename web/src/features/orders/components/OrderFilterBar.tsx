@@ -1,4 +1,5 @@
 import { useEffect, useState, type ChangeEvent } from 'react';
+import { useI18n } from '@/shared/i18n';
 import { useDebouncedCallback } from '@/shared/lib/useDebouncedCallback';
 import { Button, SelectField, TextField } from '@/shared/ui';
 import { SEARCH_FIELDS } from '../constants';
@@ -14,6 +15,7 @@ interface OrderFilterBarProps {
 type TextKey = 'q' | 'weightFrom' | 'weightTo';
 
 export function OrderFilterBar({ filters, onChange, onReset }: OrderFilterBarProps) {
+  const { t } = useI18n();
   // Ô gõ tự do giữ state cục bộ để nhập mượt, đẩy lên URL sau khi ngừng gõ.
   const [draft, setDraft] = useState<Record<TextKey, string>>({ q: filters.q, weightFrom: filters.weightFrom, weightTo: filters.weightTo });
   useEffect(() => setDraft({ q: filters.q, weightFrom: filters.weightFrom, weightTo: filters.weightTo }), [filters.q, filters.weightFrom, filters.weightTo]);
@@ -25,7 +27,7 @@ export function OrderFilterBar({ filters, onChange, onReset }: OrderFilterBarPro
   };
 
   return (
-    <section className={styles.bar} aria-label="Bộ lọc đơn hàng">
+    <section className={styles.bar} aria-label={t('Bộ lọc đơn hàng')}>
       <div className={styles.row}>
         <TextField label="Từ ngày" type="date" max={filters.toDate || undefined} value={filters.fromDate} onChange={e => onChange({ fromDate: e.target.value })} />
         <TextField label="Đến ngày" type="date" min={filters.fromDate || undefined} value={filters.toDate} onChange={e => onChange({ toDate: e.target.value })} />
@@ -41,20 +43,20 @@ export function OrderFilterBar({ filters, onChange, onReset }: OrderFilterBarPro
       </div>
       <div className={styles.searchRow}>
         <div className={styles.search}>
-          <label className={styles.searchLabel} htmlFor="order-search">Tìm theo</label>
+          <label className={styles.searchLabel} htmlFor="order-search">{t('Tìm theo')}</label>
           <div className={styles.searchGroup}>
             <select
-              aria-label="Trường tìm kiếm"
+              aria-label={t('Trường tìm kiếm')}
               className={styles.searchField}
               value={filters.searchField}
               onChange={e => onChange({ searchField: e.target.value as OrderSearchField })}
             >
-              {SEARCH_FIELDS.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+              {SEARCH_FIELDS.map(f => <option key={f.value} value={f.value}>{t(f.label)}</option>)}
             </select>
-            <input id="order-search" className={styles.searchInput} placeholder="Nhập từ khóa…" value={draft.q} onChange={onText('q')} />
+            <input id="order-search" className={styles.searchInput} placeholder={t('Nhập từ khóa…')} value={draft.q} onChange={onText('q')} />
           </div>
         </div>
-        <Button onClick={onReset}>Xóa lọc</Button>
+        <Button onClick={onReset}>{t('Xóa lọc')}</Button>
       </div>
     </section>
   );

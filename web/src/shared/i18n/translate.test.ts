@@ -24,6 +24,12 @@ describe('createTranslator', () => {
     expect(t('en', 'Đã tạo 12 đơn và cấp số vận đơn')).toBe('Created 12 orders with bill numbers');
   });
 
+  it('mẫu cụ thể hơn khớp trước mẫu ngắn', () => {
+    const tr = createTranslator({ 'Kiện {n}': 'Piece {n}', 'Kiện {i}: hàng quá khổ': 'Piece {i}: oversized' });
+    expect(tr('en', 'Kiện 2: hàng quá khổ')).toBe('Piece 2: oversized');
+    expect(tr('en', 'Kiện 3')).toBe('Piece 3');
+  });
+
   it('chưa có bản dịch hoặc là dữ liệu (tên khách…) → giữ nguyên', () => {
     expect(t('en', 'SCS CO., LTD')).toBe('SCS CO., LTD');
     expect(t('en', '')).toBe('');
