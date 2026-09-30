@@ -6,7 +6,7 @@ import type { RouteHandle } from '../routes';
 import { useNavBadges } from './useNavBadges';
 import styles from './Topbar.module.css';
 
-export function Topbar({ onMenu }: { onMenu: () => void }) {
+export function Topbar({ onMenu, onStartTour }: { onMenu: () => void; onStartTour: () => void }) {
   const matches = useMatches();
   const title = [...matches].reverse().map(m => (m.handle as RouteHandle | undefined)?.title).find(Boolean) ?? '';
   const { theme, toggle } = useTheme();
@@ -18,6 +18,7 @@ export function Topbar({ onMenu }: { onMenu: () => void }) {
   const initials = initialsOf(user?.companyName);
 
   const menu: MenuItem[] = [
+    { label: 'Xem hướng dẫn sử dụng', onSelect: onStartTour },
     { label: 'Đổi mật khẩu', onSelect: () => void navigate('/account/password') },
     { label: 'Trang giới thiệu', onSelect: () => void navigate('/') },
     ...(user
@@ -38,14 +39,14 @@ export function Topbar({ onMenu }: { onMenu: () => void }) {
         <button type="button" className={styles.iconBtn} onClick={toggle} aria-label={theme === 'dark' ? 'Chuyển giao diện sáng' : 'Chuyển giao diện tối'}>
           <Icon name={theme === 'dark' ? 'sun' : 'moon'} />
         </button>
-        <Link to="/notifications" className={styles.iconBtn} aria-label={`Thông báo${notifications ? `, ${notifications} chưa đọc` : ''}`}>
+        <Link to="/notifications" className={styles.iconBtn} data-tour="notifications" aria-label={`Thông báo${notifications ? `, ${notifications} chưa đọc` : ''}`}>
           <Icon name="bell" />
           {notifications > 0 && <span className={styles.dot}>{notifications}</span>}
         </Link>
         <DropdownMenu
           items={menu}
           trigger={({ open, toggle }) => (
-            <button type="button" className={styles.avatar} onClick={toggle} aria-expanded={open} aria-haspopup="menu" aria-label="Tài khoản" title={user?.companyName}>
+            <button type="button" className={styles.avatar} data-tour="account" onClick={toggle} aria-expanded={open} aria-haspopup="menu" aria-label="Tài khoản" title={user?.companyName}>
               {initials || <Icon name="user" size={16} />}
             </button>
           )}

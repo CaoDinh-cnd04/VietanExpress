@@ -1,0 +1,92 @@
+.layer {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+}
+
+.blocker {
+  position: absolute;
+  inset: 0;
+}
+
+/* Không có vùng chức năng để chiếu sáng (bước chào / kết thúc, hoặc menu đang ẩn) */
+.dim {
+  background: rgba(10, 20, 14, 0.5);
+}
+
+.spot {
+  position: fixed;
+  border-radius: var(--radius-md);
+  box-shadow: 0 0 0 3px var(--color-brand), 0 0 0 9999px rgba(10, 20, 14, 0.5);
+  pointer-events: none;
+  transition: top 0.2s ease, left 0.2s ease, width 0.2s ease, height 0.2s ease;
+}
+
+.card {
+  position: fixed;
+  width: min(360px, calc(100vw - 24px));
+  padding: var(--space-4);
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  outline: none;
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.dots {
+  display: flex;
+  gap: 4px;
+}
+
+.dot,
+.dotOn {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-border-strong);
+}
+
+.dotOn {
+  width: 16px;
+  border-radius: 3px;
+  background: var(--color-brand);
+}
+
+.title {
+  margin: var(--space-2) 0 var(--space-1);
+  font-size: var(--text-lg);
+  color: var(--color-brand-strong);
+}
+
+.body {
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: 1.6;
+  color: var(--color-text-muted);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+.spacer {
+  flex: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spot {
+    transition: none;
+  }
+}

@@ -35,7 +35,7 @@ export function Sidebar({ collapsed, mobileOpen, onNavigate, onExpand }: Sidebar
         {NAV.map(entry => {
           if (entry.kind === 'link') {
             return (
-              <NavLink key={entry.to} to={entry.to} end onClick={onNavigate} className={({ isActive: a }) => cx(styles.item, styles.top, a && styles.active)} title={entry.label}>
+              <NavLink key={entry.to} to={entry.to} end onClick={onNavigate} className={({ isActive: a }) => cx(styles.item, styles.top, a && styles.active)} title={entry.label} data-tour={`nav-${entry.to.slice(1)}`}>
                 <Icon name={entry.icon} className={styles.icon} />
                 <span className={styles.label}>{entry.label}</span>
               </NavLink>
@@ -46,7 +46,7 @@ export function Sidebar({ collapsed, mobileOpen, onNavigate, onExpand }: Sidebar
           const open = openGroups[entry.id] || hasActive;
           const groupCount = entry.children.reduce((sum, c) => sum + count(c.badge), 0);
           return (
-            <div key={entry.id} className={styles.group}>
+            <div key={entry.id} className={styles.group} data-tour={`nav-${entry.id}`}>
               <button
                 type="button"
                 className={cx(styles.item, styles.top, hasActive && styles.groupActive)}

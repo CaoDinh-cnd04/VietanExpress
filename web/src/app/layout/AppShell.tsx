@@ -2,7 +2,9 @@ import { Suspense, useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { useLocalStorage } from '@/shared/lib/useLocalStorage';
 import { cx } from '@/shared/lib/cx';
+import { useSession } from '@/features/auth';
 import { ImportantNoticeModal } from '@/features/notifications';
+import { OnboardingTour, useOnboardingTour } from '@/features/onboarding';
 import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
 import styles from './AppShell.module.css';
@@ -13,6 +15,9 @@ const MOBILE_QUERY = '(max-width: 1040px)';
 export function AppShell() {
   const [collapsed, setCollapsed] = useLocalStorage('va.nav.collapsed', false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const session = useSession();
+  const customerCode = session.data?.status === 'authenticated' ? session.data.user.customerCode : undefined;
+  const tour = useOnboardingTour(customerCode);
 
   const toggleMenu = () => {
     if (window.matchMedia(MOBILE_QUERY).matches) setMobileOpen(o => !o);
@@ -24,13 +29,14 @@ export function AppShell() {
       <Sidebar collapsed={collapsed} mobileOpen={mobileOpen} onNavigate={() => setMobileOpen(false)} onExpand={() => setCollapsed(false)} />
       {mobileOpen && <div className={styles.scrim} onClick={() => setMobileOpen(false)} />}
       <div className={styles.main}>
-        <Topbar onMenu={toggleMenu} />
+        <Topbar onMenu={toggleMenu} onStartTour={tour.start} />
         <main className={styles.content}>
           <Suspense fallback={<p className={styles.loading}>Đang tải…</p>}>
             <Outlet />
           </Suspense>
         </main>
         <ImportantNoticeModal />
+        <OnboardingTour open={tour.open} onClose={tour.close} />
       </div>
     </div>
   );
