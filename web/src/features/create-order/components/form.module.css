@@ -543,3 +543,12 @@
 .warnText {
   color: var(--color-warning);
 }
+
+/* Tên tiếng Anh của tùy chọn dịch vụ — dưới phần tiếng Việt, nhạt hơn */
+.checkItem .checkEn {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--color-border);
+  color: var(--color-text-muted);
+  font-weight: 500;
+}

@@ -71,7 +71,7 @@ export function draftDetail(payload: unknown): DraftDetail {
       ['Cân nặng', text(sh.grossWeight) ? `${text(sh.grossWeight)} kg` : '—'],
       [isDoc ? 'Nội dung chứng từ' : 'Mô tả hàng', orDash(isDoc ? g.docContent : g.description)],
       ...(!isDoc && text(g.category) ? [['Nhóm hàng', text(g.category)] as [string, string]] : []),
-      ...((v.addons ?? []).length ? [['Dịch vụ thêm', (v.addons ?? []).join(', ')] as [string, string]] : [])
+      ...((v.addons ?? []).length ? [['Tùy chọn dịch vụ', (v.addons ?? []).join(', ')] as [string, string]] : [])
     ],
     packages: packages.map(p => ({
       qty: orDash(p.qty),

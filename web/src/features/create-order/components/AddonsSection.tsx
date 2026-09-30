@@ -4,11 +4,11 @@ import { ADDONS } from '../constants';
 import type { CreateOrderValues } from '../schema';
 import styles from './form.module.css';
 
-/** Dịch vụ cộng thêm — chọn nhiều. */
+/** Tùy chọn dịch vụ (Service options) — chọn nhiều, hiển thị song ngữ Việt / Anh. */
 export function AddonsSection() {
   const { control } = useFormContext<CreateOrderValues>();
   return (
-    <Card title="Dịch vụ cộng thêm" subtitle="(tùy chọn)">
+    <Card title="Tùy chọn dịch vụ" subtitle="(Service options)">
       <Controller
         control={control}
         name="addons"
@@ -26,6 +26,8 @@ export function AddonsSection() {
                   <span>
                     <strong>{a.name}</strong>
                     <small>{a.description}</small>
+                    <strong className={styles.checkEn} lang="en">{a.nameEn}</strong>
+                    <small lang="en">{a.descriptionEn}</small>
                   </span>
                 </label>
               );

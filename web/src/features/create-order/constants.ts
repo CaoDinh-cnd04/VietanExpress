@@ -19,13 +19,47 @@ export const EXPORT_TYPES = [
   { value: 'OTHER', label: 'khác' }
 ] as const;
 
+/**
+ * Tùy chọn dịch vụ (Service options) — song ngữ Việt / Anh.
+ * `name` là giá trị lưu vào đơn (giữ nguyên để đơn nháp cũ vẫn khớp).
+ */
 export const ADDONS = [
-  { name: 'Phát có chữ ký người nhận', description: 'Người nhận ký xác nhận khi giao (Signature Required)' },
-  { name: 'Đóng gói hộ', description: 'Việt An đóng gói / gia cố kiện hàng' },
-  { name: 'Gửi email thông báo', description: 'Tự động email trạng thái cho người nhận' },
-  { name: 'Đóng thuế hộ (DDP)', description: 'Việt An ứng & đóng thuế nhập khẩu đầu nhận' },
-  { name: 'Khai giá / Bảo hiểm hàng', description: 'Khai giá trị để bảo hiểm rủi ro' },
-  { name: 'Dán nhãn Fragile (dễ vỡ)', description: 'Xử lý nhẹ tay, dán cảnh báo dễ vỡ' }
+  {
+    name: 'Phát có chữ ký người nhận',
+    nameEn: 'Signature required',
+    description: 'Người nhận ký xác nhận khi giao hàng',
+    descriptionEn: 'Receiver signs to confirm delivery'
+  },
+  {
+    name: 'Đóng gói hộ',
+    nameEn: 'Packing service',
+    description: 'Việt An đóng gói / gia cố kiện hàng',
+    descriptionEn: 'Viet An packs or reinforces your parcels'
+  },
+  {
+    name: 'Gửi email thông báo',
+    nameEn: 'Email notification',
+    description: 'Tự động gửi email trạng thái đơn cho người nhận',
+    descriptionEn: 'Automatic shipment status emails to the receiver'
+  },
+  {
+    name: 'Đóng thuế hộ (DDP)',
+    nameEn: 'Duties & taxes paid (DDP)',
+    description: 'Việt An ứng và đóng thuế nhập khẩu tại nước đến',
+    descriptionEn: 'Viet An pays import duties and taxes at destination'
+  },
+  {
+    name: 'Khai giá / Bảo hiểm hàng',
+    nameEn: 'Declared value / Insurance',
+    description: 'Khai giá trị hàng để được bảo hiểm rủi ro',
+    descriptionEn: 'Declare the goods value to insure against loss or damage'
+  },
+  {
+    name: 'Dán nhãn Fragile (dễ vỡ)',
+    nameEn: 'Fragile label',
+    description: 'Xử lý nhẹ tay, dán nhãn cảnh báo dễ vỡ',
+    descriptionEn: 'Handle with care, fragile warning label applied'
+  }
 ] as const;
 
 /** Quy tắc nghiệp vụ (xem CLAUDE.md §4). */
@@ -40,14 +74,14 @@ export const RULES = {
 
 export const WIZARD_STEPS = [
   { title: 'Thông tin bill', description: 'Người gửi, người nhận, dịch vụ' },
-  { title: 'Kiện & nội dung hàng', description: 'Kích thước, nhóm hàng, dịch vụ thêm' },
+  { title: 'Kiện & nội dung hàng', description: 'Kích thước, nhóm hàng, tùy chọn dịch vụ' },
   { title: 'Invoice & phí', description: 'Khai hàng, shipping fee' }
 ] as const;
 
 /** Chứng từ (DOC): không khai kiện / Invoice → chỉ 2 bước. */
 export const WIZARD_STEPS_DOC = [
   WIZARD_STEPS[0],
-  { title: 'Nội dung chứng từ', description: 'Nội dung, dịch vụ thêm' }
+  { title: 'Nội dung chứng từ', description: 'Nội dung, tùy chọn dịch vụ' }
 ] as const;
 
 export type WizardStep = { readonly title: string; readonly description: string };
