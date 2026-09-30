@@ -48,3 +48,20 @@
   color: var(--color-text-muted);
   background: var(--color-surface-muted);
 }
+
+/* Tên người nhận bấm được để xem chi tiết đơn */
+.link {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  color: var(--color-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.link:hover {
+  color: var(--color-brand-strong);
+  text-decoration: underline;
+}
