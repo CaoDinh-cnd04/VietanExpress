@@ -113,6 +113,7 @@
 }
 
 .active {
+  border-radius: 0;
   background: var(--color-brand-soft);
   color: var(--color-brand-strong);
   font-weight: 600;
