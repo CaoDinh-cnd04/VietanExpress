@@ -1,5 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { getErrorMessage, http, type ListResponse } from '@/shared/api/http';
+import { fill } from '@/shared/i18n';
 import { useToast } from '@/shared/ui';
 import type { CsvImportResult, EcomOrder, EcomSettings, EcomSource, NewManualEcomOrder } from './types';
 
@@ -23,7 +24,7 @@ export function useCreateManualEcomOrder() {
   return useMutation({
     mutationFn: (body: NewManualEcomOrder) => http.post<{ message: string; data: EcomOrder }>('/ecom/manual', body),
     onSuccess: res => {
-      toast.show(res.data.bill ? `${res.message} — mã bill ${res.data.bill}` : res.message, 'success');
+      toast.show(res.data.bill ? fill('{message} — mã bill {bill}', { message: res.message, bill: res.data.bill }) : res.message, 'success');
       void qc.invalidateQueries({ queryKey: ecomKeys.allOrders });
     },
     onError: e => toast.show(getErrorMessage(e), 'error')

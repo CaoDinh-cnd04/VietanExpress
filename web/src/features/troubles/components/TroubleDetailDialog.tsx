@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useI18n } from '@/shared/i18n';
 import { Button, KeyValueList, Modal, Notice, StatusPill, TextAreaField } from '@/shared/ui';
 import { useReplyTrouble } from '../api';
 import { TROUBLE_PRIORITY, TROUBLE_STATUS } from '../constants';
@@ -7,6 +8,7 @@ import styles from './troubles.module.css';
 
 /** Chi tiết ticket: thông tin, phản hồi của CS, gửi thêm thông tin / nhắc CS / đóng ticket. */
 export function TroubleDetailDialog({ ticket, onClose }: { ticket: TroubleTicket | null; onClose: () => void }) {
+  const { t } = useI18n();
   const reply = useReplyTrouble();
   const [message, setMessage] = useState('');
 
@@ -21,16 +23,16 @@ export function TroubleDetailDialog({ ticket, onClose }: { ticket: TroubleTicket
     <Modal
       open
       size="lg"
-      title={`Sự cố ${ticket.id}`}
+      title={t('Sự cố {id}', { id: ticket.id })}
       onClose={onClose}
       footer={
         done ? (
-          <Button onClick={onClose}>Đóng</Button>
+          <Button onClick={onClose}>{t('Đóng')}</Button>
         ) : (
           <>
-            <Button variant="ghost" onClick={() => send('Khách hàng xác nhận đã xử lý xong.', 'done')} disabled={reply.isPending}>Đánh dấu đã xử lý</Button>
-            <Button onClick={() => send('Khách hàng nhắc CS xử lý yêu cầu.')} disabled={reply.isPending}>Nhắc CS</Button>
-            <Button variant="primary" onClick={() => send(message.trim())} disabled={reply.isPending || !message.trim()}>Gửi thông tin</Button>
+            <Button variant="ghost" onClick={() => send('Khách hàng xác nhận đã xử lý xong.', 'done')} disabled={reply.isPending}>{t('Đánh dấu đã xử lý')}</Button>
+            <Button onClick={() => send('Khách hàng nhắc CS xử lý yêu cầu.')} disabled={reply.isPending}>{t('Nhắc CS')}</Button>
+            <Button variant="primary" onClick={() => send(message.trim())} disabled={reply.isPending || !message.trim()}>{t('Gửi thông tin')}</Button>
           </>
         )
       }
@@ -44,18 +46,18 @@ export function TroubleDetailDialog({ ticket, onClose }: { ticket: TroubleTicket
           items={[
             ['Mã vận đơn', <span className="mono">{ticket.bill}</span>],
             ['Người nhận', `${ticket.cnee} · ${ticket.ct}`],
-            ['Loại sự cố', ticket.type],
+            ['Loại sự cố', t(ticket.type)],
             ['Ngày gửi', ticket.date],
             ['Người yêu cầu', `${ticket.req}${ticket.contact ? ` · ${ticket.contact}` : ''}`]
           ]}
         />
         <section>
-          <h4 className={styles.subTitle}>Mô tả</h4>
+          <h4 className={styles.subTitle}>{t('Mô tả')}</h4>
           <p className={styles.desc}>{ticket.desc}</p>
         </section>
         <section>
-          <h4 className={styles.subTitle}>Phản hồi từ CS Việt An</h4>
-          {ticket.reply ? <Notice tone="success">{ticket.reply}</Notice> : <p className={styles.muted}>Chưa có phản hồi.</p>}
+          <h4 className={styles.subTitle}>{t('Phản hồi từ CS Việt An')}</h4>
+          {ticket.reply ? <Notice tone="success">{ticket.reply}</Notice> : <p className={styles.muted}>{t('Chưa có phản hồi.')}</p>}
         </section>
         {!done && (
           <TextAreaField label="Gửi thêm thông tin cho CS" rows={3} value={message} onChange={e => setMessage(e.target.value)} placeholder="Bổ sung chứng từ, thay đổi yêu cầu…" />

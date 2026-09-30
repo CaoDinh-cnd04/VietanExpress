@@ -2,6 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
+import { useI18n } from '@/shared/i18n';
 import { Button, Card, FormGrid, KeyValueList, PageHeader, SelectField, TextAreaField, TextField } from '@/shared/ui';
 import { useSendFeedback } from '../api';
 import { CONTACTS, FAQ, FEEDBACK_CATEGORIES } from '../constants';
@@ -20,6 +21,7 @@ type FormValues = z.infer<typeof schema>;
 const defaults: FormValues = { category: FEEDBACK_CATEGORIES[0], subject: '', message: '', contact: '' };
 
 export default function SupportPage() {
+  const { t } = useI18n();
   const send = useSendFeedback();
   const [file, setFile] = useState<File | null>(null);
   const [fileError, setFileError] = useState('');
@@ -32,7 +34,7 @@ export default function SupportPage() {
 
   const pickFile = (f: File | undefined) => {
     if (f && f.size > MAX_FILE_MB * 1024 * 1024) {
-      setFileError(`Tệp tối đa ${MAX_FILE_MB}MB`);
+      setFileError(t('Tệp tối đa {mb}MB', { mb: MAX_FILE_MB }));
       return setFile(null);
     }
     setFileError('');
@@ -55,13 +57,13 @@ export default function SupportPage() {
                 wide
                 type="file"
                 accept="image/*,.pdf,.xlsx,.xls,.csv,.doc,.docx"
-                hint={file ? `${file.name} · ${(file.size / 1024).toFixed(0)} KB` : `Tùy chọn, tối đa ${MAX_FILE_MB}MB`}
+                hint={file ? `${file.name} · ${(file.size / 1024).toFixed(0)} KB` : t('Tùy chọn, tối đa {mb}MB', { mb: MAX_FILE_MB })}
                 error={fileError || undefined}
                 onChange={e => pickFile(e.target.files?.[0])}
               />
             </FormGrid>
             <div className={styles.actions}>
-              <Button variant="primary" type="submit" disabled={send.isPending}>{send.isPending ? 'Đang gửi…' : 'Gửi yêu cầu'}</Button>
+              <Button variant="primary" type="submit" disabled={send.isPending}>{t(send.isPending ? 'Đang gửi…' : 'Gửi yêu cầu')}</Button>
             </div>
           </form>
         </Card>
@@ -74,8 +76,8 @@ export default function SupportPage() {
             <div className={styles.faq}>
               {FAQ.map(f => (
                 <details key={f.q}>
-                  <summary>{f.q}</summary>
-                  <p>{f.a}</p>
+                  <summary>{t(f.q)}</summary>
+                  <p>{t(f.a)}</p>
                 </details>
               ))}
             </div>

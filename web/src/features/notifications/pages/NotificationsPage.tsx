@@ -1,10 +1,12 @@
 import { useState } from 'react';
+import { useI18n } from '@/shared/i18n';
 import { cx } from '@/shared/lib/cx';
 import { Button, Card, EmptyState, Modal, PageHeader, StatusPill } from '@/shared/ui';
 import { useMarkAllRead, useMarkRead, useNotifications, type Notification } from '../api';
 import styles from '../components/notifications.module.css';
 
 export default function NotificationsPage() {
+  const { t } = useI18n();
   const { data, isLoading, isError, refetch } = useNotifications();
   const markRead = useMarkRead();
   const markAll = useMarkAllRead();
@@ -23,13 +25,13 @@ export default function NotificationsPage() {
         description="Thông báo từ Việt An: lịch cut-off, phụ phí, quy định hãng bay, bảo trì hệ thống."
         actions={
           <Button size="sm" onClick={() => markAll.mutate()} disabled={!data?.unreadCount || markAll.isPending}>
-            Đánh dấu đã đọc tất cả
+            {t('Đánh dấu đã đọc tất cả')}
           </Button>
         }
       />
       <Card flush>
         {isError ? (
-          <EmptyState title="Không tải được thông báo" action={<Button onClick={() => void refetch()}>Thử lại</Button>} />
+          <EmptyState title="Không tải được thông báo" action={<Button onClick={() => void refetch()}>{t('Thử lại')}</Button>} />
         ) : !isLoading && !items.length ? (
           <EmptyState title="Chưa có thông báo" />
         ) : (
@@ -40,12 +42,12 @@ export default function NotificationsPage() {
                   <span className={styles.text}>
                     <span className={styles.title}>
                       {n.title}
-                      {n.imp && <StatusPill tone="warning">Quan trọng</StatusPill>}
+                      {n.imp && <StatusPill tone="warning">{'Quan trọng'}</StatusPill>}
                     </span>
                     <span className={styles.snippet}>{n.body.split('\n')[0]}</span>
                     <span className={styles.date}>{n.date}</span>
                   </span>
-                  {n.unread && <span className={styles.dot} aria-label="Chưa đọc" />}
+                  {n.unread && <span className={styles.dot} aria-label={t('Chưa đọc')} />}
                 </button>
               </li>
             ))}
@@ -53,7 +55,7 @@ export default function NotificationsPage() {
         )}
       </Card>
 
-      <Modal open={!!open} title={open?.title ?? ''} size="lg" onClose={() => setOpen(null)} footer={<Button onClick={() => setOpen(null)}>Đóng</Button>}>
+      <Modal open={!!open} title={open?.title ?? ''} size="lg" onClose={() => setOpen(null)} footer={<Button onClick={() => setOpen(null)}>{t('Đóng')}</Button>}>
         {open && (
           <>
             <p className={styles.meta}>{open.date}</p>

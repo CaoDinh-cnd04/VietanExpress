@@ -2,6 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { BRANCHES } from '@/shared/config/domain';
+import { useI18n } from '@/shared/i18n';
 import { formatIsoDate, todayIso } from '@/shared/lib/format';
 import { isPhone, PHONE_MESSAGE, sanitizePhone } from '@/shared/lib/phone';
 import { Button, Card, EmptyState, FormGrid, PageHeader, SelectField, StatusPill, TextAreaField, TextField, type Tone } from '@/shared/ui';
@@ -32,6 +33,7 @@ type FormValues = z.infer<typeof schema>;
 const defaults = (): FormValues => ({ date: todayIso(1), slot: '', branch: 'TP.HCM', address: '', contact: '', phone: '', pcs: '', weightKg: '', note: '' });
 
 export default function PickupsPage() {
+  const { t } = useI18n();
   const { data = [], isLoading } = usePickups();
   const create = useCreatePickup();
   const { register, handleSubmit, reset, setValue, formState } = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: defaults(), mode: 'onTouched' });
@@ -56,13 +58,13 @@ export default function PickupsPage() {
               <TextField label="Địa chỉ lấy hàng" required wide error={err('address')} {...register('address')} />
               <TextField label="Người liên hệ" required error={err('contact')} {...register('contact')} />
               <TextField label="Số điện thoại" required type="tel" error={err('phone')} {...register('phone', { onChange: e => { const clean = sanitizePhone(e.target.value); if (clean !== e.target.value) setValue('phone', clean); } })} />
-              <TextField label="Số kiện dự kiến" type="number" min={1} suffix="kiện" error={err('pcs')} {...register('pcs')} />
+              <TextField label="Số kiện dự kiến" type="number" min={1} suffix={t('kiện')} error={err('pcs')} {...register('pcs')} />
               <TextField label="Tổng cân dự kiến" type="number" min={0} step="any" suffix="kg" error={err('weightKg')} {...register('weightKg')} />
               <SelectField label="Chi nhánh phụ trách" required options={BRANCHES} error={err('branch')} {...register('branch')} />
               <TextAreaField label="Ghi chú cho nhân viên" wide rows={2} placeholder="Loại hàng, lối vào kho, lưu ý…" {...register('note')} />
             </FormGrid>
             <div className={styles.actions}>
-              <Button variant="primary" type="submit" disabled={create.isPending}>{create.isPending ? 'Đang gửi…' : 'Gửi yêu cầu pickup'}</Button>
+              <Button variant="primary" type="submit" disabled={create.isPending}>{t(create.isPending ? 'Đang gửi…' : 'Gửi yêu cầu pickup')}</Button>
             </div>
           </form>
         </Card>
@@ -76,7 +78,7 @@ export default function PickupsPage() {
                 <li key={p.id} className={styles.item}>
                   <div className={styles.itemText}>
                     <strong>{formatIsoDate(p.date)} · {p.slot}</strong>
-                    <span>{p.pcs} kiện dự kiến{p.branch ? ` · ${p.branch}` : ''}</span>
+                    <span>{t('{n} kiện dự kiến', { n: p.pcs })}{p.branch ? ` · ${p.branch}` : ''}</span>
                     {p.address && <span>{p.address}</span>}
                   </div>
                   <StatusPill tone={PICKUP_STATUS[p.st]?.tone ?? 'neutral'}>{PICKUP_STATUS[p.st]?.label ?? p.stx ?? p.st}</StatusPill>

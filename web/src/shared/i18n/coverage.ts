@@ -39,11 +39,12 @@ export function findUntranslated(
     if (VIET.test(plain) && !ignore(plain)) out.push({ kind: 'template', text: raw.trim() });
   }
   // Chữ JSX, kể cả xen biểu thức: <span>{n} đơn nháp</span> → phần ngoài {…} là "đơn nháp".
-  // Bỏ chuỗi (đã xét ở trên) và mọi {…} lồng nhau trước, chỉ còn chữ viết thẳng giữa các thẻ.
+  // Bỏ chuỗi (đã xét ở trên) và các {…} không chứa thẻ, chỉ còn chữ viết thẳng giữa các thẻ.
+  // Không xoá {…} có < >: đó có thể là thân hàm / biểu thức chứa JSX cần quét tiếp.
   let jsx = code.replace(/'(?:[^'\\\n]|\\.)*'|"(?:[^"\\\n]|\\.)*"|`[^`]*`/g, '""');
   for (let prev = ''; prev !== jsx; ) {
     prev = jsx;
-    jsx = jsx.replace(/\{[^{}]*\}/g, ' ');
+    jsx = jsx.replace(/\{[^{}<>]*\}/g, ' ');
   }
   for (const m of jsx.matchAll(/>([^<>]*)</g)) {
     const text = (m[1] ?? '').replace(/\s+/g, ' ').trim();

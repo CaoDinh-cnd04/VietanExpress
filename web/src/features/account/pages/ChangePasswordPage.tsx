@@ -1,6 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
+import { useI18n } from '@/shared/i18n';
 import { Button, Card, FormGrid, Notice, PageHeader, TextField } from '@/shared/ui';
 import { useChangePassword } from '../api';
 import styles from './account.module.css';
@@ -21,6 +22,7 @@ type FormValues = z.infer<typeof schema>;
 const EMPTY: FormValues = { currentPassword: '', newPassword: '', confirmPassword: '' };
 
 export default function ChangePasswordPage() {
+  const { t } = useI18n();
   const change = useChangePassword();
   const { register, handleSubmit, reset, formState } = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: EMPTY });
   const err = (k: keyof FormValues) => formState.errors[k]?.message;
@@ -40,9 +42,9 @@ export default function ChangePasswordPage() {
               <TextField label="Mật khẩu mới" required wide type="password" autoComplete="new-password" hint="Tối thiểu 8 ký tự, gồm cả chữ và số" error={err('newPassword')} {...register('newPassword')} />
               <TextField label="Nhập lại mật khẩu mới" required wide type="password" autoComplete="new-password" error={err('confirmPassword')} {...register('confirmPassword')} />
             </FormGrid>
-            <Notice>Sau khi đổi, các phiên đăng nhập trên thiết bị khác sẽ phải đăng nhập lại.</Notice>
+            <Notice>{t('Sau khi đổi, các phiên đăng nhập trên thiết bị khác sẽ phải đăng nhập lại.')}</Notice>
             <div className={styles.actions}>
-              <Button variant="primary" type="submit" disabled={change.isPending}>{change.isPending ? 'Đang lưu…' : 'Đổi mật khẩu'}</Button>
+              <Button variant="primary" type="submit" disabled={change.isPending}>{t(change.isPending ? 'Đang lưu…' : 'Đổi mật khẩu')}</Button>
             </div>
           </form>
         </Card>

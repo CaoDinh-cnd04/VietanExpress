@@ -38,18 +38,21 @@ export const MAX_PRODUCTS = 5;
 export const IMPORT_TEMPLATE_NAME = 'VietAn_Ecom_Import_Template.csv';
 export const IMPORT_TEMPLATE_URL = '/templates/VietAn_Ecom_Import_Template.csv';
 
-export const API_EXAMPLE = `curl -X POST https://api.vietanexpress.com.vn/v1/orders \\
-  -H "Authorization: Bearer <API_KEY>" \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "shopOrderRef": "TT-88213",
-    "source": "tiktok",
-    "service": "Chuyên tuyến", "hub": "Chuyên tuyến - Singapore", "branch": "TP.HCM",
-    "receiver": { "name": "Emma W.", "country": "Singapore", "city": "Singapore",
-                  "postal": "238859", "phone": "+65 8123 4567", "address1": "1 Raffles Place" },
-    "parcel": { "weightKg": 1.2, "lengthCm": 25, "widthCm": 18, "heightCm": 10 },
-    "items": [
-      { "sku": "DR-001", "nameEn": "Dress", "nameVi": "Váy", "hs": "6204.43",
-        "origin": "VN", "qty": 2, "unitPrice": 8, "currency": "USD" }
-    ]
-  }'`;
+/** Ví dụ body tạo đơn — giá trị gửi API giữ nguyên tiếng Việt (tên dịch vụ, hub). */
+const API_EXAMPLE_BODY = {
+  shopOrderRef: 'TT-88213',
+  source: 'tiktok',
+  service: 'Chuyên tuyến',
+  hub: 'Chuyên tuyến - Singapore',
+  branch: 'TP.HCM',
+  receiver: { name: 'Emma W.', country: 'Singapore', city: 'Singapore', postal: '238859', phone: '+65 8123 4567', address1: '1 Raffles Place' },
+  parcel: { weightKg: 1.2, lengthCm: 25, widthCm: 18, heightCm: 10 },
+  items: [{ sku: 'DR-001', nameEn: 'Dress', nameVi: 'Váy', hs: '6204.43', origin: 'VN', qty: 2, unitPrice: 8, currency: 'USD' }]
+};
+
+export const API_EXAMPLE = [
+  'curl -X POST https://api.vietanexpress.com.vn/v1/orders \\',
+  '  -H "Authorization: Bearer <API_KEY>" \\',
+  '  -H "Content-Type: application/json" \\',
+  `  -d '${JSON.stringify(API_EXAMPLE_BODY, null, 2)}'`
+].join('\n');

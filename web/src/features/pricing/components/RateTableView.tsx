@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useI18n } from '@/shared/i18n';
 import { cx } from '@/shared/lib/cx';
 import { formatIsoDate, formatNumber, formatPercent } from '@/shared/lib/format';
 import { Card, EmptyState } from '@/shared/ui';
@@ -12,6 +13,7 @@ const range = (from?: number | '', to?: number | '', unit = '') =>
 
 /** Tab "Bảng giá dịch vụ": xem bảng giá theo zone × mốc cân, danh sách nước theo zone, phụ thu. */
 export function RateTableView() {
+  const { t } = useI18n();
   const { data: services = [], isLoading } = useServices();
   const [selectedId, setSelectedId] = useState<string>('');
   const svc = services.find(s => s.id === selectedId) ?? services[0];
@@ -20,7 +22,7 @@ export function RateTableView() {
 
   return (
     <div className={styles.stack}>
-      <div className={styles.chips} role="tablist" aria-label="Chọn dịch vụ">
+      <div className={styles.chips} role="tablist" aria-label={t('Chọn dịch vụ')}>
         {services.map(s => (
           <button key={s.id} type="button" role="tab" aria-selected={s.id === svc?.id} className={cx(styles.chip, s.id === svc?.id && styles.chipOn)} onClick={() => setSelectedId(s.id)}>
             {s.name}
@@ -33,6 +35,7 @@ export function RateTableView() {
 }
 
 function ServiceRates({ svc }: { svc: ShippingService }) {
+  const { t } = useI18n();
   const zoneKeys = svc.zones.map((_, i) => String(i + 1));
   const countriesByZone = zoneKeys.map(k => Object.entries(svc.zmap).filter(([, z]) => String(z) === k).map(([c]) => c));
 
@@ -42,9 +45,9 @@ function ServiceRates({ svc }: { svc: ShippingService }) {
         <div className={styles.meta}>
           <span>FSC <strong>{formatPercent(svc.fsc)}</strong></span>
           <span>VAT <strong>{formatPercent(svc.vat)}</strong></span>
-          <span>Dự kiến <strong>{svc.eta || '—'}</strong></span>
-          <span>Hiệu lực <strong>{svc.effFrom ? formatIsoDate(svc.effFrom) : '—'} → {svc.effTo ? formatIsoDate(svc.effTo) : '—'}</strong></span>
-          <span>Zone mặc định <strong>{svc.dz}</strong></span>
+          <span>{t('Dự kiến')} <strong>{svc.eta || '—'}</strong></span>
+          <span>{t('Hiệu lực')} <strong>{svc.effFrom ? formatIsoDate(svc.effFrom) : '—'} → {svc.effTo ? formatIsoDate(svc.effTo) : '—'}</strong></span>
+          <span>{t('Zone mặc định')} <strong>{svc.dz}</strong></span>
         </div>
       </Card>
 
@@ -53,7 +56,7 @@ function ServiceRates({ svc }: { svc: ShippingService }) {
           <table className={styles.grid}>
             <thead>
               <tr>
-                <th>Cân (kg)</th>
+                <th>{t('Cân (kg)')}</th>
                 {svc.zones.map((z, i) => <th key={z} title={countriesByZone[i]?.join(', ')}>{z}</th>)}
               </tr>
             </thead>
@@ -65,7 +68,7 @@ function ServiceRates({ svc }: { svc: ShippingService }) {
                 </tr>
               ))}
               <tr>
-                <td>&gt; 70 (đ/kg)</td>
+                <td>{t('> 70 (đ/kg)')}</td>
                 {zoneKeys.map(k => <td key={k}>{formatNumber(svc.over70[k] ?? 0)}</td>)}
               </tr>
             </tbody>
@@ -82,7 +85,7 @@ function ServiceRates({ svc }: { svc: ShippingService }) {
           </div>
         </Card>
         <Card title="Phụ thu quá khổ / quá tải">
-          {svc.sur.length ? <SurchargeTable rules={svc.sur} /> : <p className={styles.meta}>Không có phụ thu.</p>}
+          {svc.sur.length ? <SurchargeTable rules={svc.sur} /> : <p className={styles.meta}>{t('Không có phụ thu.')}</p>}
         </Card>
       </div>
     </>
@@ -90,10 +93,11 @@ function ServiceRates({ svc }: { svc: ShippingService }) {
 }
 
 function SurchargeTable({ rules }: { rules: SurchargeRule[] }) {
+  const { t } = useI18n();
   return (
     <table className={styles.grid}>
       <thead>
-        <tr><th>Cân (kg)</th><th>Cạnh dài (cm)</th><th>Chu vi (cm)</th><th>Phụ thu (đ)</th></tr>
+        <tr><th>{t('Cân (kg)')}</th><th>{t('Cạnh dài (cm)')}</th><th>{t('Chu vi (cm)')}</th><th>{t('Phụ thu (đ)')}</th></tr>
       </thead>
       <tbody>
         {rules.map((r, i) => (

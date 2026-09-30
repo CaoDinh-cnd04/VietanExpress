@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useI18n } from '@/shared/i18n';
 import { Button, Modal } from '@/shared/ui';
 import { useNotifications } from '../api';
 import styles from './notifications.module.css';
@@ -16,6 +17,7 @@ const hiddenToday = () => {
 
 /** Popup "Thông báo quan trọng" khi mở portal; có tùy chọn không hiện lại trong ngày. */
 export function ImportantNoticeModal() {
+  const { t } = useI18n();
   const navigate = useNavigate();
   const { data } = useNotifications();
   const [dismissed, setDismissed] = useState(hiddenToday);
@@ -40,13 +42,13 @@ export function ImportantNoticeModal() {
       onClose={close}
       footerNote={
         <label className={styles.hideToday}>
-          <input type="checkbox" checked={hideToday} onChange={e => setHideToday(e.target.checked)} /> Không hiện lại hôm nay
+          <input type="checkbox" checked={hideToday} onChange={e => setHideToday(e.target.checked)} /> {t('Không hiện lại hôm nay')}
         </label>
       }
       footer={
         <>
-          <Button onClick={() => { close(); navigate('/notifications'); }}>Xem tất cả</Button>
-          <Button variant="primary" onClick={close}>Đã hiểu</Button>
+          <Button onClick={() => { close(); navigate('/notifications'); }}>{t('Xem tất cả')}</Button>
+          <Button variant="primary" onClick={close}>{t('Đã hiểu')}</Button>
         </>
       }
     >

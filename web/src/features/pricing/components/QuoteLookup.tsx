@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
 import { getErrorMessage } from '@/shared/api/http';
 import { COUNTRIES } from '@/shared/config/domain';
+import { useI18n } from '@/shared/i18n';
 import { formatNumber, formatVnd } from '@/shared/lib/format';
 import { Button, Card, DataTable, FormGrid, Notice, SelectField, StatusPill, TextField, type Column } from '@/shared/ui';
 import { useQuote } from '../api';
@@ -29,6 +30,7 @@ type SortKey = 'totalFare' | 'baseFare' | 'name' | 'eta';
 
 /** Tab "Tra cứu & gợi ý": nhập lô hàng → so sánh giá mọi dịch vụ, chọn dịch vụ để tạo đơn. */
 export function QuoteLookup() {
+  const { t } = useI18n();
   const navigate = useNavigate();
   const quote = useQuote();
   const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 }>({ key: 'totalFare', dir: 1 });
@@ -56,7 +58,7 @@ export function QuoteLookup() {
   const cheapest = Math.min(...rates.map(r => r.totalFare));
   const sortHeader = (key: SortKey, label: string) => (
     <button type="button" className={styles.sortBtn} onClick={() => setSort(s => ({ key, dir: s.key === key ? (s.dir === 1 ? -1 : 1) : 1 }))}>
-      {label} {sort.key === key && <span aria-hidden="true">{sort.dir === 1 ? '▲' : '▼'}</span>}
+      {t(label)} {sort.key === key && <span aria-hidden="true">{sort.dir === 1 ? '▲' : '▼'}</span>}
     </button>
   );
 
@@ -66,7 +68,7 @@ export function QuoteLookup() {
       header: sortHeader('name', 'Dịch vụ'),
       render: r => (
         <span className={styles.svcName}>
-          {r.name} {r.totalFare === cheapest && <StatusPill tone="brand">Rẻ nhất</StatusPill>}
+          {r.name} {r.totalFare === cheapest && <StatusPill tone="brand">{'Rẻ nhất'}</StatusPill>}
         </span>
       )
     },
@@ -83,7 +85,7 @@ export function QuoteLookup() {
       width: 90,
       render: r => (
         <Button size="sm" onClick={() => navigate(`/orders/new?carrier=${encodeURIComponent(r.name)}&country=${encodeURIComponent(getValues('country'))}`)}>
-          Chọn
+          {t('Chọn')}
         </Button>
       )
     }
@@ -103,7 +105,7 @@ export function QuoteLookup() {
           </FormGrid>
           <datalist id="va-price-countries">{COUNTRIES.map(c => <option key={c} value={c} />)}</datalist>
           <div className={styles.formActions}>
-            <Button variant="primary" type="submit" disabled={quote.isPending}>{quote.isPending ? 'Đang tra cứu…' : 'Tra cứu & so sánh giá'}</Button>
+            <Button variant="primary" type="submit" disabled={quote.isPending}>{t(quote.isPending ? 'Đang tra cứu…' : 'Tra cứu & so sánh giá')}</Button>
           </div>
         </form>
       </Card>
@@ -113,8 +115,8 @@ export function QuoteLookup() {
       {quote.data && (
         <Card
           flush
-          title={`Kết quả cho ${getValues('country')}`}
-          subtitle={rates[0] ? `· cân tính cước ${formatNumber(rates[0].chargeableWeight)} kg (quy đổi ${formatNumber(rates[0].volumetricWeight)} kg)` : undefined}
+          title={t('Kết quả cho {country}', { country: getValues('country') })}
+          subtitle={rates[0] ? t('· cân tính cước {kg} kg (quy đổi {vol} kg)', { kg: formatNumber(rates[0].chargeableWeight), vol: formatNumber(rates[0].volumetricWeight) }) : undefined}
         >
           <DataTable
             caption="So sánh giá dịch vụ"
@@ -126,7 +128,7 @@ export function QuoteLookup() {
             empty={{ title: 'Không có dịch vụ phù hợp cho lô hàng này' }}
           />
           <div className={styles.note}>
-            <Notice tone="warning">{PRICE_NOTE}</Notice>
+            <Notice tone="warning">{t(PRICE_NOTE)}</Notice>
           </div>
         </Card>
       )}

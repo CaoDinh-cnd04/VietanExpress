@@ -2,6 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
+import { useI18n } from '@/shared/i18n';
 import { Button, FormGrid, Modal, SelectField, TextAreaField, TextField } from '@/shared/ui';
 import { useCreateTrouble } from '../api';
 import { TROUBLE_PRIORITY, TROUBLE_TYPES } from '../constants';
@@ -34,6 +35,7 @@ const PRIORITY_OPTIONS = (Object.keys(TROUBLE_PRIORITY) as TroublePriority[]).ma
 
 /** Hộp thoại báo sự cố — dùng ở trang Sự cố và trong menu thao tác của đơn hàng. */
 export function ReportTroubleDialog({ open, context, onClose }: ReportTroubleDialogProps) {
+  const { t } = useI18n();
   const create = useCreateTrouble();
   const { register, handleSubmit, reset, formState } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -59,9 +61,9 @@ export function ReportTroubleDialog({ open, context, onClose }: ReportTroubleDia
       footerNote="Yêu cầu được gửi tới bộ phận CS Việt An"
       footer={
         <>
-          <Button onClick={onClose}>Hủy</Button>
+          <Button onClick={onClose}>{t('Hủy')}</Button>
           <Button variant="primary" onClick={() => void submit()} disabled={create.isPending}>
-            {create.isPending ? 'Đang gửi…' : 'Gửi yêu cầu'}
+            {t(create.isPending ? 'Đang gửi…' : 'Gửi yêu cầu')}
           </Button>
         </>
       }

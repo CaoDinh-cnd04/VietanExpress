@@ -1,3 +1,4 @@
+import { useI18n } from '@/shared/i18n';
 import { Card, Notice, StatCard, StatGrid } from '@/shared/ui';
 import { useEcomOrders } from '../api';
 import { ECOM_SOURCES } from '../constants';
@@ -6,6 +7,7 @@ import styles from './ecommerce.module.css';
 
 /** Tab Tổng quan: số liệu tính từ danh sách đơn e-com. */
 export function EcomOverview() {
+  const { t } = useI18n();
   const { data: orders = [] } = useEcomOrders();
   const count = (pred: (st: string) => boolean) => orders.filter(o => pred(o.st)).length;
   const bySource = (Object.keys(ECOM_SOURCES) as EcomSource[])
@@ -23,13 +25,13 @@ export function EcomOverview() {
       <Card title="Theo nguồn">
         <div className={styles.sources}>
           {bySource.length ? bySource.map(({ src, n }) => (
-            <span key={src} className={styles.sourceTag}>{ECOM_SOURCES[src].label} <strong>{n}</strong></span>
-          )) : <span className={styles.muted}>Chưa có đơn.</span>}
+            <span key={src} className={styles.sourceTag}>{t(ECOM_SOURCES[src].label)} <strong>{n}</strong></span>
+          )) : <span className={styles.muted}>{t('Chưa có đơn.')}</span>}
         </div>
         <div className={styles.spaced}>
           <Notice>
-            Đơn tạo qua API / Excel được cấp mã bill Việt An ngay và trả nhãn (A6 / A4 / ZPL). Đơn thiếu cân hoặc kích thước ở trạng thái
-            <strong> Chờ cân đo</strong> — kho Việt An cân xong sẽ cập nhật cước.
+            {t('Đơn tạo qua API / Excel được cấp mã bill Việt An ngay và trả nhãn (A6 / A4 / ZPL). Đơn thiếu cân hoặc kích thước ở trạng thái')}{' '}
+            <strong>{t('Chờ cân đo')}</strong> {t('— kho Việt An cân xong sẽ cập nhật cước.')}
           </Notice>
         </div>
       </Card>

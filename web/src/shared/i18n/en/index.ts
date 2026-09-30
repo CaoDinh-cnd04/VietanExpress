@@ -1,7 +1,11 @@
+import { account } from './account';
 import { common } from './common';
 import { createOrder } from './create-order';
 import { drafts } from './drafts';
+import { ecommerce } from './ecommerce';
 import { orders } from './orders';
+import { pricing } from './pricing';
+import { support } from './support';
 import { start } from './start';
 
 /**
@@ -13,5 +17,9 @@ export const EN: Readonly<Record<string, string>> = {
   ...start,
   ...createOrder,
   ...drafts,
-  ...orders
+  ...orders,
+  ...account,
+  ...support,
+  ...pricing,
+  ...ecommerce
 };

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { isNotImplemented } from '@/shared/api/http';
+import { useI18n } from '@/shared/i18n';
 import { useCopyToClipboard } from '@/shared/lib/useCopyToClipboard';
 import { Button, Card, Icon, Notice, TextField } from '@/shared/ui';
 import { useEcomSettings, useRegenerateApiKey, useSaveEcomSettings, useTestWebhook } from '../api';
@@ -9,6 +10,7 @@ import styles from './ecommerce.module.css';
 
 /** Tab "Kết nối & API": API key, webhook trạng thái, gắn nguồn sàn. */
 export function EcomConnections() {
+  const { t } = useI18n();
   const settings = useEcomSettings();
   const save = useSaveEcomSettings();
   const regenerate = useRegenerateApiKey();
@@ -35,9 +37,11 @@ export function EcomConnections() {
     <div className="page-stack">
       {unavailable && (
         <Notice tone="warning" title="Chưa kết nối được cấu hình tích hợp">
-          {isNotImplemented(settings.error)
-            ? 'Máy chủ chưa có chức năng cấu hình tích hợp (GET /ecom/settings). Phần này sẽ hoạt động khi backend hoàn tất.'
-            : 'Không tải được cấu hình, vui lòng thử lại sau.'}
+          {t(
+            isNotImplemented(settings.error)
+              ? 'Máy chủ chưa có chức năng cấu hình tích hợp (GET /ecom/settings). Phần này sẽ hoạt động khi backend hoàn tất.'
+              : 'Không tải được cấu hình, vui lòng thử lại sau.'
+          )}
         </Notice>
       )}
 
@@ -48,20 +52,20 @@ export function EcomConnections() {
               <div key={k.env} className={styles.keyRow}>
                 <span className={styles.keyEnv}>{k.env === 'production' ? 'Production' : 'Sandbox'}</span>
                 <code className={styles.key}>{k.key}</code>
-                <Button size="sm" iconOnly aria-label={`Sao chép key ${k.env}`} onClick={() => void copy(k.key, 'Đã sao chép API key')}><Icon name="copy" size={15} /></Button>
-                <Button size="sm" onClick={() => regenerate.mutate(k.env)} disabled={regenerate.isPending}><Icon name="refresh" size={15} /> Tạo lại</Button>
+                <Button size="sm" iconOnly aria-label={t('Sao chép key {env}', { env: k.env })} onClick={() => void copy(k.key, t('Đã sao chép API key'))}><Icon name="copy" size={15} /></Button>
+                <Button size="sm" onClick={() => regenerate.mutate(k.env)} disabled={regenerate.isPending}><Icon name="refresh" size={15} /> {t('Tạo lại')}</Button>
               </div>
             ))}
-            {!data && <p className={styles.muted}>{settings.isLoading ? 'Đang tải…' : 'Chưa có API key.'}</p>}
+            {!data && <p className={styles.muted}>{t(settings.isLoading ? 'Đang tải…' : 'Chưa có API key.')}</p>}
           </div>
-          <p className={styles.hint}>Tạo lại key sẽ vô hiệu key cũ ngay lập tức. Dùng key Sandbox để thử nghiệm, không tạo đơn thật.</p>
+          <p className={styles.hint}>{t('Tạo lại key sẽ vô hiệu key cũ ngay lập tức. Dùng key Sandbox để thử nghiệm, không tạo đơn thật.')}</p>
         </Card>
 
         <Card title="Webhook trạng thái đơn">
           <div className="page-stack">
             <TextField label="URL nhận webhook" type="url" placeholder="https://shop.com/webhook/vietan" value={webhookUrl} onChange={e => setWebhookUrl(e.target.value)} disabled={unavailable} />
             <fieldset className={styles.events} disabled={unavailable}>
-              <legend>Sự kiện gửi</legend>
+              <legend>{t('Sự kiện gửi')}</legend>
               {WEBHOOK_EVENTS.map(ev => (
                 <label key={ev}>
                   <input type="checkbox" checked={events.includes(ev)} onChange={() => setEvents(list => (list.includes(ev) ? list.filter(x => x !== ev) : [...list, ev]))} />
@@ -70,8 +74,8 @@ export function EcomConnections() {
               ))}
             </fieldset>
             <div className={styles.formActions}>
-              <Button onClick={() => testWebhook.mutate()} disabled={unavailable || !webhookUrl || testWebhook.isPending}><Icon name="send" size={15} /> Gửi thử</Button>
-              <Button variant="primary" onClick={() => save.mutate({ webhookUrl, webhookEvents: events })} disabled={unavailable || save.isPending}>Lưu webhook</Button>
+              <Button onClick={() => testWebhook.mutate()} disabled={unavailable || !webhookUrl || testWebhook.isPending}><Icon name="send" size={15} /> {t('Gửi thử')}</Button>
+              <Button variant="primary" onClick={() => save.mutate({ webhookUrl, webhookEvents: events })} disabled={unavailable || save.isPending}>{t('Lưu webhook')}</Button>
             </div>
           </div>
         </Card>
@@ -85,10 +89,10 @@ export function EcomConnections() {
               <div key={m.source} className={styles.connCard}>
                 <div>
                   <strong>{ECOM_SOURCES[m.source].label}</strong>
-                  <p className={styles.muted}>{m.description}</p>
+                  <p className={styles.muted}>{t(m.description)}</p>
                 </div>
                 <Button size="sm" variant={connected ? 'secondary' : 'primary'} disabled={unavailable || save.isPending} onClick={() => toggleSource(m.source)}>
-                  {connected ? 'Ngắt kết nối' : 'Kết nối'}
+                  {t(connected ? 'Ngắt kết nối' : 'Kết nối')}
                 </Button>
               </div>
             );

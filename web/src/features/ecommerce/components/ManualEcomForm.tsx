@@ -2,6 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useFieldArray, useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import { BRANCHES, CARRIERS, COUNTRIES, DEFAULT_SERVICE, defaultHub, hubOptions } from '@/shared/config/domain';
+import { useI18n } from '@/shared/i18n';
 import { Button, Card, FormGrid, Icon, SelectField, TextField } from '@/shared/ui';
 import { useCreateManualEcomOrder } from '../api';
 import { ECOM_SOURCES, GOODS_TYPES, MAX_PRODUCTS } from '../constants';
@@ -62,6 +63,7 @@ const SOURCE_OPTIONS = (Object.keys(ECOM_SOURCES) as EcomSource[]).map(k => ({ v
 
 /** Đánh bill lẻ cho shop ít đơn: 1 đơn, 1–5 sản phẩm, khai hải quan nâng cao tùy chọn. */
 export function ManualEcomForm() {
+  const { t } = useI18n();
   const create = useCreateManualEcomOrder();
   const { control, register, handleSubmit, reset, setValue, formState } = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: defaults() });
   const { fields, append, remove } = useFieldArray({ control, name: 'products' });
@@ -103,7 +105,7 @@ export function ManualEcomForm() {
         <datalist id="va-ecom-countries">{COUNTRIES.map(c => <option key={c} value={c} />)}</datalist>
 
         <section>
-          <h3 className={styles.subTitle}>Sản phẩm ({fields.length}/{MAX_PRODUCTS})</h3>
+          <h3 className={styles.subTitle}>{t('Sản phẩm ({n}/{max})', { n: fields.length, max: MAX_PRODUCTS })}</h3>
           <div className={styles.productList}>
             {fields.map((f, i) => {
               const pe = e.products?.[i];
@@ -115,7 +117,7 @@ export function ManualEcomForm() {
                   <TextField label="Giá FOB" type="number" min={0} step="any" error={pe?.fobPrice?.message} {...register(`products.${i}.fobPrice`)} />
                   <TextField label="Giá bán" type="number" min={0} step="any" error={pe?.sellingPrice?.message} {...register(`products.${i}.sellingPrice`)} />
                   <TextField label="Mã HS" {...register(`products.${i}.hsCode`)} />
-                  <Button iconOnly variant="ghost" aria-label={`Xóa sản phẩm ${i + 1}`} disabled={fields.length <= 1} onClick={() => remove(i)}>
+                  <Button iconOnly variant="ghost" aria-label={t('Xóa sản phẩm {n}', { n: i + 1 })} disabled={fields.length <= 1} onClick={() => remove(i)}>
                     <Icon name="close" size={15} />
                   </Button>
                 </div>
@@ -123,12 +125,12 @@ export function ManualEcomForm() {
             })}
           </div>
           <Button size="sm" disabled={fields.length >= MAX_PRODUCTS} onClick={() => append(emptyProduct())}>
-            <Icon name="plus" size={15} /> Thêm sản phẩm
+            <Icon name="plus" size={15} /> {t('Thêm sản phẩm')}
           </Button>
         </section>
 
         <details className={styles.details}>
-          <summary>Khai báo hải quan nâng cao (tùy chọn — cho hàng đi US / EU)</summary>
+          <summary>{t('Khai báo hải quan nâng cao (tùy chọn — cho hàng đi US / EU)')}</summary>
           <FormGrid columns={3}>
             <TextField label="Tổng giá trị khai (declared value)" {...register('customs.declaredValue')} />
             <SelectField label="Loại hàng" options={GOODS_TYPES} {...register('customs.goodsType')} />
@@ -143,8 +145,8 @@ export function ManualEcomForm() {
         </details>
 
         <div className={styles.formActions}>
-          <Button onClick={() => reset(defaults())}>Làm mới</Button>
-          <Button variant="primary" type="submit" disabled={create.isPending}>{create.isPending ? 'Đang tạo…' : 'Tạo đơn & cấp bill'}</Button>
+          <Button onClick={() => reset(defaults())}>{t('Làm mới')}</Button>
+          <Button variant="primary" type="submit" disabled={create.isPending}>{t(create.isPending ? 'Đang tạo…' : 'Tạo đơn & cấp bill')}</Button>
         </div>
       </form>
     </Card>

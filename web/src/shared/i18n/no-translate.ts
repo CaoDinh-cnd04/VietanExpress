@@ -14,10 +14,14 @@ export const NO_TRANSLATE: ReadonlySet<string> = new Set([
   'Hải Phòng',
   'Bình Dương',
   'Đồng Nai',
-  // Dữ liệu mẫu trong file CSV mẫu (giữ nguyên tiếng Việt)
+  // Dữ liệu mẫu (file CSV mẫu, ví dụ gọi API) — giữ nguyên tiếng Việt
   'Váy hoa nữ',
+  'Váy',
   // Ký hiệu tiền đồng
   'đ',
   // Lỗi dành cho lập trình viên, không hiện cho khách
-  'useToast phải nằm trong <ToastProvider>'
+  'useToast phải nằm trong <ToastProvider>',
+  // Tin nhắn gửi CS Việt An (CS đọc tiếng Việt)
+  'Khách hàng xác nhận đã xử lý xong.',
+  'Khách hàng nhắc CS xử lý yêu cầu.'
 ]);

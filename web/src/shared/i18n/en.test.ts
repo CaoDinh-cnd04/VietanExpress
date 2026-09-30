@@ -26,7 +26,15 @@ const DONE = [
   '/src/features/create-order/',
   '/src/features/drafts/',
   '/src/features/orders/',
-  '/src/features/order-import/'
+  '/src/features/order-import/',
+  '/src/features/account/',
+  '/src/features/dashboard/',
+  '/src/features/notifications/',
+  '/src/features/pickups/',
+  '/src/features/troubles/',
+  '/src/features/support/',
+  '/src/features/pricing/',
+  '/src/features/ecommerce/'
 ];
 // Xem trước thư mục đang dịch: I18N_EXTRA=/src/features/create-order/ npx vitest run src/shared/i18n
 const env = (globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env ?? {};
@@ -40,6 +48,8 @@ describe('bản tiếng Anh', () => {
       if (!inScope(file)) continue;
       for (const f of findUntranslated(source, has, text => NO_TRANSLATE.has(text)) as Finding[]) problems.push(`${file} [${f.kind}] ${f.text}`);
     }
+    // Đang xem trước thư mục chưa xong: in đủ danh sách (thông báo lỗi của vitest bị cắt ngắn).
+    if (EXTRA.length && problems.length) console.log(problems.join('\n'));
     expect(problems, `${problems.length} chỗ chưa dịch:\n${problems.join('\n')}`).toEqual([]);
   });
 
