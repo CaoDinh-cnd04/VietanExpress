@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useI18n, useTranslateNode } from '@/shared/i18n';
 import { cx } from '@/shared/lib/cx';
 import { EmptyState } from './EmptyState';
 import styles from './DataTable.module.css';
@@ -33,16 +34,18 @@ interface DataTableProps<T> {
  * Bảng đặc thù (có ô nhập liệu, gộp dòng…) vẫn có thể tự viết riêng.
  */
 export function DataTable<T>({ columns, rows, rowKey, loading, empty, onRowClick, highlight, minWidth = 720, caption }: DataTableProps<T>) {
+  const { t } = useI18n();
+  const tr = useTranslateNode();
   if (!loading && !rows.length && empty) return <EmptyState {...empty} />;
 
   return (
     <div className={styles.scroll}>
       <table className={cx(styles.table, loading && styles.loading)} style={{ minWidth }} aria-busy={loading || undefined}>
-        {caption && <caption className="visually-hidden">{caption}</caption>}
+        {caption && <caption className="visually-hidden">{t(caption)}</caption>}
         <thead>
           <tr>
             {columns.map(c => (
-              <th key={c.key} style={{ width: c.width, textAlign: c.align }}>{c.header}</th>
+              <th key={c.key} style={{ width: c.width, textAlign: c.align }}>{tr(c.header)}</th>
             ))}
           </tr>
         </thead>

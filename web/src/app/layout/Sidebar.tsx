@@ -1,4 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom';
+import { useI18n } from '@/shared/i18n';
 import { cx } from '@/shared/lib/cx';
 import { useLocalStorage } from '@/shared/lib/useLocalStorage';
 import { Icon } from '@/shared/ui';
@@ -15,6 +16,7 @@ interface SidebarProps {
 
 export function Sidebar({ collapsed, mobileOpen, onNavigate, onExpand }: SidebarProps) {
   const { pathname } = useLocation();
+  const { t } = useI18n();
   const badges = useNavBadges();
   const [openGroups, setOpenGroups] = useLocalStorage<Record<string, boolean>>('va.nav.groups', { create: true, orders: true });
 
@@ -22,12 +24,12 @@ export function Sidebar({ collapsed, mobileOpen, onNavigate, onExpand }: Sidebar
   const count = (key?: BadgeKey) => (key ? badges[key] : 0);
 
   return (
-    <aside className={cx(styles.sidebar, collapsed && styles.collapsed, mobileOpen && styles.mobileOpen)} aria-label="Menu chính">
+    <aside className={cx(styles.sidebar, collapsed && styles.collapsed, mobileOpen && styles.mobileOpen)} aria-label={t('Menu chính')}>
       <div className={styles.brand}>
         <img src="/logo.webp" alt="" className={styles.logo} />
         <div className={styles.brandText}>
           <div className={styles.brandName}>Việt An Express</div>
-          <div className={styles.brandSub}>Portal khách hàng</div>
+          <div className={styles.brandSub}>{t('Portal khách hàng')}</div>
         </div>
       </div>
 
@@ -35,9 +37,9 @@ export function Sidebar({ collapsed, mobileOpen, onNavigate, onExpand }: Sidebar
         {NAV.map(entry => {
           if (entry.kind === 'link') {
             return (
-              <NavLink key={entry.to} to={entry.to} end onClick={onNavigate} className={({ isActive: a }) => cx(styles.item, styles.top, a && styles.active)} title={entry.label} data-tour={`nav-${entry.to.slice(1)}`}>
+              <NavLink key={entry.to} to={entry.to} end onClick={onNavigate} className={({ isActive: a }) => cx(styles.item, styles.top, a && styles.active)} title={t(entry.label)} data-tour={`nav-${entry.to.slice(1)}`}>
                 <Icon name={entry.icon} className={styles.icon} />
-                <span className={styles.label}>{entry.label}</span>
+                <span className={styles.label}>{t(entry.label)}</span>
               </NavLink>
             );
           }
@@ -51,7 +53,7 @@ export function Sidebar({ collapsed, mobileOpen, onNavigate, onExpand }: Sidebar
                 type="button"
                 className={cx(styles.item, styles.top, hasActive && styles.groupActive)}
                 aria-expanded={open}
-                title={entry.label}
+                title={t(entry.label)}
                 onClick={() => {
                   if (collapsed) {
                     onExpand();
@@ -60,7 +62,7 @@ export function Sidebar({ collapsed, mobileOpen, onNavigate, onExpand }: Sidebar
                 }}
               >
                 <Icon name={entry.icon} className={styles.icon} />
-                <span className={styles.label}>{entry.label}</span>
+                <span className={styles.label}>{t(entry.label)}</span>
                 {!open && groupCount > 0 && <span className={styles.badge}>{groupCount}</span>}
                 <Icon name={open ? 'chevronDown' : 'chevronRight'} size={14} className={styles.chevron} />
               </button>
@@ -80,9 +82,10 @@ export function Sidebar({ collapsed, mobileOpen, onNavigate, onExpand }: Sidebar
 }
 
 function ChildLink({ item, count, onNavigate }: { item: NavLinkItem; count: number; onNavigate: () => void }) {
+  const { t } = useI18n();
   return (
     <NavLink to={item.to} end onClick={onNavigate} className={({ isActive }) => cx(styles.item, styles.child, isActive && styles.active)}>
-      <span className={styles.label}>{item.label}</span>
+      <span className={styles.label}>{t(item.label)}</span>
       {count > 0 && <span className={cx(styles.badge, item.badge === 'troubles' && styles.badgeAlert)}>{count}</span>}
     </NavLink>
   );

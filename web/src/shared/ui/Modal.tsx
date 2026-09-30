@@ -1,4 +1,5 @@
 import { useEffect, useRef, type ReactNode } from 'react';
+import { useI18n, useTranslateNode } from '@/shared/i18n';
 import { cx } from '@/shared/lib/cx';
 import { Icon } from './Icon';
 import styles from './Modal.module.css';
@@ -18,6 +19,8 @@ interface ModalProps {
 /** Hộp thoại dựa trên <dialog> gốc: tự giữ focus, Esc để đóng. */
 export function Modal({ open, title, onClose, footer, footerNote, size = 'md', children }: ModalProps) {
   const ref = useRef<HTMLDialogElement>(null);
+  const { t } = useI18n();
+  const tr = useTranslateNode();
 
   useEffect(() => {
     const dlg = ref.current;
@@ -36,15 +39,15 @@ export function Modal({ open, title, onClose, footer, footerNote, size = 'md', c
     >
       <div className={styles.box}>
         <header className={styles.header}>
-          <h2 id="modal-title" className={styles.title}>{title}</h2>
-          <button type="button" className={styles.close} onClick={onClose} aria-label="Đóng">
+          <h2 id="modal-title" className={styles.title}>{t(title)}</h2>
+          <button type="button" className={styles.close} onClick={onClose} aria-label={t('Đóng')}>
             <Icon name="close" size={16} />
           </button>
         </header>
         <div className={styles.body}>{children}</div>
         {footer && (
           <footer className={styles.footer}>
-            {footerNote && <span className={styles.footerNote}>{footerNote}</span>}
+            {footerNote && <span className={styles.footerNote}>{tr(footerNote)}</span>}
             {footer}
           </footer>
         )}

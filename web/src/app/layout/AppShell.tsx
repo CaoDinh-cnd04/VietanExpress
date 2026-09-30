@@ -5,6 +5,7 @@ import { cx } from '@/shared/lib/cx';
 import { useSession } from '@/features/auth';
 import { ImportantNoticeModal } from '@/features/notifications';
 import { OnboardingTour, useOnboardingTour } from '@/features/onboarding';
+import { useI18n } from '@/shared/i18n';
 import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
 import styles from './AppShell.module.css';
@@ -15,6 +16,7 @@ const MOBILE_QUERY = '(max-width: 1040px)';
 export function AppShell() {
   const [collapsed, setCollapsed] = useLocalStorage('va.nav.collapsed', false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { t } = useI18n();
   const session = useSession();
   const customerCode = session.data?.status === 'authenticated' ? session.data.user.customerCode : undefined;
   const tour = useOnboardingTour(customerCode);
@@ -31,7 +33,7 @@ export function AppShell() {
       <div className={styles.main}>
         <Topbar onMenu={toggleMenu} onStartTour={tour.start} />
         <main className={styles.content}>
-          <Suspense fallback={<p className={styles.loading}>Đang tải…</p>}>
+          <Suspense fallback={<p className={styles.loading}>{t('Đang tải…')}</p>}>
             <Outlet />
           </Suspense>
         </main>

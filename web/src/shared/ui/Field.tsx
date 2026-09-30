@@ -1,4 +1,5 @@
 import { useId, type ComponentPropsWithRef, type ReactNode } from 'react';
+import { useI18n, useTranslateNode } from '@/shared/i18n';
 import { cx } from '@/shared/lib/cx';
 import styles from './Field.module.css';
 
@@ -17,20 +18,22 @@ interface FieldShellProps {
 }
 
 function FieldShell({ id, label, required, error, hint, aside, wide, className, children }: FieldShellProps) {
+  const { t } = useI18n();
+  const tr = useTranslateNode();
   return (
     <div className={cx(styles.field, wide && styles.wide, className)}>
       <div className={styles.labelRow}>
         <label htmlFor={id} className={styles.label}>
-          {label}
+          {t(label)}
           {required && <span className={styles.required} aria-hidden="true"> *</span>}
         </label>
         {aside && <span className={styles.aside}>{aside}</span>}
       </div>
       {children}
       {error ? (
-        <p id={`${id}-msg`} className={styles.error} role="alert">{error}</p>
+        <p id={`${id}-msg`} className={styles.error} role="alert">{t(error)}</p>
       ) : hint ? (
-        <p id={`${id}-msg`} className={styles.hint}>{hint}</p>
+        <p id={`${id}-msg`} className={styles.hint}>{tr(hint)}</p>
       ) : null}
     </div>
   );
@@ -45,7 +48,8 @@ export interface TextFieldProps extends SharedProps, Omit<ComponentPropsWithRef<
   prefix?: string;
 }
 
-export function TextField({ label, required, error, hint, aside, wide, className, suffix, prefix, id, ...input }: TextFieldProps) {
+export function TextField({ label, required, error, hint, aside, wide, className, suffix, prefix, id, placeholder, ...input }: TextFieldProps) {
+  const { t } = useI18n();
   const autoId = useId();
   const fieldId = id ?? autoId;
   return (
@@ -57,6 +61,7 @@ export function TextField({ label, required, error, hint, aside, wide, className
           aria-invalid={error ? true : undefined}
           aria-describedby={error || hint ? `${fieldId}-msg` : undefined}
           aria-required={required || undefined}
+          placeholder={placeholder ? t(placeholder) : undefined}
           {...input}
         />
         {prefix && <span className={styles.prefix} aria-hidden="true">{prefix}</span>}
@@ -77,6 +82,7 @@ export interface SelectFieldProps extends SharedProps, Omit<ComponentPropsWithRe
 }
 
 export function SelectField({ label, required, error, hint, aside, wide, className, options, placeholder, id, ...select }: SelectFieldProps) {
+  const { t } = useI18n();
   const autoId = useId();
   const fieldId = id ?? autoId;
   return (
@@ -89,10 +95,10 @@ export function SelectField({ label, required, error, hint, aside, wide, classNa
         aria-required={required || undefined}
         {...select}
       >
-        {placeholder !== undefined && <option value="">{placeholder}</option>}
+        {placeholder !== undefined && <option value="">{t(placeholder)}</option>}
         {options.map(o => {
           const opt = typeof o === 'string' ? { value: o, label: o } : o;
-          return <option key={opt.value} value={opt.value}>{opt.label}</option>;
+          return <option key={opt.value} value={opt.value}>{t(opt.label)}</option>;
         })}
       </select>
     </FieldShell>
@@ -101,7 +107,8 @@ export function SelectField({ label, required, error, hint, aside, wide, classNa
 
 export interface TextAreaFieldProps extends SharedProps, Omit<ComponentPropsWithRef<'textarea'>, 'className'> {}
 
-export function TextAreaField({ label, required, error, hint, aside, wide, className, id, rows = 3, ...textarea }: TextAreaFieldProps) {
+export function TextAreaField({ label, required, error, hint, aside, wide, className, id, rows = 3, placeholder, ...textarea }: TextAreaFieldProps) {
+  const { t } = useI18n();
   const autoId = useId();
   const fieldId = id ?? autoId;
   return (
@@ -113,6 +120,7 @@ export function TextAreaField({ label, required, error, hint, aside, wide, class
         aria-invalid={error ? true : undefined}
         aria-describedby={error || hint ? `${fieldId}-msg` : undefined}
         aria-required={required || undefined}
+        placeholder={placeholder ? t(placeholder) : undefined}
         {...textarea}
       />
     </FieldShell>

@@ -1,4 +1,5 @@
 import { useId } from 'react';
+import { useI18n } from '@/shared/i18n';
 import { cx } from '@/shared/lib/cx';
 import styles from './SegmentedControl.module.css';
 
@@ -12,8 +13,9 @@ interface SegmentedControlProps<V extends string> {
 /** Nhóm radio dạng nút liền — cho lựa chọn loại trừ nhau (DOC/PACK, chế độ nhập…). */
 export function SegmentedControl<V extends string>({ options, value, onChange, ariaLabel }: SegmentedControlProps<V>) {
   const name = useId();
+  const { t } = useI18n();
   return (
-    <div className={styles.group} role="radiogroup" aria-label={ariaLabel}>
+    <div className={styles.group} role="radiogroup" aria-label={t(ariaLabel)}>
       {options.map(o => (
         <label key={o.value} className={cx(styles.option, o.value === value && styles.checked)}>
           <input
@@ -24,7 +26,7 @@ export function SegmentedControl<V extends string>({ options, value, onChange, a
             onChange={() => onChange(o.value)}
             className="visually-hidden"
           />
-          {o.label}
+          {t(o.label)}
         </label>
       ))}
     </div>

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
+import { useI18n } from '@/shared/i18n';
 import { Button } from '@/shared/ui';
 import { isOnScreen, popoverPosition, type Box } from '../lib/tour';
 import { TOUR_STEPS } from '../steps';
@@ -20,6 +21,7 @@ const viewport = () => ({ width: window.innerWidth, height: window.innerHeight }
 /** Hướng dẫn từng bước: làm tối màn hình, chiếu sáng vùng chức năng và hiện khung chú thích bên cạnh. */
 export function OnboardingTour({ open, onClose }: OnboardingTourProps) {
   const navigate = useNavigate();
+  const { t } = useI18n();
   const [index, setIndex] = useState(0);
   const [target, setTarget] = useState<Box | null>(null);
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
@@ -99,25 +101,25 @@ export function OnboardingTour({ open, onClose }: OnboardingTourProps) {
         style={pos ? { top: pos.top, left: pos.left } : { visibility: 'hidden' }}
       >
         <div className={styles.meta}>
-          Bước {index + 1}/{TOUR_STEPS.length}
+          {t('Bước {i}/{n}', { i: index + 1, n: TOUR_STEPS.length })}
           <span className={styles.dots} aria-hidden="true">
             {TOUR_STEPS.map((s, i) => <span key={s.title} className={i === index ? styles.dotOn : styles.dot} />)}
           </span>
         </div>
-        <h2 id="tour-title" className={styles.title}>{step.title}</h2>
-        <p id="tour-body" className={styles.body}>{step.body}</p>
+        <h2 id="tour-title" className={styles.title}>{t(step.title)}</h2>
+        <p id="tour-body" className={styles.body}>{t(step.body)}</p>
         <div className={styles.actions}>
           {last ? (
-            <Button size="sm" variant="ghost" onClick={onClose}>Để sau</Button>
+            <Button size="sm" variant="ghost" onClick={onClose}>{t('Để sau')}</Button>
           ) : (
-            <Button size="sm" variant="ghost" onClick={onClose}>Bỏ qua</Button>
+            <Button size="sm" variant="ghost" onClick={onClose}>{t('Bỏ qua')}</Button>
           )}
           <span className={styles.spacer} />
-          {index > 0 && <Button size="sm" onClick={back}>Quay lại</Button>}
+          {index > 0 && <Button size="sm" onClick={back}>{t('Quay lại')}</Button>}
           {last ? (
-            <Button size="sm" variant="primary" onClick={() => { onClose(); void navigate('/orders/new'); }}>Tạo đơn đầu tiên</Button>
+            <Button size="sm" variant="primary" onClick={() => { onClose(); void navigate('/orders/new'); }}>{t('Tạo đơn đầu tiên')}</Button>
           ) : (
-            <Button size="sm" variant="primary" onClick={next}>{index === 0 ? 'Bắt đầu' : 'Tiếp theo'}</Button>
+            <Button size="sm" variant="primary" onClick={next}>{t(index === 0 ? 'Bắt đầu' : 'Tiếp theo')}</Button>
           )}
         </div>
       </div>

@@ -1,4 +1,5 @@
 import { useRef, useState, type ReactNode } from 'react';
+import { useTranslateNode } from '@/shared/i18n';
 import { cx } from '@/shared/lib/cx';
 import { Icon, type IconName } from './Icon';
 import styles from './Feedback.module.css';
@@ -7,24 +8,26 @@ type NoticeTone = 'info' | 'warning' | 'danger' | 'success';
 
 /** Hộp thông báo trong trang (lưu ý, cảnh báo, lỗi). */
 export function Notice({ tone = 'info', title, children }: { tone?: NoticeTone; title?: ReactNode; children?: ReactNode }) {
+  const tr = useTranslateNode();
   return (
     <div className={cx(styles.notice, styles[tone])} role={tone === 'danger' ? 'alert' : 'note'}>
-      {title && <strong className={styles.noticeTitle}>{title}</strong>}
-      {children && <div>{children}</div>}
+      {title && <strong className={styles.noticeTitle}>{tr(title)}</strong>}
+      {children && <div>{tr(children)}</div>}
     </div>
   );
 }
 
 /** Thẻ số liệu (dashboard, tổng quan). */
 export function StatCard({ label, value, hint, tone, icon }: { label: string; value: ReactNode; hint?: ReactNode; tone?: 'brand' | 'warning' | 'danger'; icon?: IconName }) {
+  const tr = useTranslateNode();
   return (
     <div className={cx(styles.stat, tone && styles[`stat_${tone}`])}>
       <div className={styles.statTop}>
-        <span className={styles.statLabel}>{label}</span>
+        <span className={styles.statLabel}>{tr(label)}</span>
         {icon && <Icon name={icon} size={18} className={styles.statIcon} />}
       </div>
       <div className={styles.statValue}>{value}</div>
-      {hint && <div className={styles.statHint}>{hint}</div>}
+      {hint && <div className={styles.statHint}>{tr(hint)}</div>}
     </div>
   );
 }
@@ -45,6 +48,7 @@ interface FileDropProps {
 export function FileDrop({ accept, onFile, title = 'Kéo & thả tệp vào đây hoặc bấm để chọn', hint, disabled }: FileDropProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [over, setOver] = useState(false);
+  const tr = useTranslateNode();
   const take = (files: FileList | null) => {
     const f = files?.[0];
     if (f) onFile(f);
@@ -69,8 +73,8 @@ export function FileDrop({ accept, onFile, title = 'Kéo & thả tệp vào đâ
       }}
     >
       <Icon name="upload" size={26} />
-      <strong>{title}</strong>
-      {hint && <span className={styles.dropHint}>{hint}</span>}
+      <strong>{tr(title)}</strong>
+      {hint && <span className={styles.dropHint}>{tr(hint)}</span>}
       <input
         ref={inputRef}
         type="file"
@@ -88,12 +92,13 @@ export function FileDrop({ accept, onFile, title = 'Kéo & thả tệp vào đâ
 
 /** Danh sách cặp nhãn – giá trị (chi tiết đơn, ticket…). */
 export function KeyValueList({ items }: { items: ReadonlyArray<[label: string, value: ReactNode]> }) {
+  const tr = useTranslateNode();
   return (
     <dl className={styles.kv}>
       {items.map(([k, v]) => (
         <div key={k}>
-          <dt>{k}</dt>
-          <dd>{v}</dd>
+          <dt>{tr(k)}</dt>
+          <dd>{tr(v)}</dd>
         </div>
       ))}
     </dl>

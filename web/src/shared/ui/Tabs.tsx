@@ -1,3 +1,4 @@
+import { useI18n } from '@/shared/i18n';
 import { cx } from '@/shared/lib/cx';
 import styles from './Tabs.module.css';
 
@@ -16,19 +17,20 @@ interface TabsProps<K extends string> {
 
 /** Tab gạch chân, có số đếm tùy chọn. */
 export function Tabs<K extends string>({ items, value, onChange, ariaLabel }: TabsProps<K>) {
+  const { t } = useI18n();
   return (
-    <div className={styles.tabs} role="tablist" aria-label={ariaLabel}>
-      {items.map(t => (
+    <div className={styles.tabs} role="tablist" aria-label={t(ariaLabel)}>
+      {items.map(tab => (
         <button
-          key={t.key}
+          key={tab.key}
           type="button"
           role="tab"
-          aria-selected={t.key === value}
-          className={cx(styles.tab, t.key === value && styles.active)}
-          onClick={() => onChange(t.key)}
+          aria-selected={tab.key === value}
+          className={cx(styles.tab, tab.key === value && styles.active)}
+          onClick={() => onChange(tab.key)}
         >
-          {t.label}
-          {t.count !== undefined && <span className={styles.count}>{t.count}</span>}
+          {t(tab.label)}
+          {tab.count !== undefined && <span className={styles.count}>{tab.count}</span>}
         </button>
       ))}
     </div>

@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
+import { useI18n } from '@/shared/i18n';
 import { cx } from '@/shared/lib/cx';
 import styles from './Toast.module.css';
 
@@ -18,6 +19,7 @@ const TOAST_MS = 3200;
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<ToastItem[]>([]);
+  const { t } = useI18n();
 
   const show = useCallback((message: string, tone: ToastTone = 'default') => {
     const id = Date.now() + Math.random();
@@ -31,8 +33,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     <ToastContext.Provider value={api}>
       {children}
       <div className={styles.stack} role="status" aria-live="polite">
-        {items.map(t => (
-          <div key={t.id} className={cx(styles.toast, styles[t.tone])}>{t.message}</div>
+        {items.map(item => (
+          <div key={item.id} className={cx(styles.toast, styles[item.tone])}>{t(item.message)}</div>
         ))}
       </div>
     </ToastContext.Provider>

@@ -76,7 +76,7 @@ async function request<T>(method: string, path: string, { params, body }: Reques
   const payload: unknown = await res.json().catch(() => null);
   if (!res.ok) {
     const err = (payload ?? {}) as { message?: string; error?: string };
-    throw new ApiError(err.message ?? `Lỗi máy chủ (${res.status})`, res.status, err.error);
+    throw new ApiError(err.message ?? 'Lỗi máy chủ ({status})'.replace('{status}', String(res.status)), res.status, err.error);
   }
   return payload as T;
 }
@@ -84,7 +84,7 @@ async function request<T>(method: string, path: string, { params, body }: Reques
 /** Lỗi HTTP → ApiError (đọc message / error từ ProblemDetails của backend). */
 async function toApiError(res: Response): Promise<ApiError> {
   const err = ((await res.json().catch(() => null)) ?? {}) as { message?: string; error?: string };
-  return new ApiError(err.message ?? `Lỗi máy chủ (${res.status})`, res.status, err.error);
+  return new ApiError(err.message ?? 'Lỗi máy chủ ({status})'.replace('{status}', String(res.status)), res.status, err.error);
 }
 
 /** GET nội dung không phải JSON (trang in HTML, file Excel…). */

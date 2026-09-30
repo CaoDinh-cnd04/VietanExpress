@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import { useI18n } from '@/shared/i18n';
 import { cx } from '@/shared/lib/cx';
 import styles from './DropdownMenu.module.css';
 
@@ -27,6 +28,7 @@ const GAP = 4;
  */
 export function DropdownMenu({ trigger, items, children, align = 'end', className }: DropdownMenuProps) {
   const [open, setOpen] = useState(false);
+  const { t } = useI18n();
   const [pos, setPos] = useState<CSSProperties>({});
   const rootRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -79,7 +81,7 @@ export function DropdownMenu({ trigger, items, children, align = 'end', classNam
                     item.onSelect();
                   }}
                 >
-                  {item.label}
+                  {t(item.label)}
                 </button>
               ))}
           </div>,
