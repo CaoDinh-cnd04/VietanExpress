@@ -1,4 +1,16 @@
+/* Trang tạo đơn nhiều ô nhập: thu gọn chữ, ô nhập, khoảng cách (chỉ trong form này, trang khác giữ nguyên). */
 .form {
+  --text-xs: 11.5px;
+  --text-sm: 12px;
+  --text-md: 12.5px;
+  --text-lg: 14px;
+  --control-h: 30px;
+  --control-h-sm: 27px;
+  --space-3: 8px;
+  --space-4: 11px;
+  --space-5: 14px;
+  --space-6: 18px;
+  font-size: var(--text-sm);
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
