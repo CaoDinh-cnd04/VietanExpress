@@ -50,9 +50,6 @@ internal static partial class LegacyOrderView
     [GeneratedRegex(@"^(delivered|signed for by:?)[\s,:]*", RegexOptions.IgnoreCase)]
     private static partial Regex PodPrefix();
 
-    [GeneratedRegex(@"\b(document|documents|doc|docs|chứng từ|hồ sơ)\b", RegexOptions.IgnoreCase)]
-    private static partial Regex DocumentWords();
-
     public static string BillOf(LegacyOrder o) =>
         o.OrderNumber?.ToString(CultureInfo.InvariantCulture) ?? o.Id.ToString(CultureInfo.InvariantCulture);
 
@@ -128,7 +125,7 @@ internal static partial class LegacyOrderView
         return events;
     }
 
-    public static bool IsDocument(string? goodsName) => goodsName is not null && DocumentWords().IsMatch(goodsName);
+    public static bool IsDocument(string? goodsName) => LegacyDocumentRule.Matches(goodsName);
 
     private static string? Date(DateTime? value) => value?.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture);
 }

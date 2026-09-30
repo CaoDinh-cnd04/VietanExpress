@@ -1,5 +1,4 @@
 import { useEffect, useState, type ChangeEvent } from 'react';
-import { BRANCHES } from '@/shared/config/domain';
 import { useDebouncedCallback } from '@/shared/lib/useDebouncedCallback';
 import { Button, SelectField, TextField } from '@/shared/ui';
 import { SEARCH_FIELDS } from '../constants';
@@ -28,8 +27,8 @@ export function OrderFilterBar({ filters, onChange, onReset }: OrderFilterBarPro
   return (
     <section className={styles.bar} aria-label="Bộ lọc đơn hàng">
       <div className={styles.row}>
-        <TextField label="Từ ngày" type="date" value={filters.fromDate} onChange={e => onChange({ fromDate: e.target.value })} />
-        <TextField label="Đến ngày" type="date" value={filters.toDate} onChange={e => onChange({ toDate: e.target.value })} />
+        <TextField label="Từ ngày" type="date" max={filters.toDate || undefined} value={filters.fromDate} onChange={e => onChange({ fromDate: e.target.value })} />
+        <TextField label="Đến ngày" type="date" min={filters.fromDate || undefined} value={filters.toDate} onChange={e => onChange({ toDate: e.target.value })} />
         <SelectField
           label="Loại hàng"
           value={filters.type}
@@ -39,12 +38,6 @@ export function OrderFilterBar({ filters, onChange, onReset }: OrderFilterBarPro
         />
         <TextField label="Cân từ" type="number" min={0} step={0.1} suffix="kg" value={draft.weightFrom} onChange={onText('weightFrom')} />
         <TextField label="Cân đến" type="number" min={0} step={0.1} suffix="kg" value={draft.weightTo} onChange={onText('weightTo')} />
-        <SelectField
-          label="Chi nhánh gửi"
-          value={filters.branch}
-          onChange={e => onChange({ branch: e.target.value })}
-          options={[{ value: 'all', label: 'Tất cả chi nhánh' }, ...BRANCHES.map(b => ({ value: b, label: b }))]}
-        />
       </div>
       <div className={styles.searchRow}>
         <div className={styles.search}>

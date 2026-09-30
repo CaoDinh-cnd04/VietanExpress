@@ -181,9 +181,15 @@ public class LegacyOrderViewTests
 
     [Theory]
     [InlineData("DOCUMENTS", true)]
+    [InlineData("Document", true)]
     [InlineData("Hồ sơ chứng từ", true)]
+    [InlineData("doc", true)]
+    [InlineData("DOCS for visa", true)]
+    [InlineData("visa doc", true)]
     [InlineData("Dockside tool", false)]
-    public void Nhan_dien_chung_tu(string goods, bool isDoc) => Assert.Equal(isDoc, LegacyOrderView.IsDocument(goods));
+    [InlineData("WATCH STRAP", false)]
+    [InlineData(null, false)]
+    public void Nhan_dien_chung_tu(string? goods, bool isDoc) => Assert.Equal(isDoc, LegacyOrderView.IsDocument(goods));
 
     private static DateTime? Parse(string? d) => d is null ? null : DateTime.Parse(d, System.Globalization.CultureInfo.InvariantCulture);
 }

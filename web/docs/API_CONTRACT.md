@@ -39,7 +39,13 @@ Backend mới (SQL Server) chỉ cần làm đúng các hợp đồng này là f
 
 ### GET `/orders` — query
 
-`q, searchField (all|cnee|bill|ref|ct), status (all|wait|fly|nd|ok|late), branch, type (DOC|PACK), fromDate, toDate (yyyy-mm-dd), weightFrom, weightTo, page, pageSize (20|50|100), sortBy (seq|ref|bill|cnee|ct|sent|pod|created), sortDir (asc|desc)`
+`q, searchField (all|cnee|bill|ref|ct), status (all|wait|fly|nd|ok|late), type (DOC|PACK), fromDate, toDate (yyyy-mm-dd), weightFrom, weightTo, page, pageSize (20|50|100), sortBy (seq|ref|bill|cnee|ct|sent|pod|created), sortDir (asc|desc)`
+
+- `type`: dbo.MaVanDon không có cột loại hàng — DOC là đơn có tên hàng chứa "document", "chứng từ", "hồ sơ" hoặc từ "doc"/"docs"; còn lại là PACK (cùng quy tắc với cột `type` trả về).
+- `fromDate`, `toDate`: theo ngày tạo đơn (`CreateDate`), tính cả 2 ngày đầu cuối.
+- Tìm `bill` khớp một phần số VA hoặc mã hãng.
+- Không lọc chi nhánh: dbo.MaVanDon không có cột chi nhánh.
+- `summary.statusCounts` đếm trên kết quả đã lọc (trừ lọc trạng thái) — số trên các tab luôn khớp bộ lọc.
 
 Phản hồi (`OrderListResponse`):
 

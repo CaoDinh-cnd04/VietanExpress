@@ -28,7 +28,6 @@ export const DEFAULT_FILTERS: OrderFilters = {
   q: '',
   searchField: 'all',
   status: 'all',
-  branch: 'all',
   type: '',
   fromDate: '',
   toDate: '',

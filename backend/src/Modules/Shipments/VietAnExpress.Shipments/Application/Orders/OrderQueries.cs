@@ -12,11 +12,15 @@ namespace VietAnExpress.Shipments.Application.Orders;
 
 // ---------- Danh sách đơn (GET /orders) ----------
 
-/// <summary>Tham số lọc giống hợp đồng frontend (OrderFilters). branch / type chưa có cột tương ứng trong dbo.MaVanDon nên chưa lọc.</summary>
+/// <summary>
+/// Tham số lọc giống hợp đồng frontend (OrderFilters). Type: DOC | PACK — nhận diện theo tên hàng (<see cref="LegacyDocumentRule"/>).
+/// Không lọc chi nhánh: dbo.MaVanDon không có cột chi nhánh.
+/// </summary>
 internal sealed record GetOrdersQuery(
     string? Q,
     string? SearchField,
     string? Status,
+    string? Type,
     DateOnly? FromDate,
     DateOnly? ToDate,
     decimal? WeightFrom,
@@ -62,15 +66,16 @@ internal static class OrderListFilter
     {
         if (q.Q.ToLikePattern() is { } like)
         {
-            var text = q.Q!.Trim();
-            long? number = long.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out var n) ? n : null;
+            // Gõ 1 phần số VA (vd "6010") cũng tìm ra — so khớp chuỗi số, không cần gõ đủ.
+            var digits = q.Q!.Trim().All(char.IsAsciiDigit);
             query = (q.SearchField ?? "all") switch
             {
                 "cnee" => query.Where(o => EF.Functions.Like(o.ConsigneeName!, like) || EF.Functions.Like(o.ConsigneeContactName!, like)),
-                "bill" => query.Where(o => o.OrderNumber == number || EF.Functions.Like(o.BillConnect!, like)),
+                "bill" => query.Where(o => (digits && o.OrderNumber != null && EF.Functions.Like(o.OrderNumber.Value.ToString(), like))
+                    || EF.Functions.Like(o.BillConnect!, like)),
                 "ref" => query.Where(o => EF.Functions.Like(o.CustomerBill!, like)),
                 "ct" => query.Where(o => EF.Functions.Like(o.ConsigneeCountry!, like)),
-                _ => query.Where(o => o.OrderNumber == number
+                _ => query.Where(o => (digits && o.OrderNumber != null && EF.Functions.Like(o.OrderNumber.Value.ToString(), like))
                     || EF.Functions.Like(o.BillConnect!, like)
                     || EF.Functions.Like(o.CustomerBill!, like)
                     || EF.Functions.Like(o.ConsigneeName!, like)
@@ -88,6 +93,12 @@ internal static class OrderListFilter
             var toDate = to.ToDateTime(TimeOnly.MinValue);
             query = query.Where(o => o.CreateDate <= toDate);
         }
+        query = q.Type?.Trim().ToUpperInvariant() switch
+        {
+            "DOC" => query.Where(LegacyDocumentRule.IsDocument),
+            "PACK" => query.Where(LegacyDocumentRule.IsNotDocument),
+            _ => query
+        };
         if (q.WeightFrom is { } wFrom) query = query.Where(o => o.WeightKg >= wFrom);
         if (q.WeightTo is { } wTo) query = query.Where(o => o.WeightKg <= wTo);
         return query;

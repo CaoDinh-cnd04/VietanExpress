@@ -41,7 +41,6 @@ export interface OrderFilters {
   q: string;
   searchField: OrderSearchField;
   status: OrderStatus | 'all';
-  branch: string;
   type: CargoType | '';
   fromDate: string;
   toDate: string;

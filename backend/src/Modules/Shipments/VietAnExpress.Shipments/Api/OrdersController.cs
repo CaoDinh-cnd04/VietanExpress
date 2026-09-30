@@ -23,12 +23,12 @@ internal sealed class OrdersController : ApiControllerBase
     [HasPermission(ShipmentsPermissions.View)]
     [ProducesResponseType<OrderListResponse>(StatusCodes.Status200OK)]
     public async Task<IActionResult> List(
-        [FromQuery] string? q, [FromQuery] string? searchField, [FromQuery] string? status,
+        [FromQuery] string? q, [FromQuery] string? searchField, [FromQuery] string? status, [FromQuery] string? type,
         [FromQuery] DateOnly? fromDate, [FromQuery] DateOnly? toDate,
         [FromQuery] decimal? weightFrom, [FromQuery] decimal? weightTo,
         [FromQuery] int? page, [FromQuery] int? pageSize, [FromQuery] string? sortBy, [FromQuery] string? sortDir,
         CancellationToken ct) =>
-        Ok(await Sender.Send(new GetOrdersQuery(q, searchField, status, fromDate, toDate, weightFrom, weightTo,
+        Ok(await Sender.Send(new GetOrdersQuery(q, searchField, status, type, fromDate, toDate, weightFrom, weightTo,
             page, pageSize, sortBy, sortDir), ct));
 
     /// <summary>
@@ -50,13 +50,13 @@ internal sealed class OrdersController : ApiControllerBase
     [HasPermission(ShipmentsPermissions.View)]
     [Produces("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")]
     public async Task<IActionResult> Export(
-        [FromQuery] string? q, [FromQuery] string? searchField, [FromQuery] string? status,
+        [FromQuery] string? q, [FromQuery] string? searchField, [FromQuery] string? status, [FromQuery] string? type,
         [FromQuery] DateOnly? fromDate, [FromQuery] DateOnly? toDate,
         [FromQuery] decimal? weightFrom, [FromQuery] decimal? weightTo,
         [FromQuery] string? sortBy, [FromQuery] string? sortDir, CancellationToken ct)
     {
         var file = await Sender.Send(new ExportOrdersQuery(
-            new GetOrdersQuery(q, searchField, status, fromDate, toDate, weightFrom, weightTo, null, null, sortBy, sortDir)), ct);
+            new GetOrdersQuery(q, searchField, status, type, fromDate, toDate, weightFrom, weightTo, null, null, sortBy, sortDir)), ct);
         return File(file.Content, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", file.FileName);
     }
 
