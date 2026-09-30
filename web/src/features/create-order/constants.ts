@@ -69,6 +69,10 @@ export const RULES = {
   /** Hệ số quy đổi thể tích: D×R×C / divisor. */
   volumetricDivisor: 5000,
   shipperAddressMax: 60,
+  /** Tên shipper gốc (FWD) — độ dài cột dbo.MaVanDon.Ten_Khach_Cua_FWD. */
+  originalShipperMax: 150,
+  /** Tên nhóm hàng — độ dài cột dbo.NhomHangHoa.Ten_Nhom. */
+  categoryNameMax: 150,
   receiverAddressMax: 30
 } as const;
 

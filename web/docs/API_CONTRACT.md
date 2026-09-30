@@ -139,8 +139,12 @@ Body POST / PUT (`NewDraft`):
 
 | Method | Path | Trạng thái | Mô tả |
 |---|---|---|---|
-| GET | `/catalog/categories` | Có sẵn | 44 nhóm hàng + gợi ý mô tả / HS: `{ name, isFavorite, suggestions: [{ en, vi, hs }] }` |
-| POST | `/catalog/categories/:name/favorite` | Có sẵn | Ghim / bỏ ghim nhóm thường dùng |
+| GET | `/catalog/categories` | Có sẵn | Nhóm hàng (bảng `dbo.NhomHangHoa`): nhóm của khách (yêu thích trước) rồi nhóm chung Việt An — `Category[]` |
+| POST | `/catalog/categories` | Có sẵn | Khách thêm nhóm: body `{ name, isFavorite }` → `{ data: Category, message }`. Tên trống **400**, trùng (không phân biệt hoa thường, kể cả nhóm chung) **409** |
+| PUT | `/catalog/categories/:id` | Có sẵn | Đổi tên / yêu thích nhóm của khách, body như POST. Nhóm chung hoặc của khách khác **404** |
+| DELETE | `/catalog/categories/:id` | Có sẵn | Xóa nhóm của khách (đơn đã khai nhóm này giữ nguyên) |
+`Category`: `{ id, name, isFavorite, isOwn, suggestions: [{ en, vi, hs }] }` — `isOwn = false` là nhóm chung Việt An (`CustomerID` NULL), chỉ đọc.
+
 | GET | `/catalog/products` | Có sẵn | Thư viện mặt hàng của khách: `SavedProduct[]` — lấy từ các dòng hàng đã khai trong `dbo.MaVanDon_ChiTietHang` (đơn của khách), mỗi mặt hàng 1 dòng, đơn giá lần gần nhất |
 | POST | `/catalog/products` | Không làm | Mặt hàng tự vào thư viện khi đơn được cấp bill (ghi `MaVanDon_ChiTietHang`) — bảng không có cột khách nên không lưu riêng được |
 | GET | `/invoices/recent?limit=20` | Có sẵn | Invoice đơn gần đây (≤ 50, từ `MaVanDon_ChiTietHang`) để chép lại: `{ bill, cnee, date, currency, items: SavedProduct[] }[]` |
@@ -220,9 +224,11 @@ Gợi ý bảng SQL: `Services`, `ServiceZones`, `ServiceCountryZones`, `Service
 | POST | `/auth/login` | **Mới** | `{ username, password, remember }` — `username` là tên đăng nhập của khách (`dbo.TCustomer.Login_UserName`), mật khẩu so với `Login_Password`. Đúng: đặt cookie phiên (httpOnly; `remember: false` → cookie hết khi đóng trình duyệt) và trả `{ data: SessionUser }`. Sai: 401 + `message` |
 | POST | `/auth/refresh` | Có sẵn | Đổi refresh token (cookie) lấy phiên mới — frontend tự gọi 1 lần khi gặp 401 |
 | POST | `/auth/logout` | **Mới** | Xóa cookie phiên |
-| GET | `/me` | **Mới** | `{ data: SessionUser }` (`customerCode, companyName, contactName, email` từ `dbo.TCustomer` — form Tạo đơn điền sẵn tên công ty và người liên hệ của người gửi) — chưa đăng nhập / hết phiên trả **401**. Trang ngoài (`/`, `/login`) và lớp chặn portal dựa vào endpoint này |
+| GET | `/me` | **Mới** | `{ data: SessionUser }` (`customerCode, companyName, contactName, email, phone, address, taxCode` từ `dbo.TCustomer` — form Tạo đơn điền sẵn các ô người gửi còn trống, khách vẫn sửa được) — chưa đăng nhập / hết phiên trả **401**. Trang ngoài (`/`, `/login`) và lớp chặn portal dựa vào endpoint này |
 
-`SessionUser`: `{ customerCode, companyName, contactName?, email?, avatarUrl?, defaultBranch? }`.
+`SessionUser`: `{ customerCode, companyName, contactName?, email?, phone?, address?, taxCode?, avatarUrl?, defaultBranch? }`.
+
+Người gửi trong payload đơn (`shipper`) có thêm `originalShipper` — tên shipper gốc khi khách là đơn vị forwarder gửi hộ, ghi vào `dbo.MaVanDon.Ten_Khach_Cua_FWD` khi in & cấp bill (tối đa 150 ký tự, không bắt buộc).
 
 Khi `/me` trả 404/501 (backend chưa bật đăng nhập), frontend cho vào portal ở chế độ thử. Khi bật đăng nhập, mọi endpoint của portal nên trả 401 nếu không có phiên hợp lệ.
 

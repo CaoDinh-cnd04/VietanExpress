@@ -25,7 +25,7 @@ export function ShipperSection() {
     if (clean !== value) setValue(name, clean, { shouldDirty: true });
   };
 
-  // Tên công ty + người liên hệ lấy theo khách đang đăng nhập (dbo.TCustomer) — chỉ điền ô còn trống; ô khác khách tự nhập.
+  // Điền sẵn người gửi theo hồ sơ khách đang đăng nhập (dbo.TCustomer) — chỉ điền ô còn trống, khách vẫn sửa được.
   const session = useSession();
   const profile = session.data?.status === 'authenticated' ? session.data.user : null;
   useEffect(() => {
@@ -41,7 +41,13 @@ export function ShipperSection() {
       actions={<Button size="sm" onClick={() => setPicking(true)}>{t('Đổi hồ sơ')}</Button>}
     >
       <FormGrid>
-        <TextField label="Tên công ty / người gửi" required wide {...bind('shipper.company')} />
+        <TextField label="Tên công ty / người gửi" required {...bind('shipper.company')} />
+        <TextField
+          label="Tên shipper gốc"
+          hint="Dành cho đơn vị forwarder gửi hộ khách — không bắt buộc"
+          maxLength={RULES.originalShipperMax}
+          {...bind('shipper.originalShipper')}
+        />
         <TextField label="Người liên hệ (contact name)" required {...bind('shipper.contact')} />
         <TextField label="Điện thoại (tel)" required type="tel" {...bind('shipper.tel', { onChange: e => keepPhone('shipper.tel', e.target.value) })} />
         <TextField

@@ -53,6 +53,17 @@ public class LegacyOrderFactoryTests
     }
 
     [Fact]
+    public void Shipper_goc_cua_forwarder_ghi_vao_Ten_Khach_Cua_FWD()
+    {
+        var p = Payload();
+        var withFwd = new OrderPayload { Shipper = new() { Company = "SGB EXPRESS HN", OriginalShipper = "  CÔNG TY MAY ABC  " }, Service = p.Service,
+            Shipment = p.Shipment, Receiver = p.Receiver, Goods = p.Goods, Invoice = p.Invoice };
+
+        Assert.Equal("CÔNG TY MAY ABC", LegacyOrderFactory.FromPayload(withFwd, Customer, 1, Today).ForwarderShipperName);
+        Assert.Null(LegacyOrderFactory.FromPayload(p, Customer, 2, Today).ForwarderShipperName);
+    }
+
+    [Fact]
     public void Cat_chuoi_theo_do_dai_cot()
     {
         var p = Payload();

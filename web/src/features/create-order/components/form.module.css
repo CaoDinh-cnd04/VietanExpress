@@ -552,3 +552,9 @@
   color: var(--color-text-muted);
   font-weight: 500;
 }
+
+/* Nhóm hàng yêu thích — ngôi sao tô đầy */
+.starOn {
+  color: var(--color-warning);
+  fill: currentColor;
+}

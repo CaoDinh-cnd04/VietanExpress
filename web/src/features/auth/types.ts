@@ -4,6 +4,10 @@ export interface SessionUser {
   companyName: string;
   contactName?: string | null;
   email?: string | null;
+  /** SĐT, địa chỉ, MST ở dbo.TCustomer — điền sẵn người gửi khi tạo đơn. */
+  phone?: string | null;
+  address?: string | null;
+  taxCode?: string | null;
   avatarUrl?: string | null;
   defaultBranch?: string | null;
 }

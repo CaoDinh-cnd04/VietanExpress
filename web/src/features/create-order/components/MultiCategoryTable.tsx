@@ -5,6 +5,7 @@ import { Button, Icon, Modal } from '@/shared/ui';
 import { useCategories } from '../api';
 import { MULTI_CATEGORY } from '../constants';
 import type { CreateOrderValues } from '../schema';
+import { CategoryManagerDialog } from './CategoryManagerDialog';
 import styles from './form.module.css';
 
 const escapeHtml = (s: string) => s.replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[ch]!);
@@ -29,9 +30,11 @@ function printTable(rows: ReadonlyArray<{ category: string; note: string }>, rec
 export function MultiCategoryTable() {
   const { t } = useI18n();
   const { control, register, getValues, formState } = useFormContext<CreateOrderValues>();
-  const { fields, append, remove } = useFieldArray({ control, name: 'goods.multi' });
+  const { fields, append, remove, update } = useFieldArray({ control, name: 'goods.multi' });
   const { data: categories = [] } = useCategories();
   const [picking, setPicking] = useState(false);
+  // Thêm / sửa nhóm: tạm đóng hộp chọn, mở hộp quản lý; đóng hộp quản lý thì quay lại hộp chọn (giữ các nhóm đã tick).
+  const [managing, setManaging] = useState(false);
   const [query, setQuery] = useState('');
   const [checked, setChecked] = useState<Set<string>>(new Set());
   const error = get(formState.errors, 'goods.multi')?.message as string | undefined;
@@ -76,7 +79,7 @@ export function MultiCategoryTable() {
               {fields.map((f, i) => (
                 <tr key={f.id}>
                   <td className={styles.rowNo}>{i + 1}</td>
-                  <td className={styles.cellText}>{f.category}</td>
+                  <td className={styles.cellText}>{t(f.category)}</td>
                   <td><input className={styles.cell} aria-label={t('Ghi chú nhóm {name}', { name: f.category })} placeholder={t('VD: 3 hộp, hàng dễ vỡ…')} {...register(`goods.multi.${i}.note`)} /></td>
                   <td><Button size="sm" iconOnly variant="ghost" aria-label={t('Bỏ nhóm {name}', { name: f.category })} onClick={() => remove(i)}><Icon name="close" size={15} /></Button></td>
                 </tr>
@@ -92,7 +95,12 @@ export function MultiCategoryTable() {
         title="Chọn các nhóm hàng trong kiện"
         onClose={() => setPicking(false)}
         footerNote={t('Đã chọn {n} nhóm', { n: checked.size })}
-        footer={<Button variant="primary" onClick={apply}>{t('Xác nhận')}</Button>}
+        footer={
+          <>
+            <Button onClick={() => { setPicking(false); setManaging(true); }}><Icon name="edit" size={15} /> {t('Thêm / sửa nhóm hàng')}</Button>
+            <Button variant="primary" onClick={apply}>{t('Xác nhận')}</Button>
+          </>
+        }
       >
         <input className={styles.pickerSearch} placeholder={t('Tìm nhóm…')} value={query} onChange={e => setQuery(e.target.value)} aria-label={t('Tìm nhóm hàng')} />
         <div className={styles.checkList}>
@@ -108,11 +116,21 @@ export function MultiCategoryTable() {
                   return next;
                 })}
               />
-              <span><strong>{name}</strong></span>
+              <span><strong>{t(name)}</strong></span>
             </label>
           ))}
         </div>
       </Modal>
+
+      <CategoryManagerDialog
+        open={managing}
+        onClose={() => { setManaging(false); setPicking(true); }}
+        onCreated={name => setChecked(prev => new Set(prev).add(name))}
+        onRenamed={(from, to) => {
+          setChecked(prev => (prev.has(from) ? new Set([...prev].map(n => (n === from ? to : n))) : prev));
+          getValues('goods.multi').forEach((r, i) => r.category === from && update(i, { ...r, category: to }));
+        }}
+      />
     </div>
   );
 }

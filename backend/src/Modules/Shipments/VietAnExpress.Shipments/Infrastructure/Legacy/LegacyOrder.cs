@@ -74,6 +74,8 @@ internal sealed class LegacyOrder
     public decimal? ShippingFee { get; set; }
     /// <summary>Mã tham chiếu / bill riêng của khách.</summary>
     public string? CustomerBill { get; set; }
+    /// <summary>Tên shipper gốc — khách là đơn vị forwarder gửi hộ (Ten_Khach_Cua_FWD).</summary>
+    public string? ForwarderShipperName { get; set; }
 }
 
 internal sealed class LegacyOrderConfiguration : IEntityTypeConfiguration<LegacyOrder>
@@ -128,5 +130,6 @@ internal sealed class LegacyOrderConfiguration : IEntityTypeConfiguration<Legacy
         b.Property(x => x.Currency).HasColumnName("Loai_Tien").HasMaxLength(50);
         b.Property(x => x.ShippingFee).HasPrecision(18, 4);
         b.Property(x => x.CustomerBill).HasMaxLength(50);
+        b.Property(x => x.ForwarderShipperName).HasColumnName("Ten_Khach_Cua_FWD").HasMaxLength(150);
     }
 }

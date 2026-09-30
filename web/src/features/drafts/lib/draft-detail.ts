@@ -46,6 +46,7 @@ export function draftDetail(payload: unknown): DraftDetail {
     isDoc,
     shipper: [
       ['Công ty / người gửi', orDash(s.company)],
+      ...(text(s.originalShipper) ? [['Shipper gốc', text(s.originalShipper)] as [string, string]] : []),
       ['Người liên hệ', orDash(s.contact)],
       ['Điện thoại', orDash(s.tel)],
       ['Địa chỉ lấy hàng', orDash(s.address)],

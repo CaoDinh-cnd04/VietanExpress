@@ -2,11 +2,22 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ApiError, http } from '@/shared/api/http';
 import type { Country, PostalInfo } from './lib/geo';
 
+/** Nhóm hàng hóa (dbo.NhomHangHoa). */
 export interface Category {
+  id: string;
   name: string;
   isFavorite: boolean;
+  /** Nhóm khách tự tạo — sửa / xóa được; false = nhóm chung Việt An. */
+  isOwn: boolean;
   suggestions: Array<{ en: string; vi: string; hs: string }>;
 }
+
+export interface CategoryInput {
+  name: string;
+  isFavorite: boolean;
+}
+
+const CATEGORIES_KEY = ['catalog', 'categories'] as const;
 
 /** Hồ sơ người gửi (backend SenderProfile). */
 export interface SenderProfile {
@@ -35,9 +46,29 @@ const ONE_HOUR = 60 * 60 * 1000;
 
 export function useCategories() {
   return useQuery({
-    queryKey: ['catalog', 'categories'],
+    queryKey: CATEGORIES_KEY,
     queryFn: () => http.get<{ data: Category[] }>('/catalog/categories').then(r => r.data),
     staleTime: ONE_HOUR
+  });
+}
+
+/** Thêm (không có id) hoặc sửa nhóm hàng của khách. */
+export function useSaveCategory() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, ...body }: CategoryInput & { id?: string }) =>
+      id
+        ? http.put<{ data: Category; message: string }>(`/catalog/categories/${encodeURIComponent(id)}`, body)
+        : http.post<{ data: Category; message: string }>('/catalog/categories', body),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: CATEGORIES_KEY })
+  });
+}
+
+export function useDeleteCategory() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => http.delete<{ message: string }>(`/catalog/categories/${encodeURIComponent(id)}`),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: CATEGORIES_KEY })
   });
 }
 

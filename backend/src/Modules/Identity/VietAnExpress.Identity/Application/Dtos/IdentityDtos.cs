@@ -3,7 +3,7 @@ namespace VietAnExpress.Identity.Application.Dtos;
 /// <summary>
 /// Khách đang đăng nhập — GET /me. Khớp <c>SessionUser</c> của frontend (web/src/features/auth/types.ts):
 /// customerCode, companyName, contactName, email, avatarUrl, defaultBranch; kèm quyền để UI ẩn/hiện chức năng.
-/// Hồ sơ lấy từ dbo.TCustomer (companyName, contactName dùng để điền sẵn người gửi khi tạo đơn).
+/// Hồ sơ lấy từ dbo.TCustomer — companyName, contactName, phone, address, taxCode, email dùng để điền sẵn người gửi khi tạo đơn.
 /// </summary>
 internal sealed record SessionUserDto(
     long CustomerId,
@@ -17,7 +17,10 @@ internal sealed record SessionUserDto(
     string? AvatarUrl,
     string? DefaultBranch,
     IReadOnlyList<string> Roles,
-    IReadOnlyList<string> Permissions);
+    IReadOnlyList<string> Permissions,
+    string? Phone = null,
+    string? Address = null,
+    string? TaxCode = null);
 
 internal static class AccountTypes
 {

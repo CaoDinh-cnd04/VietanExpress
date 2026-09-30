@@ -53,6 +53,7 @@ internal sealed class SessionService(ITokenService tokens, ICustomersApi custome
         return new SessionUserDto(
             login.CustomerId, userName, customer.ContactName ?? customer.CompanyName, AccountTypes.Customer,
             customer.Code, customer.CompanyName, customer.ContactName, customer.Email,
-            AvatarUrl: null, DefaultBranch: null, Roles, Permissions);
+            AvatarUrl: null, DefaultBranch: null, Roles, Permissions,
+            Phone: customer.Phone, Address: customer.Address, TaxCode: customer.TaxCode);
     }
 }

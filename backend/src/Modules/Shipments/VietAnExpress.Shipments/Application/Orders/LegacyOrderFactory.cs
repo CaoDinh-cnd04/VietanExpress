@@ -39,6 +39,7 @@ internal static class LegacyOrderFactory
             SenderPhone = Clip(p.Shipper.Tel, 50),
             SenderEmail = Clip(p.Shipper.Email, 150),
             SenderTax = Clip(p.Shipper.TaxId, 100),
+            ForwarderShipperName = Clip(p.Shipper.OriginalShipper, 150),
 
             ConsigneeName = Clip(p.Receiver.Company, 250),
             ConsigneeContactName = Clip(p.Receiver.Contact, 100),

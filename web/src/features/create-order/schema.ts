@@ -46,6 +46,8 @@ export const createOrderSchema = z
   .object({
     shipper: z.object({
       company: required(),
+      /** Tên shipper gốc — khách là đơn vị forwarder gửi hộ (dbo.MaVanDon.Ten_Khach_Cua_FWD). Nháp cũ có thể thiếu. */
+      originalShipper: optional.max(RULES.originalShipperMax, maxLen(RULES.originalShipperMax)).optional(),
       contact: required(),
       tel: required().refine(isPhone, PHONE_MESSAGE),
       address: required().max(RULES.shipperAddressMax, maxLen(RULES.shipperAddressMax)),
@@ -140,7 +142,7 @@ export const emptyPackage = (): PackageValues => ({ qty: '1', packaging: 'Thùng
 export const emptyInvoiceItem = (): InvoiceItemValues => ({ descEn: '', descVi: '', manufacturer: '', origin: 'VN', hs: '', qty: '1', unit: 'PCS', price: '' });
 
 export const defaultValues = (): CreateOrderValues => ({
-  shipper: { company: '', contact: '', tel: '', address: '', taxId: '', email: '', country: 'Vietnam', branch: 'TP.HCM' },
+  shipper: { company: '', originalShipper: '', contact: '', tel: '', address: '', taxId: '', email: '', country: 'Vietnam', branch: 'TP.HCM' },
   service: { carrier: DEFAULT_SERVICE.carrier, hub: DEFAULT_SERVICE.hub, reference: '' },
   shipment: { type: 'PACK', pieces: '1', grossWeight: '' },
   receiver: { country: '', city: '', company: '', contact: '', tel: '', phoneCode: '', taxId: '', email: '', postal: '', state: '', addr1: '', addr2: '', addr3: '' },

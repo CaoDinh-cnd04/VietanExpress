@@ -17,6 +17,8 @@ internal sealed class OrderPayload
     internal sealed class ShipperPart
     {
         public string Company { get; init; } = "";
+        /// <summary>Tên shipper gốc — dành cho khách là đơn vị forwarder (ghi vào Ten_Khach_Cua_FWD).</summary>
+        public string OriginalShipper { get; init; } = "";
         public string Contact { get; init; } = "";
         public string Tel { get; init; } = "";
         public string Address { get; init; } = "";
