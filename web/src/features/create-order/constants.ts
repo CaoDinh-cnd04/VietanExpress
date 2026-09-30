@@ -54,7 +54,7 @@ export type WizardStep = { readonly title: string; readonly description: string 
 
 /** Liên kết tra cứu (khung "Hỗ trợ" của Bill Online cũ). `url` để trống = chưa có trang. */
 export const HELP_LINKS: ReadonlyArray<{ group: string; links: ReadonlyArray<{ label: string; url?: string }> }> = [
-  { group: 'Hướng dẫn', links: [{ label: 'Video hướng dẫn tạo bill' }, { label: 'Tra cứu mã HS', url: 'https://caselaw.vn/trang/tra-cuu-ma-hs' }] },
+  { group: 'Hướng dẫn', links: [{ label: 'Video hướng dẫn tạo bill' }, { label: 'Tra cứu mã HS', url: 'https://vietanexpress.com/tra-hs-code' }] },
   // Trang chính thức của hãng tại Việt Nam (kiểm tra 30/09/2026).
   {
     group: 'Phụ phí xăng dầu',
