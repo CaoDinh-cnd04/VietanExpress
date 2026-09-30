@@ -8,8 +8,8 @@ export { COUNTRIES } from '@/shared/config/domain';
 export const MULTI_CATEGORY = 'Nhiều loại hàng';
 
 export const PACKAGING_TYPES = ['Thùng carton', 'Bao / túi', 'Pallet', 'Kiện gỗ'] as const;
-/** Quy cách (đơn vị) mặt hàng — theo hệ thống cũ. */
-export const UNITS = ['Bag', 'PCS', 'SET', 'BOX', 'Khác'] as const;
+/** Quy cách (ĐVT) mặt hàng: danh sách có sẵn + "Khác" (khách tự nhập) — xem lib/units.ts. */
+export { OTHER_UNIT, PRESET_UNITS } from './lib/units';
 /** Đơn vị tiền tệ của invoice — lưu mã vào MaVanDon.Loai_Tien. */
 export const CURRENCIES = ['USD', 'SGD', 'EUR', 'GBP', 'AUD'] as const;
 /** Hình thức xuất khẩu — lưu mã vào MaVanDon.Ly_Do_Xuat_Hang (dữ liệu cũ: GIFT, SAMPLE). */

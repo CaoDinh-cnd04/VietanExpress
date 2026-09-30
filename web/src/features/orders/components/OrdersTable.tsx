@@ -1,7 +1,10 @@
+import { useCallback } from 'react';
 import { useI18n } from '@/shared/i18n';
 import { cx } from '@/shared/lib/cx';
-import { StatusPill } from '@/shared/ui';
+import { useCellSelection } from '@/shared/lib/useCellSelection';
+import { Button, Icon, StatusPill, useToast } from '@/shared/ui';
 import { ORDER_STATUS } from '../constants';
+import { vaTrackingLink } from '@/shared/config/domain';
 import { datePart, estimatePodDate } from '../lib/order-utils';
 import type { Order, OrderActions, OrderSortField, SortDir } from '../types';
 import { OrderRowActions } from './OrderRowActions';
@@ -22,15 +25,28 @@ interface OrdersTableProps {
   loading?: boolean;
 }
 
+/** Giá trị chép ra khi bôi chọn ô — theo đúng thứ tự COLUMNS (cột "In bill" không chọn được). */
+type CopyValue = (o: Order, t: (s: string) => string) => string;
+const COPY_VALUES: ReadonlyArray<CopyValue> = [
+  o => [o.bill, o.ref].filter(Boolean).join(' / '),
+  o => [o.cnee, o.ct].filter(Boolean).join(' / '),
+  (o, t) => t(o.route),
+  (o, t) => [o.content, t(o.pcs)].filter(Boolean).join(' · '),
+  o => [datePart(o.created), o.sent, o.pod ? `${o.pod.date} ${o.pod.time}` : estimatePodDate(o)].filter(Boolean).join(' → '),
+  o => vaTrackingLink(o.bill)
+];
+
+/**
+ * Bảng dễ đọc cho khách: mỗi cột 1 nhóm thông tin (mã đơn · người nhận · dịch vụ · hàng · hành trình · tracking),
+ * dòng chính đậm, dòng phụ nhạt; hành trình ghi nhãn Tạo / Gửi / Giao rõ ràng.
+ */
 const COLUMNS: ReadonlyArray<{ label: string; sort?: OrderSortField; className?: string }> = [
-  { label: 'Ref No.', sort: 'ref' },
-  { label: 'VA Bill', sort: 'bill' },
-  { label: 'Người nhận', sort: 'cnee', className: styles.colCnee },
-  { label: 'Nước đến / dịch vụ', sort: 'ct' },
-  { label: 'Ngày gửi', sort: 'sent' },
-  { label: 'POD / dự kiến', sort: 'pod' },
+  { label: 'VA Bill / Ref', sort: 'bill', className: styles.colBill },
+  { label: 'Người nhận / nước đến', sort: 'cnee', className: styles.colCnee },
+  { label: 'Dịch vụ', className: styles.colService },
+  { label: 'Hàng hóa', className: styles.colGoods },
+  { label: 'Hành trình', sort: 'sent', className: styles.colJourney },
   { label: 'Tracking' },
-  { label: 'Ngày tạo', sort: 'created', className: styles.colCreated },
   { label: 'In bill', className: styles.colActions }
 ];
 
@@ -38,10 +54,24 @@ export function OrdersTable(props: OrdersTableProps) {
   const { orders, offset, sortBy, sortDir, onSort, selected, onToggle, onToggleAll, actions, loading } = props;
   const allChecked = orders.length > 0 && orders.every(o => selected.has(o.bill));
   const { t } = useI18n();
+  const toast = useToast();
+  const value = useCallback((row: number, col: number) => (orders[row] ? (COPY_VALUES[col]?.(orders[row], t) ?? '') : ''), [orders, t]);
+  const cells = useCellSelection(value, n => toast.show(t('Đã sao chép {n} ô — dán được vào Excel', { n }), 'success'));
 
   return (
     <div className={styles.scroll}>
-      <table className={cx(styles.table, loading && styles.loading)}>
+      {cells.count > 0 ? (
+        <div className={styles.cellBar} data-cell-toolbar>
+          <span>{t('Đã chọn {n} ô', { n: cells.count })}</span>
+          <Button size="sm" variant="primary" onClick={() => void cells.copy()}>
+            <Icon name="copy" size={14} /> {t('Sao chép')} <kbd className={styles.kbd}>Ctrl+C</kbd>
+          </Button>
+          <Button size="sm" variant="ghost" onClick={cells.clear}>{t('Bỏ chọn')}</Button>
+        </div>
+      ) : (
+        <p className={styles.cellHint}>{t('Mẹo: nhấn giữ chuột và kéo dọc theo cột để chọn nhiều ô, rồi Ctrl+C để chép sang Excel.')}</p>
+      )}
+      <table ref={cells.tableRef} className={cx(styles.table, loading && styles.loading, cells.selecting && styles.selecting)}>
         <thead>
           <tr>
             <th className={styles.colCheck}>
@@ -64,7 +94,16 @@ export function OrdersTable(props: OrdersTableProps) {
         </thead>
         <tbody>
           {orders.map((o, i) => (
-            <OrderRow key={o.bill} order={o} index={offset + i + 1} checked={selected.has(o.bill)} onToggle={onToggle} actions={actions} />
+            <OrderRow
+              key={o.bill}
+              order={o}
+              index={offset + i + 1}
+              checked={selected.has(o.bill)}
+              onToggle={onToggle}
+              actions={actions}
+              cell={col => cells.cellProps(i, col)}
+              consumeClick={cells.consumeClick}
+            />
           ))}
           {!orders.length && (
             <tr>
@@ -83,6 +122,9 @@ interface OrderRowProps {
   checked: boolean;
   onToggle: (bill: string) => void;
   actions: OrderActions;
+  /** Thuộc tính chọn ô cho cột dữ liệu thứ `col` (0 = Ref No.). */
+  cell: (col: number) => ReturnType<ReturnType<typeof useCellSelection>['cellProps']>;
+  consumeClick: () => boolean;
 }
 
 function Nil({ children = '—' }: { children?: string }) {
@@ -90,7 +132,7 @@ function Nil({ children = '—' }: { children?: string }) {
   return <span className={styles.nil}>{t(children)}</span>;
 }
 
-function OrderRow({ order: o, index, checked, onToggle, actions }: OrderRowProps) {
+function OrderRow({ order: o, index, checked, onToggle, actions, cell, consumeClick }: OrderRowProps) {
   const { t } = useI18n();
   const status = ORDER_STATUS[o.st];
   const estimate = estimatePodDate(o);
@@ -99,6 +141,8 @@ function OrderRow({ order: o, index, checked, onToggle, actions }: OrderRowProps
     <tr
       className={styles.row}
       onClick={e => {
+        if (consumeClick()) return; // vừa kéo chọn ô
+        if (window.getSelection()?.toString()) return; // đang bôi chữ trong ô
         if (!(e.target as HTMLElement).closest('button, input, a')) actions.onOpen(o);
       }}
     >
@@ -106,41 +150,46 @@ function OrderRow({ order: o, index, checked, onToggle, actions }: OrderRowProps
         <input type="checkbox" aria-label={t('Chọn đơn {bill}', { bill: o.bill })} checked={checked} onChange={() => onToggle(o.bill)} />
       </td>
       <td className={styles.colNo}>{index}</td>
-      <td>{o.ref ? <span className="mono">{o.ref}</span> : <Nil />}</td>
-      <td>
+      <td className={styles.colBill} {...cell(0)}>
         <div className={cx('mono', styles.bill)}>{o.bill}</div>
         <StatusPill tone={status.tone}>{status.label}</StatusPill>
+        {o.ref && <div className={styles.sub}>{t('Ref')}: <span className="mono">{o.ref}</span></div>}
       </td>
-      <td className={styles.colCnee}><span className={styles.cnee}>{o.cnee}</span></td>
-      <td>
-        <div>{o.ct}</div>
-        <div className={styles.route}>{t(o.route)}</div>
+      <td className={styles.colCnee} {...cell(1)}>
+        <div className={styles.primary}>{o.cnee}</div>
+        <div className={styles.sub}><Icon name="globe" size={12} /> {o.ct || '—'}</div>
       </td>
-      <td>
-        {o.sent ? <div className="tabular">{o.sent}</div> : <Nil>{'Chưa gửi'}</Nil>}
-        {o.connect && <div className={cx('mono', styles.sub)} title={t('Mã tracking hãng / last-mile')}>{o.connect}</div>}
-      </td>
-      <td>
-        {o.pod ? (
-          <>
-            <div className="tabular">{o.pod.date} {o.pod.time}</div>
-            <div className={styles.sub}>{t('Ký: {name}', { name: o.pod.signer })}</div>
-          </>
-        ) : estimate ? (
-          <>
-            <div className={styles.sub}>{t('Dự kiến')}</div>
-            <div className="tabular">{estimate}</div>
-          </>
-        ) : (
-          <Nil />
-        )}
-      </td>
-      <td><TrackingLinks bill={o.bill} /></td>
-      <td className={styles.colCreated}>
-        <div className="tabular">{datePart(o.created)}</div>
+      <td className={styles.colService} {...cell(2)}><span className={styles.route}>{t(o.route)}</span></td>
+      <td className={styles.colGoods} {...cell(3)}>
+        <div className={styles.goods}>{o.content || <Nil />}</div>
         <div className={styles.sub}>{t(o.pcs)}</div>
-        <div className={styles.content}>{o.content}</div>
       </td>
+      <td className={styles.colJourney} {...cell(4)}>
+        <dl className={styles.journey}>
+          <dt>{t('Tạo')}</dt>
+          <dd className="tabular">{datePart(o.created)}</dd>
+          <dt>{t('Gửi')}</dt>
+          <dd className="tabular">{o.sent || <Nil>{'Chưa gửi'}</Nil>}</dd>
+          {o.connect && (
+            <>
+              <dt>{t('Mã hãng')}</dt>
+              <dd className="mono" title={t('Mã tracking hãng / last-mile')}>{o.connect}</dd>
+            </>
+          )}
+          <dt>{t(o.pod || !estimate ? 'Giao' : 'Dự kiến')}</dt>
+          <dd className={cx('tabular', o.pod && styles.delivered)}>
+            {o.pod ? (
+              <>
+                {o.pod.date} {o.pod.time}
+                {o.pod.signer && <span className={styles.signer}> · {t('Ký: {name}', { name: o.pod.signer })}</span>}
+              </>
+            ) : (
+              estimate || <Nil />
+            )}
+          </dd>
+        </dl>
+      </td>
+      <td {...cell(5)}><TrackingLinks bill={o.bill} /></td>
       <td className={styles.colActions}><OrderRowActions order={o} actions={actions} /></td>
     </tr>
   );

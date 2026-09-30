@@ -2,8 +2,9 @@ import { useEffect, useState, type ChangeEvent } from 'react';
 import { useI18n } from '@/shared/i18n';
 import { useDebouncedCallback } from '@/shared/lib/useDebouncedCallback';
 import { Button, SelectField, TextField } from '@/shared/ui';
-import { SEARCH_FIELDS } from '../constants';
-import type { OrderFilters, OrderSearchField } from '../types';
+import { parseTags, serializeTags } from '../lib/multi-filter';
+import type { OrderFilters } from '../types';
+import { TagSearch } from './TagSearch';
 import styles from './OrderFilterBar.module.css';
 
 interface OrderFilterBarProps {
@@ -12,19 +13,22 @@ interface OrderFilterBarProps {
   onReset: () => void;
 }
 
-type TextKey = 'q' | 'weightFrom' | 'weightTo';
+type TextKey = 'weightFrom' | 'weightTo';
 
 export function OrderFilterBar({ filters, onChange, onReset }: OrderFilterBarProps) {
   const { t } = useI18n();
   // Ô gõ tự do giữ state cục bộ để nhập mượt, đẩy lên URL sau khi ngừng gõ.
-  const [draft, setDraft] = useState<Record<TextKey, string>>({ q: filters.q, weightFrom: filters.weightFrom, weightTo: filters.weightTo });
-  useEffect(() => setDraft({ q: filters.q, weightFrom: filters.weightFrom, weightTo: filters.weightTo }), [filters.q, filters.weightFrom, filters.weightTo]);
+  const [draft, setDraft] = useState<Record<TextKey, string>>({ weightFrom: filters.weightFrom, weightTo: filters.weightTo });
+  useEffect(() => setDraft({ weightFrom: filters.weightFrom, weightTo: filters.weightTo }), [filters.weightFrom, filters.weightTo]);
   const pushText = useDebouncedCallback((patch: Partial<OrderFilters>) => onChange(patch));
 
   const onText = (key: TextKey) => (e: ChangeEvent<HTMLInputElement>) => {
     setDraft(d => ({ ...d, [key]: e.target.value }));
     pushText({ [key]: e.target.value });
   };
+
+  // Thẻ tìm lưu trên URL (?q=cnee:Uyen%0Act:Singapore); link cũ không có tiền tố dùng trường đang chọn.
+  const tags = parseTags(filters.q, filters.searchField);
 
   return (
     <section className={styles.bar} aria-label={t('Bộ lọc đơn hàng')}>
@@ -44,17 +48,12 @@ export function OrderFilterBar({ filters, onChange, onReset }: OrderFilterBarPro
       <div className={styles.searchRow}>
         <div className={styles.search}>
           <label className={styles.searchLabel} htmlFor="order-search">{t('Tìm theo')}</label>
-          <div className={styles.searchGroup}>
-            <select
-              aria-label={t('Trường tìm kiếm')}
-              className={styles.searchField}
-              value={filters.searchField}
-              onChange={e => onChange({ searchField: e.target.value as OrderSearchField })}
-            >
-              {SEARCH_FIELDS.map(f => <option key={f.value} value={f.value}>{t(f.label)}</option>)}
-            </select>
-            <input id="order-search" className={styles.searchInput} placeholder={t('Nhập từ khóa…')} value={draft.q} onChange={onText('q')} />
-          </div>
+          <TagSearch
+            tags={tags}
+            onTagsChange={next => onChange({ q: serializeTags(next) })}
+            field={filters.searchField}
+            onFieldChange={searchField => onChange({ searchField, page: filters.page })}
+          />
         </div>
         <Button onClick={onReset}>{t('Xóa lọc')}</Button>
       </div>

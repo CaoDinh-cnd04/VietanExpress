@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useI18n } from '@/shared/i18n';
-import { Button, Card, EmptyState, LinkButton, PageHeader, Pagination, Tabs } from '@/shared/ui';
+import { Button, Card, EmptyState, LinkButton, PageHeader, Pagination } from '@/shared/ui';
 import { useOrders } from '../api';
 import { ReportTroubleDialog } from '@/features/troubles';
 import { OrderDrawer } from '../components/OrderDrawer';
@@ -8,7 +8,7 @@ import { OrderPhotosDialog } from '../components/OrderPhotosDialog';
 import { OrderFilterBar } from '../components/OrderFilterBar';
 import { OrderSummaryBar } from '../components/OrderSummaryBar';
 import { OrdersTable } from '../components/OrdersTable';
-import { STATUS_TABS } from '../constants';
+import { StatusFilter } from '../components/StatusFilter';
 import { useOrderFilters } from '../hooks/useOrderFilters';
 import { useExportOrders, usePrintDocuments } from '../mutations';
 import type { Order, OrderActions, OrderSortField } from '../types';
@@ -60,12 +60,7 @@ export default function OrdersPage() {
       <OrderFilterBar filters={filters} onChange={update} onReset={reset} />
 
       <Card flush>
-        <Tabs
-          ariaLabel={t('Lọc theo trạng thái')}
-          value={filters.status}
-          onChange={status => update({ status })}
-          items={STATUS_TABS.map(tab => ({ ...tab, count: summary?.statusCounts[tab.key] }))}
-        />
+        <StatusFilter value={filters.status} onChange={status => update({ status })} counts={summary?.statusCounts} />
         <OrderSummaryBar
           totalPieces={summary?.totalPieces ?? 0}
           totalWeight={summary?.totalWeight ?? 0}

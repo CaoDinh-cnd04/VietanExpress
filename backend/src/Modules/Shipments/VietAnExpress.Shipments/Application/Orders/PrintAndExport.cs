@@ -122,8 +122,7 @@ internal sealed class ExportOrdersHandler(ShipmentsDbContext db, OrderAccess acc
         var today = nowVn.Date;
 
         var query = OrderListFilter.Apply(access.Apply(db.LegacyOrders.AsNoTracking(), await access.ScopeAsync(ct)), f);
-        if (f.Status is { } st && LegacyOrderStatus.All.Contains(st))
-            query = query.Where(LegacyOrderStatus.Is(st, today));
+        query = OrderListFilter.ApplyStatus(query, f.Status, today);
         var orders = await OrderListFilter.Sort(query, f.SortBy, f.SortDir).Take(ExportOrdersQuery.MaxRows).ToListAsync(ct);
 
         var customer = orders.Select(o => o.CustomerName).FirstOrDefault(n => !string.IsNullOrWhiteSpace(n));

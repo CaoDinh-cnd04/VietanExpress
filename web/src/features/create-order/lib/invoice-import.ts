@@ -1,6 +1,6 @@
 import { fill } from '@/shared/i18n';
 import { parseCsv } from '@/shared/lib/files';
-import { UNITS } from '../constants';
+import { normalizeUnit } from './units';
 import type { InvoiceItemValues } from '../schema';
 
 /** Cột file mẫu import dòng invoice. Đổi cột: sửa ở đây. */
@@ -37,8 +37,7 @@ export function parseInvoiceCsv(text: string): InvoiceImportResult {
     if (!item.descEn) return skipped.push(fill('Dòng {line}: thiếu DescriptionEN', { line }));
     if (!(Number(item.qty) > 0)) return skipped.push(fill('Dòng {line}: Qty không hợp lệ', { line }));
     if (item.price === '' || !(Number(item.price) >= 0)) return skipped.push(fill('Dòng {line}: UnitPrice không hợp lệ', { line }));
-    const unit = UNITS.find(u => u.toUpperCase() === item.unit.toUpperCase());
-    items.push({ ...item, origin: item.origin || 'VN', unit: unit ?? 'PCS' });
+    items.push({ ...item, origin: item.origin || 'VN', unit: normalizeUnit(item.unit) });
   });
 
   return { items, skipped };

@@ -96,7 +96,7 @@ export default function CreateOrderPage({ mode }: { mode: CreateMode }) {
     const onSuccess = () => {
       finishAutosave();
       setConfirm(null);
-      toast.show(status === 'ready' ? 'Đã tạo đơn. Bấm "In & cấp bill" để cấp mã bill.' : 'Đã lưu nháp.', 'success');
+      toast.show(status === 'ready' ? 'Đã tạo đơn. Bấm "In & cấp bill" để cấp mã bill và in vận đơn A4.' : 'Đã lưu nháp.', 'success');
       navigate('/drafts');
     };
     const onError = (e: unknown) => toast.show(getErrorMessage(e, 'Không lưu được đơn, vui lòng thử lại'), 'error');

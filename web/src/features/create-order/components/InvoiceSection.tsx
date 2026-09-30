@@ -2,11 +2,12 @@ import { get, useFieldArray, useFormContext, useWatch } from 'react-hook-form';
 import { useI18n } from '@/shared/i18n';
 import { cx } from '@/shared/lib/cx';
 import { Button, Card, FormGrid, Icon, SelectField, TextField } from '@/shared/ui';
-import { CURRENCIES, EXPORT_TYPES, UNITS } from '../constants';
+import { CURRENCIES, EXPORT_TYPES } from '../constants';
 import { useFieldBinder } from '../hooks/useFieldBinder';
 import { invoiceTotal, lineTotal } from '../lib/shipment';
 import { emptyInvoiceItem, type CreateOrderValues } from '../schema';
 import { InvoiceToolbar } from './InvoiceToolbar';
+import { UnitCell } from './UnitCell';
 import styles from './form.module.css';
 
 type ItemKey = keyof ReturnType<typeof emptyInvoiceItem>;
@@ -72,9 +73,7 @@ export function InvoiceSection() {
                     <td>
                       <div className={styles.qtyUnit}>
                         {cell(i, 'qty', { type: 'number', min: 0, step: 'any', 'aria-label': t('Số lượng mặt hàng {n}', { n: i + 1 }) })}
-                        <select className={styles.cell} aria-label={t('Đơn vị mặt hàng {n}', { n: i + 1 })} {...register(`invoice.items.${i}.unit`)}>
-                          {UNITS.map(u => <option key={u} value={u}>{t(u)}</option>)}
-                        </select>
+                        <UnitCell index={i} error={err(i, 'unit')} />
                       </div>
                     </td>
                     <td>{cell(i, 'price', { type: 'number', min: 0, step: 'any', 'aria-label': t('Đơn giá mặt hàng {n}', { n: i + 1 }) })}</td>

@@ -87,6 +87,27 @@ internal static partial class LegacyOrderView
             S(o.ConsigneeAddress3), S(o.ConsigneeVatTax), S(o.ConsigneeEmail))
     };
 
+    /// <summary>Chi tiết đầy đủ kèm kiện + invoice (đọc từ 2 bảng chi tiết).</summary>
+    public static OrderDto ToDetailDto(LegacyOrder o, DateTime today, IEnumerable<LegacyPackageLine> packages, IEnumerable<LegacyInvoiceLine> items) =>
+        ToDetailDto(o, today) with
+        {
+            Packages = packages.Select(ToPackageDto).ToList(),
+            Invoice = new OrderInvoiceDto(S(o.Currency), S(o.ExportReason), o.ShippingFee, o.GoodsValue, items.Select(ToItemDto).ToList())
+        };
+
+    /// <summary>Cột TrongLuong là tổng cân của dòng → cân 1 kiện = TrongLuong / SoLuong.</summary>
+    public static OrderPackageDto ToPackageDto(LegacyPackageLine p) =>
+        new(p.Quantity, S(p.PackType), p.LengthCm, p.WidthCm, p.HeightCm,
+            p.Quantity > 0 ? decimal.Round(p.WeightKg / p.Quantity, 3, MidpointRounding.AwayFromZero) : p.WeightKg);
+
+    public static OrderItemDto ToItemDto(LegacyInvoiceLine i)
+    {
+        var qty = i.Quantity ?? 0;
+        var price = i.UnitPrice ?? 0;
+        return new OrderItemDto(S(i.DescriptionEn), S(i.DescriptionVi), qty, string.IsNullOrWhiteSpace(i.Unit) ? "PCS" : i.Unit.Trim(), price,
+            i.Amount ?? decimal.Round(qty * price, 2, MidpointRounding.AwayFromZero), S(i.HsCode), S(i.Origin));
+    }
+
     private static string S(string? value) => value?.Trim() ?? "";
 
     /// <summary>"08/01/2026 16:28, DELIVERED LYNN TAN" → ngày, giờ, người ký. Chỉ trả khi đã giao.</summary>

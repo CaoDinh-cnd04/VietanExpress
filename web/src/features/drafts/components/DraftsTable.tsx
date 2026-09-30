@@ -1,14 +1,15 @@
 import { useState } from 'react';
 import { useI18n } from '@/shared/i18n';
 import { Button, DataTable, Icon, LinkButton, StatusPill, type Column } from '@/shared/ui';
-import { useDeleteDraft, useDrafts, usePrintDraft, type Draft } from '../api';
+import { useDeleteDraft, useDrafts, type Draft } from '../api';
+import { useIssueAndPrint } from '../hooks/useIssueAndPrint';
 import styles from '../pages/DraftsPage.module.css';
 import { DraftDetailModal } from './DraftDetailModal';
 
-/** Bảng đơn nháp & chưa in: bấm vào dòng (hoặc Xem) để xem chi tiết · Sửa · In & cấp bill · Xóa. Dùng ở trang Đơn nháp và dưới form tạo đơn 1 trang. */
+/** Bảng đơn nháp & chưa in: bấm vào dòng (hoặc Xem) để xem chi tiết · Sửa · In & cấp bill (mở bản in A4) · Xóa. Dùng ở trang Đơn nháp và dưới form tạo đơn 1 trang. */
 export function DraftsTable({ limit }: { limit?: number }) {
   const { data = [], isLoading, isError, refetch } = useDrafts();
-  const print = usePrintDraft();
+  const print = useIssueAndPrint();
   const remove = useDeleteDraft();
   const rows = limit ? data.slice(0, limit) : data;
   const [viewing, setViewing] = useState<Draft | null>(null);
@@ -32,12 +33,12 @@ export function DraftsTable({ limit }: { limit?: number }) {
       width: 320,
       render: d => {
         const ready = d.stt === 'ready';
-        const printing = print.isPending && print.variables === d.id;
+        const printing = print.pendingId === d.id;
         return (
           <div className={styles.actions}>
             <Button size="sm" onClick={() => setViewing(d)}><Icon name="eye" size={15} /> {t('Xem')}</Button>
             <LinkButton size="sm" to={`/orders/new/quick?draft=${encodeURIComponent(d.id)}`}><Icon name="edit" size={15} /> {t(ready ? 'Sửa' : 'Tiếp tục')}</LinkButton>
-            <Button size="sm" variant="primary" onClick={() => print.mutate(d.id)} disabled={!ready || printing} title={ready ? undefined : t('Hoàn thiện đơn trước khi in')}>
+            <Button size="sm" variant="primary" onClick={() => print.run(d.id)} disabled={!ready || printing} title={t(ready ? 'Cấp mã bill và in vận đơn khổ A4' : 'Hoàn thiện đơn trước khi in')}>
               {t(printing ? 'Đang in…' : 'In & cấp bill')}
             </Button>
             <Button size="sm" iconOnly variant="danger" onClick={() => remove.mutate(d.id)} aria-label={t('Xóa đơn nháp {name}', { name: d.cnee })}>
@@ -68,8 +69,8 @@ export function DraftsTable({ limit }: { limit?: number }) {
       <DraftDetailModal
         draft={viewing}
         onClose={() => setViewing(null)}
-        printing={print.isPending && print.variables === viewing?.id}
-        onPrint={d => print.mutate(d.id, { onSuccess: () => setViewing(null) })}
+        printing={!!viewing && print.pendingId === viewing.id}
+        onPrint={d => print.run(d.id, () => setViewing(null))}
       />
     </>
   );

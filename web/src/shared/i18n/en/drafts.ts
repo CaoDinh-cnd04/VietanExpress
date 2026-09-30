@@ -15,6 +15,7 @@ export const drafts: Record<string, string> = {
   'Nháp — chưa khai đủ': 'Draft — incomplete',
   'Hoàn thiện đơn trước khi in': 'Complete the order before printing',
   'In & cấp bill': 'Print & issue bill',
+  'Cấp mã bill và in vận đơn khổ A4': 'Issue the bill number and print the A4 waybill',
   'Đang in…': 'Printing…',
   'Chi tiết đơn — {name}': 'Order details — {name}',
   'chưa có người nhận': 'no receiver yet',

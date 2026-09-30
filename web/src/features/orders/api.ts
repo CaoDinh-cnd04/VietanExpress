@@ -1,6 +1,7 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { http } from '@/shared/api/http';
-import type { Order, OrderEvent, OrderFilters, OrderListResponse, OrderPhoto } from './types';
+import { parseTags, serializeTags } from './lib/multi-filter';
+import type { OrderDetail, OrderEvent, OrderFilters, OrderListResponse, OrderPhoto } from './types';
 
 export const orderKeys = {
   all: ['orders'] as const,
@@ -10,7 +11,7 @@ export const orderKeys = {
 
 export function fetchOrders(f: OrderFilters): Promise<OrderListResponse> {
   return http.get<OrderListResponse>('/orders', {
-    q: f.q,
+    q: serializeTags(parseTags(f.q, f.searchField)),
     searchField: f.searchField,
     status: f.status,
     type: f.type,
@@ -37,7 +38,7 @@ export function useOrders(filters: OrderFilters) {
 export function useOrder(ref: string | null) {
   return useQuery({
     queryKey: orderKeys.detail(ref ?? ''),
-    queryFn: () => http.get<{ data: Order }>(`/orders/${encodeURIComponent(ref ?? '')}`).then(r => r.data),
+    queryFn: () => http.get<{ data: OrderDetail }>(`/orders/${encodeURIComponent(ref ?? '')}`).then(r => r.data),
     enabled: !!ref
   });
 }
@@ -70,7 +71,7 @@ export function fetchPrintHtml(bills: readonly string[], doc: string): Promise<s
 /** File Excel bảng kê gửi hàng theo bộ lọc hiện tại — GET /orders/export. */
 export function fetchOrdersExport(f: OrderFilters) {
   return http.getFile('/orders/export', {
-    q: f.q,
+    q: serializeTags(parseTags(f.q, f.searchField)),
     searchField: f.searchField,
     status: f.status,
     type: f.type,

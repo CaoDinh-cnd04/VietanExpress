@@ -35,40 +35,6 @@
   color: var(--color-text-muted);
 }
 
-.searchGroup {
-  display: flex;
-}
-
-.searchField,
-.searchInput {
-  height: var(--control-h);
-  border: 1px solid var(--color-border-strong);
-  background: var(--color-surface);
-  font-size: var(--text-md);
-}
-
-.searchField {
-  flex: none;
-  padding: 0 var(--space-6) 0 var(--space-3);
-  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
-  border-right: 0;
-  background: var(--color-surface-muted);
-}
-
-.searchInput {
-  flex: 1;
-  min-width: 0;
-  padding: 0 var(--space-3);
-  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-}
-
-.searchField:focus,
-.searchInput:focus {
-  outline: none;
-  border-color: var(--color-brand);
-  box-shadow: var(--focus-ring);
-}
-
 @media (max-width: 1280px) {
   .row {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -82,5 +48,20 @@
   .searchRow {
     flex-direction: column;
     align-items: stretch;
+  }
+}
+
+/* Nút "Xóa lọc" ngang hàng khung tìm (khung có thể cao lên khi nhiều thẻ, dưới còn dòng gợi ý) */
+.searchRow {
+  align-items: flex-start;
+}
+
+.searchRow > :last-child {
+  margin-top: 23px;
+}
+
+@media (max-width: 720px) {
+  .searchRow > :last-child {
+    margin-top: 0;
   }
 }

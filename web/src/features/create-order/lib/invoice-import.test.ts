@@ -18,6 +18,6 @@ describe('parseInvoiceCsv', () => {
 
   it('đơn vị lạ về PCS, xuất xứ trống về VN', () => {
     const { items } = parseInvoiceCsv('descriptionen,qty,unitprice,unit\nCup,2,1.5,cái');
-    expect(items[0]).toMatchObject({ unit: 'PCS', origin: 'VN' });
+    expect(items[0]).toMatchObject({ unit: 'cái', origin: 'VN' }); // ĐVT lạ: giữ nguyên chữ khách nhập
   });
 });

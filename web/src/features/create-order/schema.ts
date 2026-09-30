@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { fill } from '@/shared/i18n';
 import { isPhone, PHONE_MESSAGE } from '@/shared/lib/phone';
 import { DEFAULT_SERVICE, MULTI_CATEGORY, RULES } from './constants';
+import { DEFAULT_UNIT, UNIT_MAX } from './lib/units';
 
 /*
  * Schema form tạo đơn — nguồn duy nhất cho kiểu dữ liệu + quy tắc kiểm tra.
@@ -120,6 +121,8 @@ export const createOrderSchema = z
     v.invoice.items.forEach((it, i) => {
       if (!it.descEn.trim()) issue(['invoice', 'items', i, 'descEn'], 'Nhập tên hàng (EN)');
       if (!isNumber(it.qty) || Number(it.qty) <= 0) issue(['invoice', 'items', i, 'qty'], 'SL > 0');
+      if (!it.unit.trim()) issue(['invoice', 'items', i, 'unit'], 'Nhập đơn vị tính');
+      else if (it.unit.trim().length > UNIT_MAX) issue(['invoice', 'items', i, 'unit'], maxLen(UNIT_MAX));
       if (!isNumber(it.price) || Number(it.price) < 0) issue(['invoice', 'items', i, 'price'], 'Nhập đơn giá');
     });
   }, {
@@ -139,7 +142,7 @@ export const STEP_FIELDS = [
 ] as const satisfies ReadonlyArray<ReadonlyArray<keyof CreateOrderValues>>;
 
 export const emptyPackage = (): PackageValues => ({ qty: '1', packaging: 'Thùng carton', length: '', width: '', height: '', weight: '' });
-export const emptyInvoiceItem = (): InvoiceItemValues => ({ descEn: '', descVi: '', manufacturer: '', origin: 'VN', hs: '', qty: '1', unit: 'PCS', price: '' });
+export const emptyInvoiceItem = (): InvoiceItemValues => ({ descEn: '', descVi: '', manufacturer: '', origin: 'VN', hs: '', qty: '1', unit: DEFAULT_UNIT, price: '' });
 
 export const defaultValues = (): CreateOrderValues => ({
   shipper: { company: '', originalShipper: '', contact: '', tel: '', address: '', taxId: '', email: '', country: 'Vietnam', branch: 'TP.HCM' },

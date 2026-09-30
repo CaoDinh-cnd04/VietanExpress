@@ -40,7 +40,8 @@ export type OrderSortField = 'seq' | 'ref' | 'bill' | 'cnee' | 'ct' | 'sent' | '
 export interface OrderFilters {
   q: string;
   searchField: OrderSearchField;
-  status: OrderStatus | 'all';
+  /** "all" hoặc nhiều trạng thái cách nhau dấu phẩy, vd "wait,fly" — xem lib/multi-filter.ts. */
+  status: string;
   type: CargoType | '';
   fromDate: string;
   toDate: string;
@@ -84,4 +85,67 @@ export interface OrderActions {
   onOpen: (order: Order) => void;
   onPhotos: (order: Order) => void;
   onTrouble: (order: Order) => void;
+}
+
+/** Người gửi đầy đủ — GET /orders/:bill. */
+export interface OrderShipper {
+  company: string;
+  contact: string;
+  tel: string;
+  address: string;
+  taxId: string;
+  email: string;
+}
+
+/** Người nhận đầy đủ — GET /orders/:bill. */
+export interface OrderReceiver {
+  company: string;
+  contact: string;
+  tel: string;
+  country: string;
+  city: string;
+  postal: string;
+  state: string;
+  addr1: string;
+  addr2: string;
+  addr3: string;
+  taxId: string;
+  email: string;
+}
+
+/** 1 dòng kiện; `weightKg` là cân 1 kiện. */
+export interface OrderPackage {
+  qty: number;
+  packType: string;
+  length: number;
+  width: number;
+  height: number;
+  weightKg: number;
+}
+
+export interface OrderInvoiceItem {
+  descEn: string;
+  descVi: string;
+  qty: number;
+  unit: string;
+  price: number;
+  amount: number;
+  hs: string;
+  origin: string;
+}
+
+export interface OrderInvoice {
+  currency: string;
+  exportType: string;
+  shippingFee?: number | null;
+  goodsValue?: number | null;
+  items: OrderInvoiceItem[];
+}
+
+/** Chi tiết 1 đơn — GET /orders/:bill (danh sách không kèm các phần này). */
+export interface OrderDetail extends Order {
+  shipper?: OrderShipper | null;
+  receiver?: OrderReceiver | null;
+  packages?: OrderPackage[] | null;
+  invoice?: OrderInvoice | null;
 }

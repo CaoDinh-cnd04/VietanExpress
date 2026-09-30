@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { useI18n } from '@/shared/i18n';
 import { Button, DropdownMenu, Icon } from '@/shared/ui';
 import { PRINT_DOCUMENTS } from '../constants';
-import { useCancelOrder, usePrintDocuments } from '../mutations';
+import { usePrintDocuments } from '../mutations';
 import type { Order, OrderActions } from '../types';
 import styles from './OrderRowActions.module.css';
 
@@ -16,14 +16,12 @@ export function OrderRowActions({ order, actions }: OrderRowActionsProps) {
   const { t } = useI18n();
   const navigate = useNavigate();
   const print = usePrintDocuments();
-  const cancel = useCancelOrder();
 
   const moreItems = [
     { label: 'Xem chi tiết đơn', onSelect: () => actions.onOpen(order) },
     { label: order.photos ? t('Xem ảnh kiện hàng ({n})', { n: order.photos }) : t('Xem ảnh kiện hàng'), onSelect: () => actions.onPhotos(order) },
     { label: 'Nhân bản đơn', onSelect: () => navigate(`/orders/new?from=${order.bill}`) },
-    { label: 'Báo sự cố', onSelect: () => actions.onTrouble(order) },
-    ...(order.st === 'wait' ? [{ label: 'Hủy đơn', danger: true, onSelect: () => cancel.mutate(order.bill) }] : [])
+    { label: 'Báo sự cố', onSelect: () => actions.onTrouble(order) }
   ];
 
   return (

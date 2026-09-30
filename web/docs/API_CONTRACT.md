@@ -28,7 +28,7 @@ Backend mới (SQL Server) chỉ cần làm đúng các hợp đồng này là f
 | Method | Path | Trạng thái | Mô tả |
 |---|---|---|---|
 | GET | `/orders` | Có sẵn | Danh sách có lọc, sắp xếp, phân trang |
-| GET | `/orders/:bill` | Có sẵn | Chi tiết 1 đơn (dùng cho "Nhân bản đơn"): `Order` + `shipper { company, contact, tel, address, taxId, email }` + `receiver { company, contact, tel, country, city, postal, state, addr1, addr2, addr3, taxId, email }` |
+| GET | `/orders/:bill` | Có sẵn | Chi tiết 1 đơn (khung "Chi tiết đơn hàng" + "Nhân bản đơn"): `Order` + `shipper { company, contact, tel, address, taxId, email }` + `receiver { company, contact, tel, country, city, postal, state, addr1, addr2, addr3, taxId, email }` + `packages [{ qty, packType, length, width, height, weightKg }]` (cân **1 kiện**, từ MaVanDon_PCS_DIM) + `invoice { currency, exportType, shippingFee, goodsValue, items [{ descEn, descVi, qty, unit, price, amount, hs, origin }] }` (từ MaVanDon_ChiTietHang) |
 | POST | `/orders/import/preview` | Có sẵn | Kiểm tra file Excel tạo đơn (multipart), chưa tạo đơn — trang "Tạo đơn từ Excel" |
 | POST | `/orders/import` | Có sẵn | Kiểm tra lại file và tạo đơn cho các dòng hợp lệ (≤ 100), cấp số vận đơn ngay |
 | DELETE | `/orders/:bill` | Có sẵn | Hủy đơn (chỉ đơn "Chưa đi") |
@@ -39,11 +39,16 @@ Backend mới (SQL Server) chỉ cần làm đúng các hợp đồng này là f
 
 ### GET `/orders` — query
 
-`q, searchField (all|cnee|bill|ref|ct), status (all|wait|fly|nd|ok|late), type (DOC|PACK), fromDate, toDate (yyyy-mm-dd), weightFrom, weightTo, page, pageSize (20|50|100), sortBy (seq|ref|bill|cnee|ct|sent|pod|created), sortDir (asc|desc)`
+`q, searchField (all|cnee|bill|ref|ct), status (all | danh sách wait,fly,nd,ok,late), type (DOC|PACK), fromDate, toDate (yyyy-mm-dd), weightFrom, weightTo, page, pageSize (20|50|100), sortBy (seq|ref|bill|cnee|ct|sent|pod|created), sortDir (asc|desc)`
 
 - `type`: dbo.MaVanDon không có cột loại hàng — DOC là đơn có tên hàng chứa "document", "chứng từ", "hồ sơ" hoặc từ "doc"/"docs"; còn lại là PACK (cùng quy tắc với cột `type` trả về).
 - `fromDate`, `toDate`: theo ngày tạo đơn (`CreateDate`), tính cả 2 ngày đầu cuối.
 - Tìm `bill` khớp một phần số VA hoặc mã hãng.
+- **Thẻ tìm (nhiều giá trị):** `q` gồm nhiều thẻ, **mỗi thẻ 1 dòng** (ngăn bằng ký tự xuống dòng, URL-encode `%0A`), dạng `field:giá trị` với `field` ∈ `all|cnee|bill|ref|ct`. Dòng không có tiền tố hợp lệ dùng `searchField`. Tối đa 200 thẻ.
+  - Thẻ **cùng trường** → khớp **bất kỳ** (OR); thẻ **khác trường** → phải khớp **tất cả** (AND).
+  - VD người nhận "Uyen" ở Singapore hoặc Mỹ: `q=cnee:Uyen%0Act:Singapore%0Act:United States`.
+  - VD dán cả cột bill: `q=bill:6010839%0Abill:6010532`.
+- **Nhiều trạng thái:** `status` là `all` hoặc danh sách ngăn dấu phẩy, VD `status=wait,fly` → đơn có trạng thái thuộc danh sách. Áp dụng cho cả `GET /orders/export`.
 - Không lọc chi nhánh: dbo.MaVanDon không có cột chi nhánh.
 - `summary.statusCounts` đếm trên kết quả đã lọc (trừ lọc trạng thái) — số trên các tab luôn khớp bộ lọc.
 
@@ -131,7 +136,7 @@ Body POST / PUT (`NewDraft`):
 ```
 
 `stt`: `draft` = đang làm dở · `ready` = đã khai đủ, chờ in. **Backend phải lưu nguyên `payload`** (cột JSON / NVARCHAR(MAX)) để mở lại đơn sửa tiếp.
-`POST /drafts/:id/print` trả `{ "message": "...", "billCode": "6156980" }`.
+`POST /drafts/:id/print` trả `{ "message": "...", "billCode": "6156980" }`. Ngay sau đó frontend mở `GET /orders/print?bills=<billCode>&doc=bill-a4` để in vận đơn khổ A4 — vì vậy `billCode` là **bắt buộc**, và bill vừa cấp phải in được ngay.
 
 ---
 

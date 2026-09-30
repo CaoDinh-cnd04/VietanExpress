@@ -224,4 +224,20 @@ public class LegacyOrderDetailTests
         Assert.Equal("EC1A 1BB", dto.Receiver.Postal);
         Assert.Null(LegacyOrderView.ToDto(o, new DateTime(2026, 9, 29)).Receiver); // danh sách không kèm để nhẹ
     }
+
+    [Fact]
+    public void Chi_tiet_don_kem_kien_va_invoice()
+    {
+        var o = new LegacyOrder { Id = 7, OrderNumber = 90000006, Currency = "USD", ExportReason = "GIFT", ShippingFee = 5, GoodsValue = 40 };
+        var packages = new[] { new LegacyPackageLine { OrderId = 7, Quantity = 2, PackType = "CARTON", LengthCm = 40, WidthCm = 30, HeightCm = 20, WeightKg = 9 } };
+        var items = new[] { new LegacyInvoiceLine { OrderId = 7, DescriptionEn = "Dress", DescriptionVi = "Váy", Quantity = 5, Unit = null, UnitPrice = 8 } };
+
+        var dto = LegacyOrderView.ToDetailDto(o, new DateTime(2026, 9, 30), packages, items);
+
+        var p = Assert.Single(dto.Packages!);
+        Assert.Equal((2, 40, 4.5m), (p.Qty, p.Length, p.WeightKg)); // cân 1 kiện = tổng / số kiện
+        var i = Assert.Single(dto.Invoice!.Items);
+        Assert.Equal(("PCS", 40m), (i.Unit, i.Amount));                 // thiếu ĐVT → PCS, thành tiền = SL × giá
+        Assert.Equal(("USD", "GIFT", 5m), (dto.Invoice.Currency, dto.Invoice.ExportType, dto.Invoice.ShippingFee));
+    }
 }

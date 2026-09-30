@@ -9,11 +9,6 @@ export const ORDER_STATUS: Record<OrderStatus, { label: string; tone: Tone }> = 
   late: { label: 'Vượt ngày', tone: 'danger' }
 };
 
-export const STATUS_TABS: ReadonlyArray<{ key: OrderStatus | 'all'; label: string }> = [
-  { key: 'all', label: 'Tất cả' },
-  ...(Object.keys(ORDER_STATUS) as OrderStatus[]).map(key => ({ key, label: ORDER_STATUS[key].label }))
-];
-
 export const SEARCH_FIELDS: ReadonlyArray<{ value: OrderSearchField; label: string }> = [
   { value: 'all', label: 'Tất cả' },
   { value: 'cnee', label: 'Tên người nhận' },

@@ -28,7 +28,18 @@ internal sealed record OrderDto(
     int Photos,
     string? PodEstimate,
     OrderShipperDto? Shipper = null,
-    OrderReceiverDto? Receiver = null);
+    OrderReceiverDto? Receiver = null,
+    IReadOnlyList<OrderPackageDto>? Packages = null,
+    OrderInvoiceDto? Invoice = null);
+
+/// <summary>1 dòng kiện (dbo.MaVanDon_PCS_DIM) — chỉ trả ở GET /orders/{bill}. <c>WeightKg</c> là cân 1 kiện.</summary>
+internal sealed record OrderPackageDto(int Qty, string PackType, int Length, int Width, int Height, decimal WeightKg);
+
+/// <summary>1 dòng hàng invoice (dbo.MaVanDon_ChiTietHang).</summary>
+internal sealed record OrderItemDto(string DescEn, string DescVi, decimal Qty, string Unit, decimal Price, decimal Amount, string Hs, string Origin);
+
+/// <summary>Invoice của vận đơn — chỉ trả ở GET /orders/{bill}.</summary>
+internal sealed record OrderInvoiceDto(string Currency, string ExportType, decimal? ShippingFee, decimal? GoodsValue, IReadOnlyList<OrderItemDto> Items);
 
 /// <summary>Người gửi / người nhận đầy đủ — chỉ trả ở GET /orders/{bill} (dùng cho "Nhân bản đơn"). Tên trường khớp form tạo đơn.</summary>
 internal sealed record OrderShipperDto(string Company, string Contact, string Tel, string Address, string TaxId, string Email);

@@ -14,18 +14,18 @@
 }
 
 .table th {
-  padding: 11px;
+  padding: 10px 12px;
   text-align: left;
-  font-size: var(--text-xs);
-  font-weight: 600;
-  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--color-text);
   background: var(--color-surface-muted);
   border-bottom: 1px solid var(--color-border);
   white-space: nowrap;
 }
 
 .table td {
-  padding: 13px 11px;
+  padding: 12px;
   vertical-align: top;
   border-bottom: 1px solid var(--color-border);
   font-size: var(--text-sm);
@@ -37,6 +37,11 @@
 
 .row {
   cursor: pointer;
+}
+
+/* Dòng xen màu cho mắt dễ dò theo hàng ngang */
+.row:nth-child(even) td {
+  background: var(--color-surface-muted);
 }
 
 .row:hover td {
@@ -74,12 +79,26 @@
   font-size: var(--text-xs) !important;
 }
 
-.colCnee {
-  min-width: 150px;
+.colBill {
+  width: 130px;
 }
 
-.colCreated {
+.colCnee {
+  min-width: 170px;
+  max-width: 260px;
+}
+
+.colService {
+  width: 150px;
+}
+
+.colGoods {
   min-width: 150px;
+  max-width: 220px;
+}
+
+.colJourney {
+  min-width: 200px;
 }
 
 .colActions {
@@ -99,32 +118,73 @@
   background: var(--color-surface-muted);
 }
 
-.bill {
-  font-weight: 600;
-  margin-bottom: 5px;
+/* Cột ghim cùng màu với dòng (xen màu / rê chuột) */
+.row:nth-child(even) td.colActions {
+  background: var(--color-surface-muted);
 }
 
-.cnee {
+.row:hover td.colActions {
+  background: var(--color-brand-softer);
+}
+
+.bill {
+  margin-bottom: 6px;
+  font-size: var(--text-md);
+  font-weight: 700;
+}
+
+/* Dòng chính của ô (tên người nhận, hàng hóa): đậm, rõ */
+.primary,
+.goods {
   font-weight: 600;
+  line-height: 1.35;
+}
+
+.goods {
+  font-weight: 500;
+  overflow-wrap: anywhere;
 }
 
 .route {
-  margin-top: 2px;
-  font-size: 12.5px;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--color-brand-strong);
 }
 
+/* Dòng phụ: nhỏ hơn, màu phụ */
 .sub {
-  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
   font-size: var(--text-xs);
   color: var(--color-text-muted);
 }
 
-.content {
-  margin-top: 2px;
-  font-size: 12.5px;
-  max-width: 220px;
+/* Hành trình: nhãn Tạo / Gửi / Giao thẳng cột bên trái, giá trị bên phải */
+.journey {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 3px 10px;
+  margin: 0;
+}
+
+.journey dt {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.journey dd {
+  margin: 0;
+}
+
+.delivered {
+  font-weight: 600;
+  color: var(--color-brand-strong);
+}
+
+.signer {
+  font-weight: 400;
+  color: var(--color-text-muted);
 }
 
 .nil {
@@ -135,4 +195,52 @@
   padding: 40px !important;
   text-align: center;
   color: var(--color-text-muted);
+}
+
+/* ---------- Chọn ô như Excel ---------- */
+.selecting {
+  user-select: none;
+  cursor: cell;
+}
+
+.table td[data-selected] {
+  background: var(--color-brand-soft) !important;
+  box-shadow: inset 0 0 0 1px var(--color-brand);
+}
+
+.cellBar,
+.cellHint {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 44px;
+  padding: var(--space-2) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+  font-size: var(--text-sm);
+}
+
+.cellBar {
+  position: sticky;
+  left: 0;
+  background: var(--color-brand-softer);
+  color: var(--color-brand-strong);
+  font-weight: 600;
+}
+
+.cellHint {
+  position: sticky;
+  left: 0;
+  margin: 0;
+  color: var(--color-text-faint);
+  font-size: var(--text-xs);
+}
+
+.kbd {
+  padding: 0 5px;
+  border: 1px solid color-mix(in srgb, currentColor 40%, transparent);
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  opacity: 0.85;
 }

@@ -255,9 +255,18 @@
   min-width: 0;
 }
 
-.qtyUnit .cell:last-child {
+.qtyUnit select.cell {
   flex: none;
-  width: 70px;
+  width: 76px;
+}
+
+/* ĐVT "Khác": ô tự nhập xuống dòng, rộng hết cột */
+.qtyUnit {
+  flex-wrap: wrap;
+}
+
+.qtyUnit .unitCustom {
+  flex: 1 0 100%;
 }
 
 .tableFooter {
