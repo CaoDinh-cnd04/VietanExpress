@@ -4,7 +4,7 @@ import { useDeleteDraft, useDrafts, usePrintDraft, type Draft } from '../api';
 import styles from '../pages/DraftsPage.module.css';
 import { DraftDetailModal } from './DraftDetailModal';
 
-/** Bảng đơn nháp & chưa in: Xem · Sửa · In & cấp bill · Xóa. Dùng ở trang Đơn nháp và dưới form tạo đơn 1 trang. */
+/** Bảng đơn nháp & chưa in: bấm vào dòng (hoặc Xem) để xem chi tiết · Sửa · In & cấp bill · Xóa. Dùng ở trang Đơn nháp và dưới form tạo đơn 1 trang. */
 export function DraftsTable({ limit }: { limit?: number }) {
   const { data = [], isLoading, isError, refetch } = useDrafts();
   const print = usePrintDraft();
@@ -17,7 +17,7 @@ export function DraftsTable({ limit }: { limit?: number }) {
     {
       key: 'cnee',
       header: 'Người nhận',
-      render: d => <button type="button" className={styles.link} onClick={() => setViewing(d)}>{d.cnee || '—'}</button>
+      render: d => <span className={styles.strong}>{d.cnee || '—'}</span>
     },
     { key: 'ct', header: 'Nước đến', render: d => d.ct },
     { key: 'svc', header: 'Dịch vụ', render: d => <span className={styles.muted}>{d.service}</span> },
@@ -56,6 +56,7 @@ export function DraftsTable({ limit }: { limit?: number }) {
         rowKey={d => d.id}
         loading={isLoading}
         minWidth={960}
+        onRowClick={setViewing}
         empty={
           isError
             ? { title: 'Không tải được đơn nháp', action: <Button onClick={() => void refetch()}>Thử lại</Button> }
