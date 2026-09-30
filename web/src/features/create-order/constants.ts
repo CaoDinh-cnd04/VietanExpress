@@ -55,7 +55,31 @@ export type WizardStep = { readonly title: string; readonly description: string 
 /** Liên kết tra cứu (khung "Hỗ trợ" của Bill Online cũ). `url` để trống = chưa có trang. */
 export const HELP_LINKS: ReadonlyArray<{ group: string; links: ReadonlyArray<{ label: string; url?: string }> }> = [
   { group: 'Hướng dẫn', links: [{ label: 'Video hướng dẫn tạo bill' }, { label: 'Tra cứu mã HS' }] },
-  { group: 'Phụ phí xăng dầu', links: [{ label: 'DHL' }, { label: 'Fedex' }, { label: 'UPS' }] },
-  { group: 'Phụ phí cộng thêm của hãng bay', links: [{ label: 'UPS' }, { label: 'DHL' }, { label: 'Fedex' }, { label: 'Điều kiện vận chuyển Fedex' }] },
-  { group: 'Kiểm tra vùng sâu vùng xa (VSVX)', links: [{ label: 'DHL' }, { label: 'Fedex' }, { label: 'UPS' }] }
+  // Trang chính thức của hãng tại Việt Nam (kiểm tra 30/09/2026).
+  {
+    group: 'Phụ phí xăng dầu',
+    links: [
+      { label: 'DHL', url: 'https://mydhl.express.dhl/vn/vi/important-information/weekly-fuel-surcharge.html' },
+      { label: 'Fedex', url: 'https://www.fedex.com/vi-vn/shipping/surcharges.html' },
+      { label: 'UPS', url: 'https://www.ups.com/vn/vi/support/shipping-support/shipping-costs-rates/fuel-surcharges' }
+    ]
+  },
+  {
+    group: 'Phụ phí cộng thêm của hãng bay',
+    links: [
+      { label: 'UPS', url: 'https://www.ups.com/vn/vi/support/shipping-support/shipping-costs-rates' },
+      { label: 'DHL', url: 'https://mydhl.express.dhl/vn/vi/ship/surcharges.html' },
+      { label: 'Fedex', url: 'https://www.fedex.com/vi-vn/shipping/surcharges/other-surcharges.html' },
+      { label: 'Điều kiện vận chuyển Fedex', url: 'https://www.fedex.com/vi-vn/conditions-of-carriage.html' }
+    ]
+  },
+  {
+    group: 'Kiểm tra vùng sâu vùng xa (VSVX)',
+    links: [
+      // DHL, UPS: file Excel danh sách vùng sâu vùng xa do hãng công bố.
+      { label: 'DHL', url: 'https://mydhl.express.dhl/content/dam/downloads/global/en/remote-areas/dhl_express_remote_areas_en.xlsx.coredownload.xlsx' },
+      { label: 'Fedex', url: 'https://www.fedex.com/vi-vn/customer-support/faq/invoices-and-payments/fuel-and-other-surcharges/out-of-delivery-pick-up-area-surcharge.html' },
+      { label: 'UPS', url: 'https://assets.ups.com/adobe/assets/urn:aaid:aem:76be2504-c73d-4d94-b4db-550997a8f095/original/as/ea-surcharge-vn-vi.xlsx' }
+    ]
+  }
 ];
