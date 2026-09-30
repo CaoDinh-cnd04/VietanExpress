@@ -119,6 +119,9 @@ export const createOrderSchema = z
       if (!isNumber(it.qty) || Number(it.qty) <= 0) issue(['invoice', 'items', i, 'qty'], 'SL > 0');
       if (!isNumber(it.price) || Number(it.price) < 0) issue(['invoice', 'items', i, 'price'], 'Nhập đơn giá');
     });
+  }, {
+    // Chạy cả khi ô khác còn lỗi — để lỗi mô tả hàng / kiện / invoice hiện ngay khi rời ô, không đợi sửa hết ô trên.
+    when: payload => typeof payload.value === 'object' && payload.value !== null
   });
 
 export type CreateOrderValues = z.infer<typeof createOrderSchema>;

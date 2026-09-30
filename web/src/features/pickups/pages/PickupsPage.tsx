@@ -34,7 +34,7 @@ const defaults = (): FormValues => ({ date: todayIso(1), slot: '', branch: 'TP.H
 export default function PickupsPage() {
   const { data = [], isLoading } = usePickups();
   const create = useCreatePickup();
-  const { register, handleSubmit, reset, setValue, formState } = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: defaults() });
+  const { register, handleSubmit, reset, setValue, formState } = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: defaults(), mode: 'onTouched' });
   const err = (k: keyof FormValues) => formState.errors[k]?.message;
 
   const submit = handleSubmit(v =>
