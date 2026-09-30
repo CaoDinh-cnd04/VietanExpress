@@ -1,4 +1,4 @@
-import { trackingLink } from '@/shared/config/domain';
+import { trackingLink, vaTrackingLink } from '@/shared/config/domain';
 import { useCopyToClipboard } from '@/shared/lib/useCopyToClipboard';
 import { Icon } from '@/shared/ui';
 import styles from './TrackingLinks.module.css';
@@ -7,7 +7,7 @@ import styles from './TrackingLinks.module.css';
 export function TrackingLinks({ bill }: { bill: string }) {
   const copy = useCopyToClipboard();
   const links = [
-    { label: 'VA Track', url: trackingLink(bill) },
+    { label: 'VA Track', url: vaTrackingLink(bill) },
     { label: 'Your Track', url: trackingLink(bill, true) }
   ];
 

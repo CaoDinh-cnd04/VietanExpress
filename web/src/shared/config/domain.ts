@@ -6,6 +6,9 @@ export type Branch = (typeof BRANCHES)[number];
 export type CargoType = 'DOC' | 'PACK';
 
 export const TRACKING_URL = 'https://vietanexpress.com.vn/track';
+/** Trang tra cứu vận đơn của Việt An (nút VA Track). */
+export const VA_TRACKING_URL = 'https://vietanexpress.com.vn/TrackingResult.aspx';
+export const vaTrackingLink = (bill: string) => `${VA_TRACKING_URL}?id=${encodeURIComponent(bill)}`;
 export const trackingLink = (bill: string, agentBrand = false) =>
   `${TRACKING_URL}?id=${encodeURIComponent(bill)}${agentBrand ? '&brand=1' : ''}`;
 
