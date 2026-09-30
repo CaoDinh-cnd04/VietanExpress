@@ -55,8 +55,8 @@ describe('invoiceTotal', () => {
 describe('createOrderSchema', () => {
   const valid = () => {
     const v = defaultValues();
-    v.shipper = { ...v.shipper, company: 'ABC', contact: 'A', tel: '090', address: 'HCM' };
-    v.receiver = { ...v.receiver, country: 'Singapore', city: 'Singapore', company: 'LINEX', contact: 'Lim', tel: '+65', addr1: '1 Raffles', addr2: 'Tower One' };
+    v.shipper = { ...v.shipper, company: 'ABC', contact: 'A', tel: '0909 805 845', address: 'HCM' };
+    v.receiver = { ...v.receiver, country: 'Singapore', city: 'Singapore', company: 'LINEX', contact: 'Lim', tel: '+65 6545 3778/79', addr1: '1 Raffles', addr2: 'Tower One' };
     v.shipment.grossWeight = '8';
     v.goods.description = 'Váy nữ';
     v.invoice.items = [{ ...emptyInvoiceItem(), descEn: 'Dress', qty: '5', price: '8' }];
@@ -73,6 +73,14 @@ describe('createOrderSchema', () => {
     v.receiver.addr1 = 'x'.repeat(31);
     const paths = createOrderSchema.safeParse(v).error?.issues.map(i => i.path.join('.'));
     expect(paths).toEqual(expect.arrayContaining(['receiver.addr2', 'receiver.addr1']));
+  });
+
+  it('số điện thoại: chỉ số và + ( ) - . /, tối thiểu 6 chữ số', () => {
+    const v = valid();
+    v.shipper.tel = '09a123';
+    v.receiver.tel = '12345';
+    const paths = createOrderSchema.safeParse(v).error?.issues.map(i => i.path.join('.'));
+    expect(paths).toEqual(expect.arrayContaining(['shipper.tel', 'receiver.tel']));
   });
 
   it('PACK bắt buộc invoice; DOC thì không', () => {
