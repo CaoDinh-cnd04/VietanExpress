@@ -19,7 +19,7 @@ body {
   font-family: var(--font-sans);
   font-size: var(--text-sm);
   line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 h1,
@@ -58,7 +58,7 @@ a {
 
 .mono {
   font-family: var(--font-mono);
-  font-size: 12.5px;
+  font-size: 13px;
   white-space: nowrap;
 }
 

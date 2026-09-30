@@ -5,7 +5,7 @@
 :root {
   /* Thương hiệu Việt An — xanh lá */
   --color-brand: #2e8b3e;
-  --color-brand-strong: #1e6b2c;
+  --color-brand-strong: #1a6128;
   --color-brand-deep: #145220;
   --color-brand-soft: #e6f4ea;
   --color-brand-softer: #f0f9f2;
@@ -16,21 +16,22 @@
   --color-on-hero-muted: rgba(255, 255, 255, 0.78);
 
   /* Nền & chữ */
-  --color-bg: #f4f7f5;
+  /* Tương phản cao cho dễ đọc lâu: chữ phụ vẫn đạt WCAG AA (≥ 4.5:1) trên nền trắng; nền xám nhẹ để bớt chói. */
+  --color-bg: #edf1ee;
   --color-surface: #ffffff;
-  --color-surface-muted: #f9fcfa;
-  --color-text: #152219;
-  --color-text-muted: #4d6456;
-  --color-text-faint: #7a9080;
-  --color-border: #dde9e1;
-  --color-border-strong: #ccddd3;
+  --color-surface-muted: #f5f8f6;
+  --color-text: #0e1a12;
+  --color-text-muted: #34483b;
+  --color-text-faint: #56695d;
+  --color-border: #cfdcd4;
+  --color-border-strong: #adc0b4;
 
   /* Trạng thái */
-  --color-info: #2b74c9;
+  --color-info: #1f64b5;
   --color-info-soft: #e9f1fb;
-  --color-warning: #b87508;
+  --color-warning: #9a6200;
   --color-warning-soft: #fdf3e0;
-  --color-danger: #d33a34;
+  --color-danger: #c42e28;
   --color-danger-soft: #fdeceb;
 
   /* Kích thước */
@@ -49,8 +50,8 @@
   /* Chữ */
   --font-sans: 'Be Vietnam Pro', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  --text-xs: 11.5px;
-  --text-sm: 12.5px;
+  --text-xs: 12px;
+  --text-sm: 13px;
   --text-md: 13px;
   --text-lg: 15px;
   --text-xl: 18px;
@@ -78,11 +79,11 @@
     --color-bg: #0c130f;
     --color-surface: #131c16;
     --color-surface-muted: #182219;
-    --color-text: #e8f0ea;
-    --color-text-muted: #9fb0a4;
-    --color-text-faint: #71857a;
-    --color-border: #243029;
-    --color-border-strong: #2e3d33;
+    --color-text: #e4ece6;
+    --color-text-muted: #b8c7bd;
+    --color-text-faint: #90a397;
+    --color-border: #2c3a31;
+    --color-border-strong: #3c4f42;
     --color-info: #6aa6e8;
     --color-info-soft: #132539;
     --color-warning: #e5a93a;
@@ -105,11 +106,11 @@
   --color-bg: #0c130f;
   --color-surface: #131c16;
   --color-surface-muted: #182219;
-  --color-text: #e8f0ea;
-  --color-text-muted: #9fb0a4;
-  --color-text-faint: #71857a;
-  --color-border: #243029;
-  --color-border-strong: #2e3d33;
+  --color-text: #e4ece6;
+  --color-text-muted: #b8c7bd;
+  --color-text-faint: #90a397;
+  --color-border: #2c3a31;
+  --color-border-strong: #3c4f42;
   --color-info: #6aa6e8;
   --color-info-soft: #132539;
   --color-warning: #e5a93a;
