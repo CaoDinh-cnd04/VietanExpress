@@ -154,7 +154,7 @@ Body POST / PUT (`NewDraft`):
 | POST | `/catalog/products` | Không làm | Mặt hàng tự vào thư viện khi đơn được cấp bill (ghi `MaVanDon_ChiTietHang`) — bảng không có cột khách nên không lưu riêng được |
 | GET | `/invoices/recent?limit=20` | Có sẵn | Invoice đơn gần đây (≤ 50, từ `MaVanDon_ChiTietHang`) để chép lại: `{ bill, cnee, date, currency, items: SavedProduct[] }[]` |
 | GET | `/geo/countries` | Có sẵn | Quốc gia + mã điện thoại: `[{ code: "US", name: "United States", dialCode: "+1" }]` (backend lấy từ world-countries, cache 1 ngày) |
-| GET | `/geo/postal/:countryCode/:postalCode` | Có sẵn | Mã bưu chính → `{ countryCode, postalCode, city, state, stateCode }` (Zippopotam.us, ~60 nước); không tìm thấy / chưa hỗ trợ → 404 |
+| GET | `/geo/postal/:countryCode/:postalCode` | Có sẵn | Mã bưu chính → `{ countryCode, postalCode, city, state, stateCode }` (backend tra GeoNames postalCodeLookupJSON, ~100 nước, nhận cả mã đầy đủ như `SW1A 1AA`; tài khoản GeoNames chỉ ở cấu hình backend `GeoNames:Username`); không tìm thấy / chưa hỗ trợ / nguồn tạm lỗi → 404 |
 | GET | `/addresses/senders` | Có sẵn | Hồ sơ người gửi: `{ id, n (tên), c (liên hệ), t (điện thoại), d (địa chỉ) }` |
 | GET | `/addresses/receivers` | Có sẵn | Sổ địa chỉ người nhận: `{ id, n, ct, city, postal, contact, tel, a1, a2, a3 }` |
 | POST | `/addresses/receivers` | Có sẵn | Lưu người nhận vào sổ |

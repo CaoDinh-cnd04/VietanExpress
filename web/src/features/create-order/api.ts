@@ -155,7 +155,7 @@ export function useCountries() {
   });
 }
 
-/** Tra mã bưu chính → thành phố, tỉnh / bang (backend gọi Zippopotam.us). Không tìm thấy trả null. */
+/** Tra mã bưu chính → thành phố, tỉnh / bang qua backend (backend gọi GeoNames; frontend không giữ tài khoản GeoNames). Không tìm thấy trả null. */
 export function usePostalLookup(countryCode: string | undefined, postal: string | null) {
   return useQuery({
     queryKey: ['geo', 'postal', countryCode, postal],

@@ -1,4 +1,3 @@
-using System.Net;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Caching.Memory;
@@ -12,25 +11,27 @@ internal sealed record CountryInfo(string Code, string Name, string? DialCode);
 /// <summary>Kết quả tra mã bưu chính.</summary>
 internal sealed record PostalInfo(string CountryCode, string PostalCode, string City, string? State, string? StateCode);
 
+/// <summary>Tra cứu địa lý cho form tạo đơn / import — điểm vào duy nhất mà API và các handler dùng.</summary>
 internal interface IGeoLookup
 {
     Task<IReadOnlyList<CountryInfo>> GetCountriesAsync(CancellationToken cancellationToken);
 
-    /// <summary>Null khi không tìm thấy hoặc nước chưa được hỗ trợ.</summary>
+    /// <summary>Null khi không tìm thấy, nước chưa được hỗ trợ hoặc nguồn tạm lỗi.</summary>
     Task<PostalInfo?> LookupPostalAsync(string countryCode, string postalCode, CancellationToken cancellationToken);
 }
 
 /// <summary>
-/// Tra cứu địa lý qua API ngoài miễn phí, không cần key:
-/// - Bộ dữ liệu world-countries (nguồn gốc của REST Countries) qua CDN jsDelivr: danh sách nước + mã điện thoại — cache 1 ngày.
+/// Điều phối tra cứu địa lý:
+/// - Danh sách nước + mã điện thoại: bộ dữ liệu world-countries (nguồn gốc của REST Countries) qua CDN jsDelivr — cache 1 ngày.
 ///   (REST Countries v3.1 đã ngừng, v5 bắt buộc API key.) Ghim phiên bản để dữ liệu không tự đổi.
-/// - Zippopotam.us: mã bưu chính → thành phố, tỉnh / bang (~60 nước) — cache 7 ngày mỗi mã.
+/// - Mã bưu chính: chuẩn hóa + kiểm tra đầu vào, cache, rồi hỏi <see cref="IPostalCodeProvider"/> (hiện là GeoNames);
+///   mã đầy đủ không có dữ liệu thì thử phần đầu của mã. Có kết quả cache 7 ngày, không có cache 6 giờ, nguồn lỗi không cache.
 /// API ngoài lỗi / chậm thì trả rỗng, không làm hỏng form tạo đơn.
 /// </summary>
-internal sealed partial class GeoLookupService(HttpClient http, IMemoryCache cache, ILogger<GeoLookupService> logger) : IGeoLookup
+internal sealed partial class GeoLookupService(
+    HttpClient http, IPostalCodeProvider postalProvider, IMemoryCache cache, ILogger<GeoLookupService> logger) : IGeoLookup
 {
     public const string CountriesUrl = "https://cdn.jsdelivr.net/npm/world-countries@5.1.0/countries.json";
-    public const string PostalUrl = "https://api.zippopotam.us";
 
     [GeneratedRegex("^[A-Z0-9][A-Z0-9 -]{1,11}$")]
     private static partial Regex PostalPattern();
@@ -54,39 +55,29 @@ internal sealed partial class GeoLookupService(HttpClient http, IMemoryCache cac
 
     public async Task<PostalInfo?> LookupPostalAsync(string countryCode, string postalCode, CancellationToken cancellationToken)
     {
-        var cc = countryCode.Trim().ToUpperInvariant();
-        var postal = postalCode.Trim().ToUpperInvariant();
-        if (cc.Length != 2 || !cc.All(char.IsAsciiLetterUpper) || !PostalPattern().IsMatch(postal)) return null;
+        if (GeoParsers.NormalizePostal(countryCode, postalCode) is not { } normalized || !PostalPattern().IsMatch(normalized.PostalCode)) return null;
+        var (cc, postal) = normalized;
 
         var key = $"geo:postal:{cc}:{postal}";
         if (cache.TryGetValue(key, out PostalInfo? cached)) return cached;
-        try
+
+        PostalInfo? info = null;
+        foreach (var candidate in GeoParsers.PostalCandidates(cc, postal))
         {
-            using var response = await http.GetAsync($"{PostalUrl}/{cc.ToLowerInvariant()}/{Uri.EscapeDataString(postal)}", cancellationToken);
-            PostalInfo? info = null;
-            if (response.IsSuccessStatusCode)
+            var result = await postalProvider.LookupAsync(cc, candidate, cancellationToken);
+            if (result.Status == PostalLookupStatus.Unavailable) return null; // lỗi tạm thời → không cache, lần sau thử lại
+            if (result.Info is { } found)
             {
-                await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
-                info = GeoParsers.ParsePostal(await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken), cc, postal);
+                info = found with { PostalCode = postal };
+                break;
             }
-            else if (response.StatusCode != HttpStatusCode.NotFound)
-            {
-                logger.LogWarning("Zippopotam trả {Status} cho {Country}/{Postal}", (int)response.StatusCode, cc, postal);
-                return null; // lỗi tạm thời → không cache
-            }
-            // Không tìm thấy cũng cache (ngắn hơn) để khách gõ lại không gọi ra ngoài liên tục.
-            cache.Set(key, info, info is null ? TimeSpan.FromHours(6) : TimeSpan.FromDays(7));
-            return info;
         }
-        catch (Exception e) when (e is HttpRequestException or TaskCanceledException or JsonException)
-        {
-            logger.LogWarning(e, "Không tra được mã bưu chính {Country}/{Postal}", cc, postal);
-            return null;
-        }
+        cache.Set(key, info, info is null ? TimeSpan.FromHours(6) : TimeSpan.FromDays(7));
+        return info;
     }
 }
 
-/// <summary>Đọc JSON của API ngoài — hàm thuần, có test.</summary>
+/// <summary>Hàm thuần dùng chung (đọc dữ liệu nước, chuẩn hóa mã bưu chính) — có test.</summary>
 internal static class GeoParsers
 {
     /// <summary>
@@ -115,18 +106,28 @@ internal static class GeoParsers
         return list.OrderBy(c => c.Name, StringComparer.OrdinalIgnoreCase).ToList();
     }
 
-    /// <summary>Zippopotam: { places: [ { "place name": "Danville", "state": "California", "state abbreviation": "CA" } ] }.</summary>
-    public static PostalInfo? ParsePostal(JsonDocument doc, string countryCode, string postalCode)
+    /// <summary>Mã nước ISO 2 chữ hoa; mã bưu chính chữ hoa, gộp khoảng trắng. Null nếu mã nước sai.</summary>
+    public static (string CountryCode, string PostalCode)? NormalizePostal(string countryCode, string postalCode)
     {
-        if (!doc.RootElement.TryGetProperty("places", out var places) || places.ValueKind != JsonValueKind.Array) return null;
-        var first = places.EnumerateArray().FirstOrDefault();
-        if (first.ValueKind != JsonValueKind.Object) return null;
-
-        var city = Str(first, "place name");
-        if (string.IsNullOrWhiteSpace(city)) return null;
-        return new PostalInfo(countryCode, postalCode, city, Str(first, "state"), Str(first, "state abbreviation"));
+        var cc = countryCode.Trim().ToUpperInvariant();
+        if (cc.Length != 2 || !cc.All(char.IsAsciiLetterUpper)) return null;
+        var postal = string.Join(' ', postalCode.Trim().ToUpperInvariant().Split(' ', StringSplitOptions.RemoveEmptyEntries));
+        return (cc, postal);
     }
 
-    private static string? Str(JsonElement e, string name) =>
-        e.TryGetProperty(name, out var v) && v.GetString() is { Length: > 0 } s ? s.Trim() : null;
+    /// <summary>
+    /// Các dạng mã thử lần lượt: mã đầy đủ trước, rồi phần đầu của mã (một số nước chỉ có dữ liệu theo vùng):
+    /// "SW1A 1AA" → "SW1A"; Anh gõ liền "SW1A1AA" → "SW1A"; Canada "H0H0H0" → "H0H".
+    /// </summary>
+    public static IReadOnlyList<string> PostalCandidates(string countryCode, string postal)
+    {
+        var list = new List<string> { postal };
+        var compact = postal.Replace(" ", "");
+        var prefix = postal.Contains(' ') ? postal.Split(' ')[0]
+            : countryCode == "GB" && compact.Length is >= 5 and <= 7 ? compact[..^3]
+            : countryCode == "CA" && compact.Length == 6 ? compact[..3]
+            : null;
+        if (prefix is { Length: >= 2 } && prefix != postal) list.Add(prefix);
+        return list;
+    }
 }

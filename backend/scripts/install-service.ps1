@@ -63,6 +63,9 @@ $settings = [ordered]@{
     Swagger           = @{ Enabled = $false }
 }
 if ($FrontendOrigin) { $settings.Cors = @{ AllowedOrigins = @($FrontendOrigin) } }
+# Tra mã bưu chính (GeoNames) — tùy chọn; thiếu thì khách tự nhập thành phố / bang.
+if ($secrets['GeoNames:Username']) { $settings.GeoNames = @{ Username = $secrets['GeoNames:Username'] } }
+else { Write-Warning "Chưa có 'GeoNames:Username' trong User Secrets — tắt tra mã bưu chính. Đặt bằng: dotnet user-secrets set `"GeoNames:Username`" `"...`" --project $apiProject" }
 $settingsFile = Join-Path $InstallDir 'appsettings.Production.json'
 $settings | ConvertTo-Json -Depth 5 | Set-Content -Path $settingsFile -Encoding UTF8
 
