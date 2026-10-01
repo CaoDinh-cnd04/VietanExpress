@@ -51,9 +51,31 @@
   flex: 1;
 }
 
+/*
+ * Màn hình hẹp (điện thoại, tablet dọc): 1 cột theo thứ tự khai bill —
+ * Người gửi → Người nhận → Dịch vụ → Thông tin đơn hàng (cột trái bị "mở" ra để xếp lại thứ tự).
+ */
 @media (max-width: 1100px) {
   .billGrid {
-    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+
+  .column {
+    display: contents;
+  }
+
+  .column:first-child > :first-child {
+    order: 1;
+  }
+
+  .column:last-child > * {
+    order: 2;
+  }
+
+  .column:first-child > :nth-child(n + 2) {
+    order: 3;
   }
 }
 
