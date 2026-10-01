@@ -40,4 +40,30 @@ public class GoodsCategoryTests
         Assert.Equal(["Áo dài", "Vải cuộn"], names);
         Assert.All(GoodsCategoryRules.Order([own]), c => Assert.True(c.IsOwn));
     }
+
+    /// <summary>Nhóm chung Việt An (CustomerID null) như dòng do migration chèn.</summary>
+    private static GoodsCategory Shared(long id, string name, int sortOrder)
+    {
+        var c = (GoodsCategory)Activator.CreateInstance(typeof(GoodsCategory), nonPublic: true)!;
+        typeof(GoodsCategory).GetProperty(nameof(GoodsCategory.Id))!.SetValue(c, id);
+        typeof(GoodsCategory).GetProperty(nameof(GoodsCategory.Name))!.SetValue(c, name);
+        typeof(GoodsCategory).GetProperty(nameof(GoodsCategory.SortOrder))!.SetValue(c, sortOrder);
+        return c;
+    }
+
+    [Fact]
+    public void Nhom_chung_khach_danh_dau_yeu_thich_len_dau_cung_nhom_yeu_thich_cua_khach()
+    {
+        var own = GoodsCategory.Create(200877, "Vải cuộn", isFavorite: false, Now);
+        var ownFavorite = GoodsCategory.Create(200877, "Áo dài", isFavorite: true, Now);
+        var clothes = Shared(1, "Quần áo, giày dép", 1);
+        var cosmetics = Shared(4, "Mỹ phẩm, hóa mỹ phẩm", 4);
+
+        var list = GoodsCategoryRules.Order([clothes, own, cosmetics, ownFavorite], favoriteSharedIds: new HashSet<long> { 4 });
+
+        Assert.Equal(["Áo dài", "Mỹ phẩm, hóa mỹ phẩm", "Vải cuộn", "Quần áo, giày dép"], list.Select(c => c.Name));
+        Assert.Equal([true, true, false, false], list.Select(c => c.IsFavorite));
+        Assert.False(list[1].IsOwn);
+        Assert.False(GoodsCategoryRules.Order([cosmetics])[0].IsFavorite); // không có đánh dấu → không yêu thích
+    }
 }

@@ -26,6 +26,62 @@ namespace VietAnExpress.Shipments.Infrastructure.Migrations
             modelBuilder.HasSequence("LegacyOrderNumberSequence")
                 .StartsAt(90000001L);
 
+            modelBuilder.Entity("VietAnExpress.Shipments.Domain.CatalogMark", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("ID");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CreateDate")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasDefaultValueSql("GETDATE()");
+
+                    b.Property<long>("CustomerId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("CustomerID");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false)
+                        .HasColumnName("Da_Xoa");
+
+                    b.Property<bool>("IsFavorite")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false)
+                        .HasColumnName("Yeu_Thich");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(64)")
+                        .HasColumnName("Khoa");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(10)")
+                        .HasColumnName("Loai");
+
+                    b.Property<DateTime?>("ModifyDate")
+                        .HasColumnType("datetime");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerId", "Kind", "Key")
+                        .IsUnique()
+                        .HasDatabaseName("UX_MatHangKhachHang_CustomerID_Loai_Khoa");
+
+                    b.ToTable("MatHangKhachHang", "dbo");
+                });
+
             modelBuilder.Entity("VietAnExpress.Shipments.Domain.GoodsCategory", b =>
                 {
                     b.Property<long>("Id")

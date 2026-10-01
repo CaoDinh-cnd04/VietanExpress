@@ -23,7 +23,8 @@ export function ServiceSection() {
 
   return (
     <Card title="Dịch vụ" subtitle={lang === 'vi' ? '(Services)' : undefined}>
-      <FormGrid>
+      {/* Dịch vụ · Hub · Số tham chiếu trên cùng 1 hàng (màn hình hẹp tự xuống dòng) */}
+      <FormGrid columns={3}>
         <SelectField
           label="Dịch vụ"
           required
@@ -32,7 +33,7 @@ export function ServiceSection() {
           {...bind('service.carrier')}
         />
         <SelectField label="Hub" required placeholder="Chọn hub" options={hubOptions(carrier)} {...bind('service.hub')} />
-        <TextField label="Số tham chiếu (mã đơn hàng của bạn)" wide {...bind('service.reference')} />
+        <TextField label="Số tham chiếu (mã đơn hàng của bạn)" {...bind('service.reference')} />
       </FormGrid>
     </Card>
   );

@@ -1,9 +1,10 @@
-import { useEffect, useState, type ChangeEvent } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { useI18n } from '@/shared/i18n';
 import { useDebouncedCallback } from '@/shared/lib/useDebouncedCallback';
-import { Button, SelectField, TextField } from '@/shared/ui';
+import { Button, Icon, SelectField, TextField } from '@/shared/ui';
 import { parseTags, serializeTags } from '../lib/multi-filter';
-import type { OrderFilters } from '../types';
+import type { OrderFilters, OrderListResponse } from '../types';
+import { StatusFilter } from './StatusFilter';
 import { TagSearch } from './TagSearch';
 import styles from './OrderFilterBar.module.css';
 
@@ -11,20 +12,22 @@ interface OrderFilterBarProps {
   filters: OrderFilters;
   onChange: (patch: Partial<OrderFilters>) => void;
   onReset: () => void;
+  /** Số đơn theo trạng thái (đếm trên các chip). */
+  statusCounts?: OrderListResponse['summary']['statusCounts'];
 }
 
 type TextKey = 'weightFrom' | 'weightTo';
 
-export function OrderFilterBar({ filters, onChange, onReset }: OrderFilterBarProps) {
+export function OrderFilterBar({ filters, onChange, onReset, statusCounts }: OrderFilterBarProps) {
   const { t } = useI18n();
   // Ô gõ tự do giữ state cục bộ để nhập mượt, đẩy lên URL sau khi ngừng gõ.
   const [draft, setDraft] = useState<Record<TextKey, string>>({ weightFrom: filters.weightFrom, weightTo: filters.weightTo });
   useEffect(() => setDraft({ weightFrom: filters.weightFrom, weightTo: filters.weightTo }), [filters.weightFrom, filters.weightTo]);
   const pushText = useDebouncedCallback((patch: Partial<OrderFilters>) => onChange(patch));
 
-  const onText = (key: TextKey) => (e: ChangeEvent<HTMLInputElement>) => {
-    setDraft(d => ({ ...d, [key]: e.target.value }));
-    pushText({ [key]: e.target.value });
+  const setWeight = (key: TextKey, value: string) => {
+    setDraft(d => ({ ...d, [key]: value }));
+    pushText({ [key]: value });
   };
 
   // Thẻ tìm lưu trên URL (?q=cnee:Uyen%0Act:Singapore); link cũ không có tiền tố dùng trường đang chọn.
@@ -33,8 +36,8 @@ export function OrderFilterBar({ filters, onChange, onReset }: OrderFilterBarPro
   return (
     <section className={styles.bar} aria-label={t('Bộ lọc đơn hàng')}>
       <div className={styles.row}>
-        <TextField label="Từ ngày" type="date" max={filters.toDate || undefined} value={filters.fromDate} onChange={e => onChange({ fromDate: e.target.value })} />
-        <TextField label="Đến ngày" type="date" min={filters.fromDate || undefined} value={filters.toDate} onChange={e => onChange({ toDate: e.target.value })} />
+        <DateFilter label="Từ ngày" value={filters.fromDate} max={filters.toDate} onCommit={fromDate => onChange({ fromDate })} />
+        <DateFilter label="Đến ngày" value={filters.toDate} min={filters.fromDate} onCommit={toDate => onChange({ toDate })} />
         <SelectField
           label="Loại hàng"
           value={filters.type}
@@ -42,10 +45,9 @@ export function OrderFilterBar({ filters, onChange, onReset }: OrderFilterBarPro
           placeholder="Tất cả"
           options={['DOC', 'PACK']}
         />
-        <TextField label="Cân từ" type="number" min={0} step={0.1} suffix="kg" value={draft.weightFrom} onChange={onText('weightFrom')} />
-        <TextField label="Cân đến" type="number" min={0} step={0.1} suffix="kg" value={draft.weightTo} onChange={onText('weightTo')} />
-      </div>
-      <div className={styles.searchRow}>
+        <WeightFilter label="Cân từ" value={draft.weightFrom} onChange={v => setWeight('weightFrom', v)} />
+        <WeightFilter label="Cân đến" value={draft.weightTo} onChange={v => setWeight('weightTo', v)} />
+        {/* Tìm theo cùng hàng với các ô lọc */}
         <div className={styles.search}>
           <label className={styles.searchLabel} htmlFor="order-search">{t('Tìm theo')}</label>
           <TagSearch
@@ -55,8 +57,63 @@ export function OrderFilterBar({ filters, onChange, onReset }: OrderFilterBarPro
             onFieldChange={searchField => onChange({ searchField, page: filters.page })}
           />
         </div>
-        <Button onClick={onReset}>{t('Xóa lọc')}</Button>
+        <Button size="sm" className={styles.reset} onClick={onReset}>{t('Xóa lọc')}</Button>
       </div>
+      <StatusFilter value={filters.status} onChange={status => onChange({ status })} counts={statusCounts} />
     </section>
+  );
+}
+
+/**
+ * Ô ngày: giữ giá trị gõ dở trong ô, chỉ áp bộ lọc khi đã có đủ năm (4 chữ số, từ 1900) hoặc khi rời ô.
+ * Trước đây áp ngay từng phím → gõ năm "2…" thành năm 0002, trang lọc lại và ô năm bị xoá, không gõ tiếp được.
+ */
+function DateFilter({ label, value, min, max, onCommit }: { label: string; value: string; min?: string; max?: string; onCommit: (v: string) => void }) {
+  const [text, setText] = useState(value);
+  useEffect(() => setText(value), [value]);
+  const complete = (v: string) => v === '' || (/^\d{4}-\d{2}-\d{2}$/.test(v) && Number(v.slice(0, 4)) >= 1900);
+  const commit = (v: string) => {
+    if (v !== value && complete(v)) onCommit(v);
+  };
+  return (
+    <TextField
+      label={label}
+      type="date"
+      min={min || undefined}
+      max={max || undefined}
+      value={text}
+      onChange={e => {
+        setText(e.target.value);
+        commit(e.target.value);
+      }}
+      onBlur={e => commit(e.target.value)}
+    />
+  );
+}
+
+/** Ô cân có nút tăng / giảm (bước 0.5 kg) đặt cạnh chữ "kg", gõ tay được số lẻ. */
+function WeightFilter({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  const { t } = useI18n();
+  const id = useId();
+  const step = (delta: number) => {
+    const n = Math.max(0, Math.round(((Number(value) || 0) + delta) * 100) / 100);
+    onChange(n ? String(n) : '');
+  };
+  return (
+    <div className={styles.weight}>
+      <label className={styles.weightLabel} htmlFor={id}>{t(label)}</label>
+      <div className={styles.weightBox}>
+        <input id={id} type="number" min={0} step={0.1} inputMode="decimal" value={value} onChange={e => onChange(e.target.value)} />
+        <span className={styles.weightUnit}>kg</span>
+        <span className={styles.stepper}>
+          <button type="button" aria-label={t('Tăng {label}', { label: t(label) })} onClick={() => step(0.5)}>
+            <Icon name="chevronDown" size={11} className={styles.up} />
+          </button>
+          <button type="button" aria-label={t('Giảm {label}', { label: t(label) })} onClick={() => step(-0.5)}>
+            <Icon name="chevronDown" size={11} />
+          </button>
+        </span>
+      </div>
+    </div>
   );
 }

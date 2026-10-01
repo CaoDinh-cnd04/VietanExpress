@@ -50,5 +50,95 @@ export const categories: Record<string, string> = {
   // Shipper gốc (forwarder)
   'Tên shipper gốc': 'Original shipper name',
   'Dành cho đơn vị forwarder gửi hộ khách — không bắt buộc': 'For forwarders shipping on behalf of a customer — optional',
-  'Shipper gốc': 'Original shipper'
+  'Shipper gốc': 'Original shipper',
+  'Mở rộng': 'Expand',
+  'Invoice (khai báo hải quan)': 'Invoice (customs declaration)',
+  'Chọn nhóm hàng hóa': 'Select a goods category',
+  'Mô tả mặt hàng': 'Item description',
+  'Nhập mô tả mặt hàng': 'Enter the item description',
+  'Nhóm hàng dòng {n}': 'Category, row {n}',
+  'Mô tả mặt hàng dòng {n}': 'Item description, row {n}',
+  'Chỉ nhập khi chọn "Nhiều loại hàng"': 'Only needed for "Mixed goods"',
+
+  // Invoice: hình thức chịu thuế, tên hàng VN bắt buộc, ô nhiều dòng
+  'Hình thức chịu thuế': 'Duty terms',
+  'Chọn hình thức chịu thuế': 'Select duty terms',
+  'DDU — người nhận chịu thuế': 'DDU — receiver pays duties',
+  'DDP — người gửi chịu thuế': 'DDP — shipper pays duties',
+  'DDP: người gửi chịu thuế · DDU: người nhận chịu thuế': 'DDP: shipper pays duties · DDU: receiver pays duties',
+  'Tên tiếng Việt (bắt buộc)': 'Vietnamese name (required)',
+  'Nhập tên hàng (VN)': 'Enter the item name (VN)',
+  'Nhà sản xuất ↵ địa chỉ (Enter để xuống dòng)': 'Manufacturer ↵ address (Enter for a new line)',
+
+  // Tùy chọn dịch vụ (ô chọn xổ xuống)
+  'Không sử dụng dịch vụ': 'No additional services',
+  'Gửi hàng theo dịch vụ tiêu chuẩn, không thêm phí': 'Standard shipping, no extra charges',
+
+  // Số kiện phải khớp tổng SL các dòng kiện
+  'Số lượng kiện chưa khớp': 'Piece count does not match',
+  'Chưa bằng số kiện đã khai': 'Does not match the declared number of pieces',
+  'Tổng SL các dòng kiện là {total}, chưa bằng số kiện đã khai ({pieces}). Hãy bấm "Thêm kiện" hoặc sửa SL cho khớp — hoặc sửa lại số kiện.':
+    'The package rows add up to {total}, but you declared {pieces} pieces. Click "Add piece" or change the quantities to match — or correct the number of pieces.',
+  'Đơn có nhiều dòng kiện — tổng cân được tính từ bảng kiện ở bước 2. Tổng SL các dòng kiện phải bằng số kiện.':
+    'This order has several package rows — the total weight is calculated from the package table in step 2. The row quantities must add up to the number of pieces.',
+  'Khai kích thước từng kiện ở bước 2 để tính trọng lượng quy đổi. Tổng SL các dòng kiện phải bằng số kiện.':
+    'Enter each piece’s dimensions in step 2 to calculate volumetric weight. The row quantities must add up to the number of pieces.',
+  'VD: Quần áo, mỹ phẩm, đồ gia dụng': 'e.g. Clothing, cosmetics, household items',
+  'Bấm để sửa thông tin người gửi': 'Click to edit shipper details',
+  // Thông tin đơn hàng: mô tả tổng quan (PACK), chứng từ mặc định Documents
+  'Mô tả tổng quan hàng hóa (content)': 'Goods content (general description)',
+  'Ghi bằng tiếng Anh — tên chung của hàng trong lô, in lên bill (vd: Clothes, Dried food, Electronic parts).':
+    'Write in English — a general name for the goods in this shipment, printed on the bill (e.g. Clothes, Dried food, Electronic parts).',
+  'Số kiện và cân nặng khai theo từng dòng ở "Chi tiết kiện hàng".': 'Pieces and weight are declared per row in "Package details".',
+  'Chứng từ không cần khai thêm — nội dung mặc định là Documents. Trên {kg}kg sẽ tự chuyển sang hàng hóa (PACK).':
+    'Documents need nothing more — the content defaults to "Documents". Over {kg}kg they are switched to parcel (PACK) automatically.',
+  'Nhập mô tả tổng quan hàng hóa': 'Enter the goods content',
+  'Nhập cân/kiện': 'Enter weight per piece',
+  'Dịch vụ cộng thêm (nếu cần)': 'Add-on services (if needed)',
+  'Tracking & hành trình': 'Tracking & history',
+  'Tăng {label}': 'Increase {label}',
+  'Giảm {label}': 'Decrease {label}',
+  // Biểu phí tùy chọn dịch vụ
+  'Biểu phí tùy chọn dịch vụ': 'Add-on service fees',
+  'Giá từng dịch vụ sẽ hiện tại đây khi hệ thống cập nhật xong. Cần báo giá ngay, vui lòng liên hệ CS Việt An.':
+    'Prices will appear here once the system is updated. For an immediate quote, please contact Viet An customer service.',
+  'Không tải được biểu phí, vui lòng thử lại sau.': 'Could not load the fees, please try again later.',
+  'Phí được cộng vào cước khi cấp bill. Giá có thể thay đổi theo hãng và tuyến.': 'Fees are added to the freight when the bill is issued. Prices may vary by carrier and route.',
+  'Phí': 'Fee',
+  '(có tính phí)': '(chargeable)',
+  'Có phí': 'Paid',
+  'Xem biểu phí dịch vụ': 'View service fees',
+  'Miễn phí': 'Free',
+  'Biểu phí đang được cập nhật': 'Fees are being updated',
+  'Đang cập nhật': 'Updating',
+  // Xem chi tiết đơn (bố cục phiếu vận đơn)
+  'Dịch vụ & lô hàng': 'Service & shipment',
+  'Người gửi (Shipper)': 'Shipper',
+  'Người nhận (Consignee)': 'Consignee',
+  'Tổng giá trị invoice': 'Invoice total',
+  'Đơn chưa in — mã VA Bill được cấp khi bấm "In & cấp bill".': 'Not printed yet — the VA Bill number is issued when you click "Print & issue bill".',
+  'Đơn nháp — còn thiếu thông tin, bấm "Tiếp tục" để khai đủ.': 'Draft — some information is missing; click "Continue" to complete it.',
+  'Chịu thuế': 'Duties',
+  'Nội dung hàng': 'Contents',
+  'Vận đơn': 'Waybill',
+  'Giao hàng (POD)': 'Delivered (POD)',
+  'Người ký': 'Signed by',
+  'Dự kiến giao': 'Estimated delivery',
+  'Thời gian': 'Time',
+  'Cập nhật': 'Update',
+  'Nơi': 'Location',
+  'Copy đơn': 'Copy order',
+  'Bấm ngôi sao để đưa nhóm vào mục "Nhóm yêu thích" ở đầu ô chọn nhóm hàng.': 'Click the star to pin a category under "Favorite categories" at the top of the category list.',
+  'Nhóm yêu thích': 'Favorite categories',
+  'Nhóm khác': 'Other categories',
+  'Xóa "{name}" khỏi thư viện? Các đơn đã khai mặt hàng này không bị ảnh hưởng.': 'Remove "{name}" from the library? Orders that already declared this item are not affected.',
+  'Yêu thích': 'Favorites',
+  'Tìm tên hàng, mã HS…': 'Search item name, HS code…',
+  'Chưa có mặt hàng yêu thích — bấm ngôi sao cạnh mặt hàng để đánh dấu.': 'No favorite items yet — click the star next to an item to mark it.',
+  'Không có mặt hàng phù hợp.': 'No matching items.',
+  'Đánh dấu yêu thích — mặt hàng hiện lên đầu thư viện': 'Mark as favorite — the item moves to the top of the library',
+  'Xóa {name} khỏi thư viện': 'Remove {name} from the library',
+  'Xóa khỏi thư viện': 'Remove from library',
+  'Tìm nhóm hàng…': 'Search categories…',
+  'Không có nhóm phù hợp.': 'No matching categories.',
 };

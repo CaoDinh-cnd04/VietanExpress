@@ -1,0 +1,222 @@
+/*
+ * Dòng thời gian dọc các bước tạo đơn.
+ * Khung cao bằng màn hình (trừ thanh trên cùng), các bước trải đều theo chiều dọc, nối bằng 1 đường dọc.
+ */
+.panel {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - var(--topbar-h) - 2 * var(--space-4));
+  min-height: 420px;
+  padding: var(--space-5) var(--space-4);
+  overflow-y: auto;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.timeline {
+  --num: 30px;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Mỗi bước chiếm phần bằng nhau của chiều cao → trải dọc; bước cuối chỉ cao vừa nội dung */
+.step {
+  position: relative;
+  flex: 1 1 0;
+  min-height: fit-content;
+  padding-bottom: var(--space-5);
+}
+
+.step:last-child {
+  flex: 0 0 auto;
+  padding-bottom: 0;
+}
+
+/* Đường nối từ vòng số bước này xuống bước sau */
+.step:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  top: calc(var(--num) + 4px);
+  bottom: 4px;
+  left: calc(var(--num) / 2 - 1px);
+  width: 2px;
+  border-radius: 2px;
+  background: var(--color-border-strong);
+}
+
+.passed::before {
+  background: var(--color-brand) !important;
+}
+
+.head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  color: var(--color-text);
+}
+
+.num {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: var(--num);
+  height: var(--num);
+  border: 2px solid var(--color-border-strong);
+  border-radius: 50%;
+  background: var(--color-surface);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--color-text-muted);
+}
+
+.active .num {
+  border-color: var(--color-brand);
+  background: var(--color-brand);
+  color: #fff;
+  box-shadow: 0 0 0 4px var(--color-brand-soft);
+}
+
+.passed .num {
+  border-color: var(--color-brand);
+  color: var(--color-brand-strong);
+}
+
+.numDone {
+  background: var(--color-brand) !important;
+  color: #fff !important;
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding-top: 4px;
+}
+
+.text strong {
+  font-size: var(--text-md);
+  font-weight: 700;
+}
+
+.text small {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.active .text strong {
+  color: var(--color-brand-strong);
+}
+
+.head:hover .text strong {
+  color: var(--color-brand-strong);
+}
+
+/* Khung con: thụt vào thẳng hàng với chữ của bước */
+.subs {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: var(--space-3) 0 0;
+  padding: 0 0 0 calc(var(--num) + var(--space-3) - var(--space-3));
+  list-style: none;
+}
+
+.sub {
+  position: relative;
+  display: block;
+  width: 100%;
+  padding: 6px var(--space-3) 6px calc(var(--space-3) + 10px);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  text-align: left;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+/* Chấm tròn nhỏ trước tên khung con */
+.sub::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: var(--space-3);
+  width: 5px;
+  height: 5px;
+  margin-top: -2.5px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.5;
+}
+
+.sub:hover {
+  background: var(--color-surface-muted);
+  color: var(--color-text);
+}
+
+.subActive {
+  background: var(--color-brand-softer);
+  color: var(--color-brand-strong);
+  font-weight: 600;
+}
+
+.subActive::before {
+  opacity: 1;
+}
+
+/* Màn hình hẹp: thanh ngang gọn phía trên form — chỉ số + tên bước, bỏ khung con và đường nối */
+@media (max-width: 1100px) {
+  .panel {
+    height: auto;
+    min-height: 0;
+    padding: 6px;
+    overflow: visible;
+  }
+
+  .timeline {
+    --num: 24px;
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    gap: var(--space-1);
+  }
+
+  .step {
+    padding: 0;
+  }
+
+  .step::before,
+  .subs,
+  .text small {
+    display: none;
+  }
+
+  .head {
+    align-items: center;
+    gap: var(--space-2);
+    padding: 6px var(--space-2);
+    border-radius: var(--radius-sm);
+  }
+
+  .active .head {
+    background: var(--color-brand-softer);
+  }
+
+  .text {
+    padding-top: 0;
+  }
+
+  .active .num {
+    box-shadow: none;
+  }
+}

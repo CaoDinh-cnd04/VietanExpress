@@ -1,23 +1,36 @@
 import { useEffect, useState } from 'react';
-import { useFormContext, useWatch } from 'react-hook-form';
+import { useFormContext, useFormState, useWatch } from 'react-hook-form';
 import { useSession } from '@/features/auth';
 import { BRANCHES } from '@/shared/config/domain';
 import { useI18n } from '@/shared/i18n';
 import { sanitizePhone } from '@/shared/lib/phone';
-import { Button, Card, FormGrid, SelectField, TextField } from '@/shared/ui';
+import { cx } from '@/shared/lib/cx';
+import { Button, Card, FormGrid, Icon, SelectField, TextField } from '@/shared/ui';
 import { useSenders } from '../api';
 import { RULES } from '../constants';
 import { useFieldBinder } from '../hooks/useFieldBinder';
 import { shipperFromProfile } from '../lib/shipper-profile';
 import type { CreateOrderValues } from '../schema';
 import { AddressPickerDialog } from './AddressPickerDialog';
+import styles from './form.module.css';
 
 export function ShipperSection() {
   const bind = useFieldBinder();
   const { t, lang } = useI18n();
   const { setValue, getValues, control } = useFormContext<CreateOrderValues>();
-  const address = useWatch({ control, name: 'shipper.address' }) ?? '';
+  const shipper = useWatch({ control, name: 'shipper' });
+  const address = shipper?.address ?? '';
   const [picking, setPicking] = useState(false);
+  // Thu gọn / mở rộng: mặc định thu gọn khi đã đủ thông tin bắt buộc (thường là điền sẵn từ hồ sơ khách).
+  const [open, setOpen] = useState<boolean | null>(null);
+  const complete = (['company', 'contact', 'tel', 'address', 'country', 'branch'] as const).every(k => (shipper?.[k] ?? '').trim());
+  const expanded = open ?? !complete;
+  // Bấm Tạo đơn mà người gửi còn lỗi → tự mở ra để khách sửa.
+  const { errors, submitCount } = useFormState({ control, name: 'shipper' });
+  const hasErrors = !!errors.shipper;
+  useEffect(() => {
+    if (hasErrors) setOpen(true);
+  }, [hasErrors, submitCount]);
   const senders = useSenders();
   // Ô điện thoại: bỏ chữ cái / ký tự lạ ngay khi gõ hoặc dán.
   const keepPhone = (name: 'shipper.tel', value: string) => {
@@ -38,8 +51,32 @@ export function ShipperSection() {
     <Card
       title="Thông tin người gửi"
       subtitle={lang === 'vi' ? '(Shipper)' : undefined}
-      actions={<Button size="sm" onClick={() => setPicking(true)}>{t('Đổi hồ sơ')}</Button>}
+      actions={
+        <>
+          <Button size="sm" onClick={() => setPicking(true)}>{t('Đổi hồ sơ')}</Button>
+          <Button size="sm" variant="ghost" aria-expanded={expanded} aria-controls="shipper-fields" onClick={() => setOpen(!expanded)}>
+            {t(expanded ? 'Thu gọn' : 'Mở rộng')} <Icon name="chevronDown" size={14} className={cx(styles.chevron, expanded && styles.chevronOpen)} />
+          </Button>
+        </>
+      }
     >
+      {!expanded && (
+        <button type="button" className={styles.collapsedSummary} onClick={() => setOpen(true)} title={t('Bấm để sửa thông tin người gửi')}>
+          <span className={styles.summaryMain}>
+            <strong>{shipper?.company}</strong>
+            {shipper?.originalShipper?.trim() && <span> · {t('Shipper gốc')}: {shipper.originalShipper}</span>}
+          </span>
+          <span className={styles.summarySub}>
+            {[shipper?.contact, shipper?.tel, shipper?.email].filter(v => v?.trim()).join(' · ')}
+          </span>
+          <span className={styles.summarySub}>
+            {[shipper?.address, shipper?.branch && `${t('Chi nhánh')} ${shipper.branch}`].filter(Boolean).join(' · ')}
+          </span>
+          <span className={styles.summaryEdit}><Icon name="edit" size={14} /> {t('Sửa')}</span>
+        </button>
+      )}
+      {/* Ô nhập luôn giữ trong form (chỉ ẩn) để giá trị và kiểm tra lỗi không bị mất khi thu gọn. */}
+      <div id="shipper-fields" hidden={!expanded}>
       <FormGrid>
         <TextField label="Tên công ty / người gửi" required {...bind('shipper.company')} />
         <TextField
@@ -63,6 +100,7 @@ export function ShipperSection() {
         <TextField label="Quốc gia gửi" required {...bind('shipper.country')} />
         <SelectField label="Chi nhánh gửi hàng" required options={BRANCHES} placeholder="Chọn chi nhánh" {...bind('shipper.branch')} />
       </FormGrid>
+      </div>
 
       <AddressPickerDialog
         open={picking}

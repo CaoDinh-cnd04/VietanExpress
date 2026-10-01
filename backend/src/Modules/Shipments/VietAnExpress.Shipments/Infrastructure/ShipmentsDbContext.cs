@@ -13,6 +13,9 @@ internal sealed class ShipmentsDbContext(DbContextOptions<ShipmentsDbContext> op
     /// <summary>Nhóm hàng hóa (dbo.NhomHangHoa) — bảng mới do portal tạo bằng migration.</summary>
     public DbSet<GoodsCategory> GoodsCategories => Set<GoodsCategory>();
 
+    /// <summary>Đánh dấu yêu thích / đã xóa của khách trên thư viện mặt hàng và nhóm chung (dbo.MatHangKhachHang).</summary>
+    public DbSet<CatalogMark> CatalogMarks => Set<CatalogMark>();
+
     /// <summary>Bảng vận đơn hệ thống cũ dbo.MaVanDon — không thuộc migration của module.</summary>
     public DbSet<Legacy.LegacyOrder> LegacyOrders => Set<Legacy.LegacyOrder>();
 

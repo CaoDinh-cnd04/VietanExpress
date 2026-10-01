@@ -1,0 +1,198 @@
+/* Thư viện mặt hàng — danh sách phẳng, kẻ dòng; nút tự bỏ kiểu mặc định của trình duyệt */
+.icon,
+.pick {
+  margin: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-3);
+}
+
+/* Ô tìm có biểu tượng kính lúp bên trong */
+.search {
+  flex: 1;
+  min-width: 200px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+}
+
+.search:focus-within {
+  border-color: var(--color-brand);
+  box-shadow: var(--focus-ring);
+}
+
+.search input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-text);
+  font-size: var(--text-sm);
+}
+
+.search input:focus {
+  outline: none;
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 6px;
+  transition: background 0.12s;
+}
+
+.row + .row {
+  border-top: 1px solid var(--color-border);
+}
+
+.row:hover {
+  background: var(--color-surface-muted);
+}
+
+.icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  color: var(--color-text-muted);
+  transition: color 0.12s, background 0.12s, opacity 0.12s;
+}
+
+.icon:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+
+.icon:focus-visible,
+.pick:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: -2px;
+}
+
+/* Sao: viền xám, rê chuột thì vàng; đã yêu thích thì vàng đặc */
+.star:hover:not(:disabled) {
+  color: var(--color-warning);
+}
+
+.starOn {
+  color: var(--color-warning);
+}
+
+.starOn svg {
+  fill: currentColor;
+}
+
+/* Xóa: chỉ hiện rõ khi rê chuột vào dòng */
+.delete {
+  opacity: 0;
+}
+
+.row:hover .delete,
+.delete:focus-visible {
+  opacity: 1;
+}
+
+.delete:hover:not(:disabled) {
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
+@media (hover: none) {
+  .delete {
+    opacity: 1;
+  }
+}
+
+.pick {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 9px 6px;
+  text-align: left;
+}
+
+.text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.name {
+  overflow: hidden;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vi {
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+.meta {
+  overflow: hidden;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* "+ Thêm": chữ xanh, rõ hơn khi rê chuột vào dòng */
+.add {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  color: var(--color-brand-strong);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  transition: background 0.12s;
+}
+
+.row:hover .add {
+  background: var(--color-brand-soft);
+}
+
+.empty {
+  padding: var(--space-5);
+  color: var(--color-text-muted);
+  text-align: center;
+}

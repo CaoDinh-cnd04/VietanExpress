@@ -78,14 +78,20 @@ internal static partial class LegacyOrderView
             PodEstimate: Date(o.PodEstimate));
     }
 
+    /// <summary>Danh sách "Đơn hàng của tôi": kèm người nhận đầy đủ để bảng xổ chi tiết (người liên hệ, SĐT, địa chỉ) — cùng dòng đã đọc, không truy vấn thêm.</summary>
+    public static OrderDto ToListDto(LegacyOrder o, DateTime today) => ToDto(o, today) with { Receiver = ReceiverOf(o) };
+
     /// <summary>Chi tiết đơn: thêm người gửi / người nhận đầy đủ để nhân bản đơn.</summary>
     public static OrderDto ToDetailDto(LegacyOrder o, DateTime today) => ToDto(o, today) with
     {
         Shipper = new OrderShipperDto(S(o.SenderName), S(o.SenderContactName), S(o.SenderPhone), S(o.SenderAddress), S(o.SenderTax), S(o.SenderEmail)),
-        Receiver = new OrderReceiverDto(S(o.ConsigneeName), S(o.ConsigneeContactName), S(o.ConsigneePhone), S(o.ConsigneeCountry),
-            S(o.ConsigneeCity), S(o.ConsigneePostalCode), S(o.ConsigneeState), S(o.ConsigneeAddress1), S(o.ConsigneeAddress2),
-            S(o.ConsigneeAddress3), S(o.ConsigneeVatTax), S(o.ConsigneeEmail))
+        Receiver = ReceiverOf(o)
     };
+
+    private static OrderReceiverDto ReceiverOf(LegacyOrder o) =>
+        new(S(o.ConsigneeName), S(o.ConsigneeContactName), S(o.ConsigneePhone), S(o.ConsigneeCountry),
+            S(o.ConsigneeCity), S(o.ConsigneePostalCode), S(o.ConsigneeState), S(o.ConsigneeAddress1), S(o.ConsigneeAddress2),
+            S(o.ConsigneeAddress3), S(o.ConsigneeVatTax), S(o.ConsigneeEmail));
 
     /// <summary>Chi tiết đầy đủ kèm kiện + invoice (đọc từ 2 bảng chi tiết).</summary>
     public static OrderDto ToDetailDto(LegacyOrder o, DateTime today, IEnumerable<LegacyPackageLine> packages, IEnumerable<LegacyInvoiceLine> items) =>

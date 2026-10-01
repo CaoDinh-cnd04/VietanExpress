@@ -8,7 +8,6 @@ import { OrderPhotosDialog } from '../components/OrderPhotosDialog';
 import { OrderFilterBar } from '../components/OrderFilterBar';
 import { OrderSummaryBar } from '../components/OrderSummaryBar';
 import { OrdersTable } from '../components/OrdersTable';
-import { StatusFilter } from '../components/StatusFilter';
 import { useOrderFilters } from '../hooks/useOrderFilters';
 import { useExportOrders, usePrintDocuments } from '../mutations';
 import type { Order, OrderActions, OrderSortField } from '../types';
@@ -57,10 +56,9 @@ export default function OrdersPage() {
         actions={<LinkButton to="/orders/new" variant="primary" size="sm">{t('Tạo đơn mới')}</LinkButton>}
       />
 
-      <OrderFilterBar filters={filters} onChange={update} onReset={reset} />
+      <OrderFilterBar filters={filters} onChange={update} onReset={reset} statusCounts={summary?.statusCounts} />
 
       <Card flush>
-        <StatusFilter value={filters.status} onChange={status => update({ status })} counts={summary?.statusCounts} />
         <OrderSummaryBar
           totalPieces={summary?.totalPieces ?? 0}
           totalWeight={summary?.totalWeight ?? 0}

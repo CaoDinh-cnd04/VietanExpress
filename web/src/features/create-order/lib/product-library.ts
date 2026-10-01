@@ -1,0 +1,24 @@
+import type { SavedProduct } from '../api';
+
+/** Bỏ dấu tiếng Việt + chữ thường để tìm không phân biệt "ao" / "Áo". */
+export const fold = (s: string) =>
+  s
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'D')
+    .toLowerCase();
+
+/**
+ * Lọc thư viện mặt hàng theo ô tìm (tên EN / VN, mã HS, nhà sản xuất) và tab "Yêu thích".
+ * Giữ thứ tự backend trả (yêu thích trước, rồi dùng gần đây).
+ */
+export function filterProducts(products: readonly SavedProduct[], query: string, favoritesOnly: boolean): SavedProduct[] {
+  const words = fold(query).split(/\s+/).filter(Boolean);
+  return products.filter(p => {
+    if (favoritesOnly && !p.isFavorite) return false;
+    if (!words.length) return true;
+    const text = fold([p.descEn, p.descVi, p.hs, p.manufacturer].join(' '));
+    return words.every(w => text.includes(w));
+  });
+}

@@ -1,5 +1,6 @@
 /** Trang mặc định sau khi đăng nhập. */
-export const PORTAL_HOME = '/home';
+/** Trang mở ra sau khi đăng nhập / bấm "Vào portal" (không còn trang chủ riêng). */
+export const PORTAL_HOME = '/orders';
 
 /** Các trang ngoài (không cần đăng nhập) — không dùng làm đích quay lại. */
 const PUBLIC_PATHS = new Set(['/', '/login']);

@@ -44,11 +44,32 @@ internal sealed class CatalogController : ApiControllerBase
     public async Task<IActionResult> DeleteCategory(long id, CancellationToken ct) =>
         FromResult(await Sender.Send(new DeleteGoodsCategoryCommand(id), ct), "Đã xóa nhóm hàng");
 
-    /// <summary>Thư viện mặt hàng: mỗi mặt hàng đã khai 1 dòng, đơn giá lần gần nhất.</summary>
+    /// <summary>Đánh dấu / bỏ yêu thích nhóm hàng — cả nhóm của khách lẫn nhóm chung Việt An (lưu riêng cho từng khách).</summary>
+    [HttpPut("catalog/categories/{id:long}/favorite")]
+    [HasPermission(ShipmentsPermissions.Create)]
+    [ProducesResponseType<ApiMessage>(StatusCodes.Status200OK)]
+    public async Task<IActionResult> FavoriteCategory(long id, FavoriteInput body, CancellationToken ct) =>
+        FromResult(await Sender.Send(new SetCategoryFavoriteCommand(id, body.IsFavorite), ct), body.IsFavorite ? "Đã thêm vào nhóm yêu thích" : "Đã bỏ yêu thích");
+
+    /// <summary>Thư viện mặt hàng: mỗi mặt hàng đã khai 1 dòng, đơn giá lần gần nhất; yêu thích lên đầu, mặt hàng đã xóa bị ẩn.</summary>
     [HttpGet("catalog/products")]
     [HasPermission(ShipmentsPermissions.View)]
     [ProducesResponseType<ApiResponse<IReadOnlyList<SavedProductDto>>>(StatusCodes.Status200OK)]
     public async Task<IActionResult> Products(CancellationToken ct) => OkData(await Sender.Send(new GetProductLibraryQuery(), ct));
+
+    /// <summary>Đánh dấu / bỏ yêu thích mặt hàng (id = khóa mặt hàng trong thư viện).</summary>
+    [HttpPut("catalog/products/{id}/favorite")]
+    [HasPermission(ShipmentsPermissions.Create)]
+    [ProducesResponseType<ApiMessage>(StatusCodes.Status200OK)]
+    public async Task<IActionResult> FavoriteProduct(string id, FavoriteInput body, CancellationToken ct) =>
+        FromResult(await Sender.Send(new SetProductFavoriteCommand(id, body.IsFavorite), ct), body.IsFavorite ? "Đã thêm vào mặt hàng yêu thích" : "Đã bỏ yêu thích");
+
+    /// <summary>Xóa mặt hàng khỏi thư viện (chỉ ẩn — đơn cũ giữ nguyên).</summary>
+    [HttpDelete("catalog/products/{id}")]
+    [HasPermission(ShipmentsPermissions.Create)]
+    [ProducesResponseType<ApiMessage>(StatusCodes.Status200OK)]
+    public async Task<IActionResult> DeleteProduct(string id, CancellationToken ct) =>
+        FromResult(await Sender.Send(new DeleteProductCommand(id), ct), "Đã xóa mặt hàng khỏi thư viện");
 
     /// <summary>Invoice của các đơn gần đây (≤ 50) để chép lại.</summary>
     [HttpGet("invoices/recent")]

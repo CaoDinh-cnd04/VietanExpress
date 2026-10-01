@@ -1,5 +1,5 @@
 import { useI18n } from '@/shared/i18n';
-import { Button, Icon, KeyValueList, LinkButton, Modal, StatusPill } from '@/shared/ui';
+import { Button, Icon, LinkButton, Modal, Sheet, SheetBox, SheetFields, SheetLines, SheetName, SheetRow, SheetTable, SheetTotals } from '@/shared/ui';
 import type { Draft } from '../api';
 import { draftDetail } from '../lib/draft-detail';
 import styles from './DraftDetailModal.module.css';
@@ -13,12 +13,13 @@ interface DraftDetailModalProps {
 
 const fmt = (n: number) => n.toLocaleString('en-US', { maximumFractionDigits: 2 });
 
-/** Xem toàn bộ thông tin đơn nháp / chưa in (form đã lưu) trước khi sửa hoặc in. */
+/** Xem đơn nháp / chưa in theo bố cục bản in (phiếu vận đơn) trước khi sửa hoặc In & cấp bill. */
 export function DraftDetailModal({ draft, onClose, onPrint, printing }: DraftDetailModalProps) {
   const { t } = useI18n();
   if (!draft) return null;
   const d = draftDetail(draft.payload);
   const ready = draft.stt === 'ready';
+  let no = 0;
 
   return (
     <Modal
@@ -38,68 +39,75 @@ export function DraftDetailModal({ draft, onClose, onPrint, printing }: DraftDet
         </>
       }
     >
-      <div className={styles.status}>
-        {ready ? <StatusPill tone="info">{t('Chưa in')}</StatusPill> : <StatusPill>{t('Nháp — chưa khai đủ')}</StatusPill>}
-      </div>
+      <p className={styles.state}>
+        {t(ready ? 'Đơn chưa in — mã VA Bill được cấp khi bấm "In & cấp bill".' : 'Đơn nháp — còn thiếu thông tin, bấm "Tiếp tục" để khai đủ.')}
+      </p>
 
-      <div className={styles.cols}>
-        <section>
-          <h3 className={styles.heading}>{t('Người gửi')}</h3>
-          <KeyValueList items={d.shipper} />
-        </section>
-        <section>
-          <h3 className={styles.heading}>{t('Người nhận')}</h3>
-          <KeyValueList items={d.receiver} />
-        </section>
-      </div>
+      <Sheet>
+        <SheetRow>
+          <SheetBox no={++no} title="Người gửi (Shipper)">
+            <SheetName>{d.shipper.name || '—'}</SheetName>
+            <SheetLines lines={d.shipper.lines} />
+            <SheetFields items={d.shipper.fields} />
+          </SheetBox>
+          <SheetBox no={++no} title="Người nhận (Consignee)">
+            <SheetName>{d.receiver.name || '—'}</SheetName>
+            <SheetLines lines={d.receiver.lines} />
+            <SheetFields items={d.receiver.fields} />
+          </SheetBox>
+        </SheetRow>
 
-      <section>
-        <h3 className={styles.heading}>{t('Dịch vụ & hàng hóa')}</h3>
-        <KeyValueList items={d.shipment} />
-      </section>
+        <SheetBox no={++no} title="Dịch vụ & lô hàng">
+          <SheetFields items={d.shipment} columns={4} />
+        </SheetBox>
 
-      {d.packages.length > 0 && (
-        <section>
-          <h3 className={styles.heading}>{t('Chi tiết kiện')}</h3>
-          <table className={styles.table}>
-            <thead>
-              <tr><th>{t('SL')}</th><th>{t('Bao bì')}</th><th>{t('Kích thước')}</th><th className={styles.num}>{t('Cân 1 kiện')}</th></tr>
-            </thead>
-            <tbody>
-              {d.packages.map((p, i) => (
-                <tr key={i}><td>{p.qty}</td><td>{t(p.packaging)}</td><td>{p.size}</td><td className={styles.num}>{p.weight}</td></tr>
-              ))}
-            </tbody>
-          </table>
-          {d.packageTotals && (
-            <p className={styles.total}>
-              {t('{n} kiện · cân thực {gross} kg · quy đổi {vol} kg', { n: d.packageTotals.pieces, gross: fmt(d.packageTotals.grossWeight), vol: fmt(d.packageTotals.volumetricWeight) })} ·{' '}
-              <strong>{t('cân tính cước {kg} kg', { kg: fmt(d.packageTotals.chargeableWeight) })}</strong>
-            </p>
-          )}
-        </section>
-      )}
+        {d.packages.length > 0 && (
+          <SheetBox no={++no} title="Chi tiết kiện">
+            <SheetTable
+              head={['SL', 'Bao bì', 'Nhóm hàng', 'D × R × C (cm)', 'Cân / kiện']}
+              numeric={[0, 4]}
+              rows={d.packages.map(p => [p.qty, t(p.packaging), t(p.category) || '—', p.size || '—', p.weight || '—'])}
+            />
+            {d.packageTotals && (
+              <SheetTotals
+                items={[
+                  ['Cân thực', `${fmt(d.packageTotals.grossWeight)} kg`],
+                  ['Cân quy đổi', `${fmt(d.packageTotals.volumetricWeight)} kg`],
+                  ['Cân tính cước', `${fmt(d.packageTotals.chargeableWeight)} kg`]
+                ]}
+              />
+            )}
+          </SheetBox>
+        )}
 
-      {d.items.length > 0 && (
-        <section>
-          <h3 className={styles.heading}>Invoice</h3>
-          <KeyValueList items={d.invoice} />
-          <table className={styles.table}>
-            <thead>
-              <tr><th>{t('Tên hàng')}</th><th>HS</th><th>{t('Xuất xứ')}</th><th>{t('Số lượng')}</th><th className={styles.num}>{t('Đơn giá')}</th><th className={styles.num}>{t('Thành tiền')}</th></tr>
-            </thead>
-            <tbody>
-              {d.items.map((it, i) => (
-                <tr key={i}>
-                  <td>{it.desc}</td><td>{it.hs}</td><td>{it.origin}</td><td>{t(it.qty)}</td>
-                  <td className={styles.num}>{it.price}</td><td className={styles.num}>{fmt(it.amount)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <p className={styles.total}><strong>{t('Tổng giá trị invoice: {total} {currency}', { total: fmt(d.invoiceTotal), currency: d.currency })}</strong></p>
-        </section>
-      )}
+        {d.items.length > 0 && (
+          <SheetBox no={++no} title="Invoice" aside={d.invoice.map(([, v]) => t(v)).filter(Boolean).join(' · ')}>
+            <SheetTable
+              head={['#', 'Mô tả hàng hóa', 'Mã HS', 'Xuất xứ', 'SL / ĐVT', 'Đơn giá', 'Thành tiền']}
+              numeric={[4, 5, 6]}
+              rows={d.items.map((it, i) => [
+                i + 1,
+                <>
+                  <div>{it.descEn}</div>
+                  {it.descVi && <div className={styles.sub}>{it.descVi}</div>}
+                  {it.manufacturer && <div className={styles.sub}>{it.manufacturer}</div>}
+                </>,
+                it.hs || '—',
+                it.origin || '—',
+                it.qty,
+                it.price,
+                fmt(it.amount)
+              ])}
+            />
+            <SheetTotals
+              items={[
+                ...(d.shippingFee ? [['Shipping fee', `${fmt(d.shippingFee)} ${d.currency}`] as const] : []),
+                ['Tổng giá trị invoice', `${fmt(d.invoiceTotal)} ${d.currency}`]
+              ]}
+            />
+          </SheetBox>
+        )}
+      </Sheet>
     </Modal>
   );
 }

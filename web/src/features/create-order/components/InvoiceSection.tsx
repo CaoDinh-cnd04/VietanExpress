@@ -2,7 +2,7 @@ import { get, useFieldArray, useFormContext, useWatch } from 'react-hook-form';
 import { useI18n } from '@/shared/i18n';
 import { cx } from '@/shared/lib/cx';
 import { Button, Card, FormGrid, Icon, SelectField, TextField } from '@/shared/ui';
-import { CURRENCIES, EXPORT_TYPES } from '../constants';
+import { CURRENCIES, DUTY_TERMS, EXPORT_TYPES } from '../constants';
 import { useFieldBinder } from '../hooks/useFieldBinder';
 import { invoiceTotal, lineTotal } from '../lib/shipment';
 import { emptyInvoiceItem, type CreateOrderValues } from '../schema';
@@ -11,6 +11,13 @@ import { UnitCell } from './UnitCell';
 import styles from './form.module.css';
 
 type ItemKey = keyof ReturnType<typeof emptyInvoiceItem>;
+
+/** Ô nhiều dòng tự giãn theo nội dung (trình duyệt chưa hỗ trợ field-sizing thì chỉnh chiều cao khi gõ). */
+const autoGrow = (e: React.FormEvent<HTMLTextAreaElement>) => {
+  const el = e.currentTarget;
+  el.style.height = 'auto';
+  el.style.height = `${el.scrollHeight + 2}px`;
+};
 
 export function InvoiceSection() {
   const bind = useFieldBinder();
@@ -22,6 +29,18 @@ export function InvoiceSection() {
   const err = (i: number, key: ItemKey) => get(formState.errors, `invoice.items.${i}.${key}`)?.message as string | undefined;
   const cell = (i: number, key: ItemKey, props: Record<string, unknown> = {}) => (
     <input className={cx(styles.cell, err(i, key) && styles.cellInvalid)} title={err(i, key)} {...props} {...register(`invoice.items.${i}.${key}`)} />
+  );
+  // Tên / nhà sản xuất: Enter để xuống dòng (vd "Nhà sản xuất" ↵ "Địa chỉ"); dòng dài tự xuống dòng.
+  const area = (i: number, key: ItemKey, props: Record<string, unknown> = {}) => (
+    <textarea
+      rows={1}
+      className={cx(styles.cell, styles.cellArea, err(i, key) && styles.cellInvalid)}
+      title={err(i, key)}
+      aria-invalid={err(i, key) ? true : undefined}
+      onInput={autoGrow}
+      {...props}
+      {...register(`invoice.items.${i}.${key}`)}
+    />
   );
 
   return (
@@ -40,6 +59,14 @@ export function InvoiceSection() {
           />
           <FormGrid columns={3}>
             <SelectField label="Hình thức xuất khẩu" required placeholder="Chọn hình thức xuất khẩu" options={EXPORT_TYPES} {...bind('invoice.exportType')} />
+            <SelectField
+              label="Hình thức chịu thuế"
+              required
+              placeholder="Chọn hình thức chịu thuế"
+              hint="DDP: người gửi chịu thuế · DDU: người nhận chịu thuế"
+              options={DUTY_TERMS}
+              {...bind('invoice.dutyTerms')}
+            />
             <SelectField label="Đơn vị tiền tệ" required placeholder="Đơn vị tiền tệ" options={CURRENCIES} {...bind('invoice.currency')} />
           </FormGrid>
 
@@ -63,9 +90,9 @@ export function InvoiceSection() {
                     <td className={styles.rowNo}>{i + 1}</td>
                     <td>
                       <div className={styles.stack}>
-                        {cell(i, 'descEn', { placeholder: t('Tên tiếng Anh (bắt buộc)'), 'aria-label': t('Tên EN mặt hàng {n}', { n: i + 1 }) })}
-                        {cell(i, 'descVi', { placeholder: t('Tên tiếng Việt'), 'aria-label': t('Tên VN mặt hàng {n}', { n: i + 1 }) })}
-                        {cell(i, 'manufacturer', { placeholder: t('Nhà sản xuất, địa chỉ'), 'aria-label': t('Nhà sản xuất mặt hàng {n}', { n: i + 1 }) })}
+                        {area(i, 'descEn', { placeholder: t('Tên tiếng Anh (bắt buộc)'), 'aria-label': t('Tên EN mặt hàng {n}', { n: i + 1 }) })}
+                        {area(i, 'descVi', { placeholder: t('Tên tiếng Việt (bắt buộc)'), 'aria-label': t('Tên VN mặt hàng {n}', { n: i + 1 }) })}
+                        {area(i, 'manufacturer', { placeholder: t('Nhà sản xuất ↵ địa chỉ (Enter để xuống dòng)'), 'aria-label': t('Nhà sản xuất mặt hàng {n}', { n: i + 1 }) })}
                       </div>
                     </td>
                     <td>{cell(i, 'origin', { 'aria-label': t('Xuất xứ mặt hàng {n}', { n: i + 1 }) })}</td>
@@ -93,18 +120,19 @@ export function InvoiceSection() {
             <Button size="sm" onClick={() => append(emptyInvoiceItem())}>
               <Icon name="plus" size={15} /> {t('Thêm mặt hàng')}
             </Button>
-            <div className={styles.invoiceTotal}>
-              <span>{t('Tổng giá trị invoice · {n} mặt hàng', { n: items.length })}</span>
-              <strong>{fmt.format(invoiceTotal(items))} {currency}</strong>
-            </div>
           </div>
         </>
       )}
 
-      <div className={styles.spaced}>
-        <FormGrid columns={3}>
-          <TextField label="Shipping fee (nếu khai)" type="number" min={0} step="any" suffix={currency} {...bind('invoice.shippingFee')} />
-        </FormGrid>
+      {/* Shipping fee và tổng giá trị invoice trên cùng 1 hàng */}
+      <div className={cx(styles.spaced, styles.feeRow)}>
+        <TextField label="Shipping fee (nếu khai)" type="number" min={0} step="any" suffix={currency} {...bind('invoice.shippingFee')} />
+        {type !== 'DOC' && (
+          <div className={styles.invoiceTotal}>
+            <span>{t('Tổng giá trị invoice · {n} mặt hàng', { n: items.length })}</span>
+            <strong>{fmt.format(invoiceTotal(items))} {currency}</strong>
+          </div>
+        )}
       </div>
     </Card>
   );

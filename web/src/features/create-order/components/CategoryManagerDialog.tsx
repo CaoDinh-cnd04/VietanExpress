@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { getErrorMessage } from '@/shared/api/http';
 import { useI18n } from '@/shared/i18n';
+import { cx } from '@/shared/lib/cx';
 import { Button, Icon, Modal, useToast } from '@/shared/ui';
-import { useCategories, useDeleteCategory, useSaveCategory, type Category } from '../api';
+import { useCategories, useDeleteCategory, useFavoriteCategory, useSaveCategory, type Category } from '../api';
 import { RULES } from '../constants';
 import styles from './form.module.css';
 
@@ -16,8 +17,8 @@ interface CategoryManagerDialogProps {
 }
 
 /**
- * Quản lý nhóm hàng hóa (dbo.NhomHangHoa): khách thêm / đổi tên / đánh dấu yêu thích / xóa nhóm của mình.
- * Nhóm chung của Việt An chỉ xem, không sửa.
+ * Quản lý nhóm hàng hóa (dbo.NhomHangHoa): khách thêm / đổi tên / xóa nhóm của mình.
+ * Đánh dấu yêu thích được cả nhóm chung của Việt An (lưu riêng cho khách) — nhóm yêu thích hiện ở đầu ô chọn nhóm.
  */
 export function CategoryManagerDialog({ open, onClose, onCreated, onRenamed }: CategoryManagerDialogProps) {
   const { t } = useI18n();
@@ -25,11 +26,12 @@ export function CategoryManagerDialog({ open, onClose, onCreated, onRenamed }: C
   const { data: categories = [], isLoading, isError } = useCategories();
   const save = useSaveCategory();
   const remove = useDeleteCategory();
+  const favorite = useFavoriteCategory();
   const [newName, setNewName] = useState('');
   const [editing, setEditing] = useState<{ id: string; name: string } | null>(null);
   const own = categories.filter(c => c.isOwn);
   const shared = categories.filter(c => !c.isOwn);
-  const busy = save.isPending || remove.isPending;
+  const busy = save.isPending || remove.isPending || favorite.isPending;
 
   const fail = (e: unknown) => toast.show(getErrorMessage(e), 'error');
 
@@ -56,7 +58,7 @@ export function CategoryManagerDialog({ open, onClose, onCreated, onRenamed }: C
     save.mutate({ id: c.id, name, isFavorite: c.isFavorite }, { onSuccess: res => { setEditing(null); toast.show(res.message, 'success'); onRenamed?.(c.name, res.data.name); }, onError: fail });
   };
 
-  const toggleFavorite = (c: Category) => save.mutate({ id: c.id, name: c.name, isFavorite: !c.isFavorite }, { onError: fail });
+  const toggleFavorite = (c: Category) => favorite.mutate({ id: c.id, isFavorite: !c.isFavorite }, { onError: fail });
 
   const del = (c: Category) => {
     if (!window.confirm(t('Xóa nhóm "{name}"? Đơn đã khai nhóm này không bị ảnh hưởng.', { name: c.name }))) return;
@@ -138,7 +140,24 @@ export function CategoryManagerDialog({ open, onClose, onCreated, onRenamed }: C
       )}
 
       <h4 className={styles.spaced}>{t('Nhóm chung của Việt An ({n})', { n: shared.length })}</h4>
-      <p className={styles.hint}>{shared.map(c => t(c.name)).join(' · ') || '—'}</p>
+      <p className={styles.hint}>{t('Bấm ngôi sao để đưa nhóm vào mục "Nhóm yêu thích" ở đầu ô chọn nhóm hàng.')}</p>
+      <div className={styles.catChips}>
+        {shared.map(c => (
+          <button
+            key={c.id}
+            type="button"
+            className={cx(styles.catChip, c.isFavorite && styles.catChipOn)}
+            disabled={busy}
+            aria-pressed={c.isFavorite}
+            title={t(c.isFavorite ? 'Bỏ yêu thích' : 'Đánh dấu yêu thích')}
+            onClick={() => toggleFavorite(c)}
+          >
+            <Icon name="star" size={13} className={c.isFavorite ? styles.starOn : undefined} />
+            {t(c.name)}
+          </button>
+        ))}
+        {!shared.length && <span className={styles.hint}>—</span>}
+      </div>
     </Modal>
   );
 }

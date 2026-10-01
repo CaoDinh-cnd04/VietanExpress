@@ -35,7 +35,6 @@ export function StatusFilter({ value, onChange, counts }: StatusFilterProps) {
           </button>
         );
       })}
-      <span className={styles.hint}>{t('Bấm nhiều trạng thái để lọc cùng lúc')}</span>
     </div>
   );
 }

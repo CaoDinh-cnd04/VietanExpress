@@ -144,13 +144,17 @@ Body POST / PUT (`NewDraft`):
 
 | Method | Path | Trạng thái | Mô tả |
 |---|---|---|---|
-| GET | `/catalog/categories` | Có sẵn | Nhóm hàng (bảng `dbo.NhomHangHoa`): nhóm của khách (yêu thích trước) rồi nhóm chung Việt An — `Category[]` |
+| GET | `/catalog/categories` | Có sẵn | Nhóm hàng (bảng `dbo.NhomHangHoa`): nhóm yêu thích (của khách hoặc nhóm chung khách đã đánh dấu) trước, rồi nhóm của khách, rồi nhóm chung Việt An — `Category[]` |
 | POST | `/catalog/categories` | Có sẵn | Khách thêm nhóm: body `{ name, isFavorite }` → `{ data: Category, message }`. Tên trống **400**, trùng (không phân biệt hoa thường, kể cả nhóm chung) **409** |
 | PUT | `/catalog/categories/:id` | Có sẵn | Đổi tên / yêu thích nhóm của khách, body như POST. Nhóm chung hoặc của khách khác **404** |
 | DELETE | `/catalog/categories/:id` | Có sẵn | Xóa nhóm của khách (đơn đã khai nhóm này giữ nguyên) |
+| PUT | `/catalog/categories/:id/favorite` | **Mới** | Đánh dấu / bỏ yêu thích, body `{ isFavorite }` → `{ message }`. Được cả nhóm chung (lưu riêng cho khách trong `dbo.MatHangKhachHang`, Loai = `NHOM`); nhóm của khách cập nhật `NhomHangHoa.Yeu_Thich`. Không thấy nhóm **404** |
 `Category`: `{ id, name, isFavorite, isOwn, suggestions: [{ en, vi, hs }] }` — `isOwn = false` là nhóm chung Việt An (`CustomerID` NULL), chỉ đọc.
 
-| GET | `/catalog/products` | Có sẵn | Thư viện mặt hàng của khách: `SavedProduct[]` — lấy từ các dòng hàng đã khai trong `dbo.MaVanDon_ChiTietHang` (đơn của khách), mỗi mặt hàng 1 dòng, đơn giá lần gần nhất |
+| GET | `/catalog/addon-fees` | **Mới** | Biểu phí tùy chọn dịch vụ: `AddonFee[]` = `{ name, fee: number \| null, currency, unit, note? }`. `name` khớp tên tùy chọn trên form (vd "Đóng gói hộ"); `currency` = `"%"` khi tính theo % (`unit` vd "giá trị hàng"); `fee` null = chưa có giá. Chưa có endpoint (404/501) → form hiện "Đang cập nhật" |
+| GET | `/catalog/products` | Có sẵn | Thư viện mặt hàng của khách: `SavedProduct[]` — lấy từ các dòng hàng đã khai trong `dbo.MaVanDon_ChiTietHang` (đơn của khách), mỗi mặt hàng 1 dòng, đơn giá lần gần nhất. Mặt hàng yêu thích đứng đầu, mặt hàng khách đã xóa không trả về. `SavedProduct.id` = khóa mặt hàng (SHA-256 hex 64 ký tự của tên EN/VN, HS, xuất xứ, đơn vị, nhà sản xuất — không phân biệt hoa thường); `isFavorite` |
+| PUT | `/catalog/products/:id/favorite` | **Mới** | Đánh dấu / bỏ yêu thích mặt hàng, body `{ isFavorite }` → `{ message }` (bảng `dbo.MatHangKhachHang`, Loai = `SP`). Khóa sai định dạng **400** |
+| DELETE | `/catalog/products/:id` | **Mới** | Xóa mặt hàng khỏi thư viện — chỉ ẩn (`Da_Xoa = 1`), dòng hàng trong đơn cũ giữ nguyên. |
 | POST | `/catalog/products` | Không làm | Mặt hàng tự vào thư viện khi đơn được cấp bill (ghi `MaVanDon_ChiTietHang`) — bảng không có cột khách nên không lưu riêng được |
 | GET | `/invoices/recent?limit=20` | Có sẵn | Invoice đơn gần đây (≤ 50, từ `MaVanDon_ChiTietHang`) để chép lại: `{ bill, cnee, date, currency, items: SavedProduct[] }[]` |
 | GET | `/geo/countries` | Có sẵn | Quốc gia + mã điện thoại: `[{ code: "US", name: "United States", dialCode: "+1" }]` (backend lấy từ world-countries, cache 1 ngày) |

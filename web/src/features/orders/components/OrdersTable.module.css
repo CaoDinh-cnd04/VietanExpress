@@ -2,9 +2,14 @@
   overflow-x: auto;
 }
 
+/* Bảng kẻ ô như hệ thống cũ: viền mọi ô, tiêu đề nền xám, nội dung căn giữa theo chiều dọc */
+/* Bảng gọn (chữ 12px, đệm hẹp) để đủ các cột như hệ thống cũ trên màn hình laptop */
 .table {
+  --text-sm: 12px;
+  --text-md: 12.5px;
+  --text-xs: 11px;
   width: 100%;
-  min-width: 1000px;
+  min-width: 1060px;
   border-collapse: collapse;
   transition: opacity 0.15s;
 }
@@ -13,39 +18,44 @@
   opacity: 0.6;
 }
 
+.table th,
+.table td {
+  border: 1px solid var(--color-border);
+}
+
 .table th {
-  padding: 10px 12px;
+  padding: 7px 6px;
   text-align: left;
   font-size: var(--text-sm);
   font-weight: 700;
   color: var(--color-text);
   background: var(--color-surface-muted);
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border-strong);
   white-space: nowrap;
 }
 
 .table td {
-  padding: 12px;
-  vertical-align: top;
-  border-bottom: 1px solid var(--color-border);
+  padding: 6px;
+  vertical-align: middle;
   font-size: var(--text-sm);
-}
-
-.table tbody tr:last-child td {
-  border-bottom: 0;
+  line-height: 1.45;
 }
 
 .row {
   cursor: pointer;
 }
 
-/* Dòng xen màu cho mắt dễ dò theo hàng ngang */
 .row:nth-child(even) td {
   background: var(--color-surface-muted);
 }
 
+/* Rê chuột vào dòng: nền xanh đậm hơn để dễ dò theo hàng ngang */
 .row:hover td {
-  background: var(--color-brand-softer);
+  background: color-mix(in srgb, var(--color-brand) 18%, var(--color-surface));
+}
+
+.rowChecked td {
+  background: color-mix(in srgb, var(--color-brand) 10%, var(--color-surface));
 }
 
 .sortBtn {
@@ -68,123 +78,113 @@
   color: var(--color-brand-strong);
 }
 
+/* Cột số thứ tự + chọn: số ở trên, ô chọn ở dưới như mẫu cũ */
 .colCheck {
-  width: 36px;
-  padding-right: 0 !important;
+  width: 40px;
+  text-align: center;
 }
 
-.colNo {
-  width: 36px;
-  color: var(--color-text-faint);
-  font-size: var(--text-xs) !important;
+.no {
+  margin-bottom: 4px;
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.colRef {
+  width: 64px;
 }
 
 .colBill {
-  width: 130px;
+  width: 112px;
+}
+
+/* Số VA Bill: cùng font với bảng (không dùng font máy chữ), số đều nét */
+.bill {
+  margin-bottom: 4px;
+  font-family: var(--font-sans);
+  font-size: var(--text-md);
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
 }
 
 .colCnee {
-  min-width: 170px;
-  max-width: 260px;
+  min-width: 140px;
 }
 
-.colService {
-  width: 150px;
+.cnee {
+  font-weight: 400;
 }
 
-.colGoods {
-  min-width: 150px;
-  max-width: 220px;
-}
-
-.colJourney {
-  min-width: 200px;
-}
-
-.colActions {
-  width: 104px;
-}
-
-/* Cột thao tác ghim phải khi bảng phải cuộn ngang */
-.table th.colActions,
-.table td.colActions {
-  position: sticky;
-  right: 0;
-  background: var(--color-surface);
-  box-shadow: -1px 0 0 var(--color-border);
-}
-
-.table th.colActions {
-  background: var(--color-surface-muted);
-}
-
-/* Cột ghim cùng màu với dòng (xen màu / rê chuột) */
-.row:nth-child(even) td.colActions {
-  background: var(--color-surface-muted);
-}
-
-.row:hover td.colActions {
-  background: var(--color-brand-softer);
-}
-
-.bill {
-  margin-bottom: 6px;
-  font-size: var(--text-md);
-  font-weight: 700;
-}
-
-/* Dòng chính của ô (tên người nhận, hàng hóa): đậm, rõ */
-.primary,
-.goods {
-  font-weight: 600;
-  line-height: 1.35;
-}
-
-.goods {
-  font-weight: 500;
-  overflow-wrap: anywhere;
+/* Tên nước ngay dưới tên người nhận */
+.cneeCountry {
+  margin-top: 2px;
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
 }
 
 .route {
-  font-weight: 600;
-  color: var(--color-brand-strong);
+  margin-top: 2px;
+  color: var(--color-info);
 }
 
-/* Dòng phụ: nhỏ hơn, màu phụ */
-.sub {
+.colDate {
+  width: 100px;
+  white-space: nowrap;
+}
+
+/* Mã tracking hãng dưới số VA Bill — cách ra 1 khoảng, có nhãn nhỏ */
+.carrierNo {
   display: flex;
-  align-items: center;
-  gap: 4px;
-  margin-top: 4px;
+  flex-direction: column;
+  gap: 1px;
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--color-border);
+}
+
+.carrierLabel {
+  font-size: 10.5px;
+  color: var(--color-text-muted);
+}
+
+.connect {
   font-size: var(--text-xs);
-  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap; /* mã tracking hãng (tới 12 số) không xuống dòng */
+  color: var(--color-info);
 }
 
-/* Hành trình: nhãn Tạo / Gửi / Giao thẳng cột bên trái, giá trị bên phải */
-.journey {
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  gap: 3px 10px;
-  margin: 0;
+/* Cột trạng thái / POD: nhãn trạng thái trên, ngày giao + người ký dưới */
+.colPod {
+  width: 104px;
 }
 
-.journey dt {
-  font-size: var(--text-xs);
-  color: var(--color-text-muted);
+.podDate {
+  margin-top: 6px;
 }
 
-.journey dd {
-  margin: 0;
+.colTracking {
+  width: 100px;
 }
 
-.delivered {
-  font-weight: 600;
-  color: var(--color-brand-strong);
+.colCreated {
+  min-width: 130px;
 }
 
-.signer {
-  font-weight: 400;
-  color: var(--color-text-muted);
+.colPrint {
+  width: 96px;
+  text-align: center;
+}
+
+.colLabel {
+  width: 70px;
+  text-align: center;
+}
+
+.colMore {
+  width: 34px;
+  text-align: center;
 }
 
 .nil {
@@ -195,6 +195,47 @@
   padding: 40px !important;
   text-align: center;
   color: var(--color-text-muted);
+}
+
+/* ---------- Mũi tên ↓ xổ chi tiết trong ô ---------- */
+.expandLine {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.expandBtn {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: none;
+  color: var(--color-warning);
+}
+
+.expandBtn:hover {
+  border-color: var(--color-border-strong);
+  background: var(--color-surface);
+}
+
+.chev {
+  transition: transform 0.15s;
+}
+
+.chevOpen {
+  transform: rotate(180deg);
+}
+
+/* Nội dung xổ ra: các dòng thường như mẫu cũ (ATT / Tel, địa chỉ, Postcode / City / State) */
+.more {
+  margin-top: 2px;
+  color: var(--color-text);
+  overflow-wrap: anywhere;
 }
 
 /* ---------- Chọn ô như Excel ---------- */

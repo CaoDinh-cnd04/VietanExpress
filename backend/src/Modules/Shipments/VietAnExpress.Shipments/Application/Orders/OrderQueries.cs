@@ -53,7 +53,7 @@ internal sealed class GetOrdersHandler(ShipmentsDbContext db, OrderAccess access
 
         var page = await OrderListFilter.Sort(query, q.SortBy, q.SortDir).ToPagedResultAsync(q.Page, q.PageSize, ct);
         return new OrderListResponse(
-            page.Items.Select(o => LegacyOrderView.ToDto(o, today)).ToList(),
+            page.Items.Select(o => LegacyOrderView.ToListDto(o, today)).ToList(),
             page.TotalCount, page.Page, page.PageSize, page.TotalPages,
             new OrderSummaryDto(counts, totals?.Pieces ?? 0, totals?.Weight ?? 0));
     }

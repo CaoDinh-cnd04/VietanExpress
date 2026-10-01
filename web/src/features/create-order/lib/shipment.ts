@@ -1,5 +1,5 @@
 import { fill } from '@/shared/i18n';
-import { RULES } from '../constants';
+import { MULTI_CATEGORY, RULES } from '../constants';
 import type { CreateOrderValues, InvoiceItemValues, PackageValues } from '../schema';
 
 /** Chuỗi ô nhập → số; rỗng / sai → 0. */
@@ -61,6 +61,24 @@ export const lineTotal = (item: Pick<InvoiceItemValues, 'qty' | 'price'>): numbe
 
 export const invoiceTotal = (items: ReadonlyArray<InvoiceItemValues>): number => round(items.reduce((s, it) => s + lineTotal(it), 0));
 
+/** Tên hàng của 1 dòng kiện: "Nhiều loại hàng" → mô tả khách nhập; nhóm khác → tên nhóm. */
+export function packageGoodsName(p: Pick<PackageValues, 'category' | 'description'>): string {
+  const category = (p.category ?? '').trim();
+  return category && category !== MULTI_CATEGORY ? category : (p.description ?? '').trim();
+}
+
+/**
+ * Nội dung hàng (tên hàng ghi vào đơn) = tên hàng các dòng kiện, bỏ trùng, nối bằng ", ".
+ * Nháp cũ khai nhóm hàng ở cấp đơn (chưa có theo dòng kiện) thì dùng cách cũ: nhóm thường → tên nhóm, nhiều loại → mô tả.
+ */
+export function goodsName(v: Pick<CreateOrderValues, 'goods' | 'packages'>): string {
+  // Mô tả tổng quan (content) khách khai ở "Thông tin đơn hàng" là tên hàng của đơn
+  const content = (v.goods.description ?? '').trim();
+  if (content && !v.goods.category) return content;
+  const names = [...new Set(v.packages.map(packageGoodsName).filter(Boolean))];
+  return names.length ? names.join(', ') : packageGoodsName(v.goods);
+}
+
 /** Dữ liệu gửi POST /drafts. 'ready' = đã khai đủ, chờ in; 'draft' = lưu nháp dở. */
 export function buildDraftPayload(v: CreateOrderValues, status: 'draft' | 'ready') {
   const isPack = v.shipment.type === 'PACK';
@@ -72,8 +90,8 @@ export function buildDraftPayload(v: CreateOrderValues, status: 'draft' | 'ready
     service: v.service.hub || v.service.carrier || '—',
     branch: v.shipper.branch,
     ref: v.service.reference,
-    pcs: fill('{pcs} kiện · {kg} kg', { pcs: toNumber(v.shipment.pieces) || 1, kg: weight }),
-    content: isPack ? v.goods.description || 'Hàng hóa' : v.goods.docContent || 'Chứng từ',
+    pcs: fill('{pcs} kiện · {kg} kg', { pcs: (isPack ? summarizePackages(v.packages).pieces : toNumber(v.shipment.pieces)) || 1, kg: weight }),
+    content: isPack ? goodsName(v) || 'Hàng hóa' : v.goods.docContent || 'Documents',
     payload: v as unknown as Record<string, unknown>
   };
 }

@@ -36,18 +36,28 @@ internal static class GoodsCategoryRules
         return name;
     }
 
-    /// <summary>Nhóm của khách (yêu thích trước, rồi theo tên) đứng trước nhóm chung (theo thứ tự Việt An đặt).</summary>
-    public static IReadOnlyList<GoodsCategoryDto> Order(IEnumerable<GoodsCategory> categories) =>
+    /// <summary>
+    /// Nhóm yêu thích (của khách hoặc nhóm chung khách đã đánh dấu) lên đầu; rồi nhóm của khách (theo tên),
+    /// cuối cùng nhóm chung (theo thứ tự Việt An đặt).
+    /// </summary>
+    /// <param name="favoriteSharedIds">ID nhóm chung khách đánh dấu yêu thích (dbo.MatHangKhachHang).</param>
+    public static IReadOnlyList<GoodsCategoryDto> Order(IEnumerable<GoodsCategory> categories, IReadOnlySet<long>? favoriteSharedIds = null) =>
         categories
-            .OrderBy(c => c.CustomerId is null)
-            .ThenByDescending(c => c.IsFavorite)
-            .ThenBy(c => c.CustomerId is null ? c.SortOrder : 0)
-            .ThenBy(c => c.Name, StringComparer.CurrentCultureIgnoreCase)
-            .Select(ToDto)
+            .Select(c => (Category: c, Favorite: IsFavorite(c, favoriteSharedIds)))
+            .OrderByDescending(x => x.Favorite)
+            .ThenBy(x => x.Category.CustomerId is null)
+            .ThenBy(x => x.Category.CustomerId is null ? x.Category.SortOrder : 0)
+            .ThenBy(x => x.Category.Name, StringComparer.CurrentCultureIgnoreCase)
+            .Select(x => ToDto(x.Category, x.Favorite))
             .ToList();
 
-    public static GoodsCategoryDto ToDto(GoodsCategory c) =>
-        new(c.Id.ToString(System.Globalization.CultureInfo.InvariantCulture), c.Name, c.IsFavorite, c.CustomerId is not null, []);
+    private static bool IsFavorite(GoodsCategory c, IReadOnlySet<long>? favoriteSharedIds) =>
+        c.CustomerId is null ? favoriteSharedIds?.Contains(c.Id) == true : c.IsFavorite;
+
+    public static GoodsCategoryDto ToDto(GoodsCategory c) => ToDto(c, c.IsFavorite);
+
+    private static GoodsCategoryDto ToDto(GoodsCategory c, bool isFavorite) =>
+        new(c.Id.ToString(System.Globalization.CultureInfo.InvariantCulture), c.Name, isFavorite, c.CustomerId is not null, []);
 }
 
 // ---------- GET /catalog/categories ----------
@@ -60,10 +70,14 @@ internal sealed record SaveGoodsCategoryCommand(long? Id, GoodsCategoryInput Inp
 
 internal sealed record DeleteGoodsCategoryCommand(long Id) : IRequest<Result>;
 
+/// <summary>Đánh dấu / bỏ yêu thích — được cả nhóm chung (lưu riêng cho khách trong dbo.MatHangKhachHang).</summary>
+internal sealed record SetCategoryFavoriteCommand(long Id, bool IsFavorite) : IRequest<Result>;
+
 internal sealed class GoodsCategoryHandlers(ShipmentsDbContext db, ICurrentUser user, TimeProvider clock) :
     IRequestHandler<GetGoodsCategoriesQuery, IReadOnlyList<GoodsCategoryDto>>,
     IRequestHandler<SaveGoodsCategoryCommand, Result<GoodsCategoryDto>>,
-    IRequestHandler<DeleteGoodsCategoryCommand, Result>
+    IRequestHandler<DeleteGoodsCategoryCommand, Result>,
+    IRequestHandler<SetCategoryFavoriteCommand, Result>
 {
     /// <summary>Nhóm chung + nhóm của khách đang đăng nhập.</summary>
     private IQueryable<GoodsCategory> Visible() =>
@@ -71,8 +85,38 @@ internal sealed class GoodsCategoryHandlers(ShipmentsDbContext db, ICurrentUser 
             ? db.GoodsCategories.Where(c => c.CustomerId == null || c.CustomerId == customerId)
             : db.GoodsCategories.Where(c => c.CustomerId == null);
 
-    public async Task<IReadOnlyList<GoodsCategoryDto>> Handle(GetGoodsCategoriesQuery q, CancellationToken ct) =>
-        GoodsCategoryRules.Order(await Visible().AsNoTracking().ToListAsync(ct));
+    public async Task<IReadOnlyList<GoodsCategoryDto>> Handle(GetGoodsCategoriesQuery q, CancellationToken ct)
+    {
+        var categories = await Visible().AsNoTracking().ToListAsync(ct);
+        if (user.CustomerId is not { } customerId) return GoodsCategoryRules.Order(categories);
+
+        var keys = await db.CatalogMarks.AsNoTracking()
+            .Where(m => m.CustomerId == customerId && m.Kind == CatalogMark.Category && m.IsFavorite)
+            .Select(m => m.Key)
+            .ToListAsync(ct);
+        var favorites = keys.Select(k => long.TryParse(k, out var id) ? id : 0).Where(id => id > 0).ToHashSet();
+        return GoodsCategoryRules.Order(categories, favorites);
+    }
+
+    public async Task<Result> Handle(SetCategoryFavoriteCommand cmd, CancellationToken ct)
+    {
+        if (user.CustomerId is not { } customerId) return OrderErrors.CustomerRequired;
+        var category = await Visible().FirstOrDefaultAsync(c => c.Id == cmd.Id, ct);
+        if (category is null) return GoodsCategoryErrors.NotFound;
+
+        var now = VietnamTime.ToVietnam(clock.GetUtcNow()).DateTime;
+        if (category.CustomerId is null)
+        {
+            var key = category.Id.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            await CatalogMarkStore.UpsertAsync(db, customerId, CatalogMark.Category, key, m => m.SetFavorite(cmd.IsFavorite, now), now, ct);
+        }
+        else
+        {
+            category.Update(category.Name, cmd.IsFavorite, now);
+            await db.SaveChangesAsync(ct);
+        }
+        return Result.Success();
+    }
 
     public async Task<Result<GoodsCategoryDto>> Handle(SaveGoodsCategoryCommand cmd, CancellationToken ct)
     {

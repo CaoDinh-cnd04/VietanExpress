@@ -31,7 +31,7 @@ export function Topbar({ onMenu, onStartTour }: { onMenu: () => void; onStartTou
   return (
     <header className={styles.topbar}>
       <button type="button" className={styles.iconBtn} onClick={onMenu} aria-label={t('Ẩn/hiện menu')}>
-        <Icon name="menu" />
+        <Icon name="menu" size={16} />
       </button>
       <nav className={styles.crumb} aria-label="Breadcrumb">
         <span>{t('Portal khách hàng')}</span>
@@ -46,10 +46,10 @@ export function Topbar({ onMenu, onStartTour }: { onMenu: () => void; onStartTou
           ))}
         </div>
         <button type="button" className={styles.iconBtn} onClick={toggle} aria-label={t(theme === 'dark' ? 'Chuyển giao diện sáng' : 'Chuyển giao diện tối')}>
-          <Icon name={theme === 'dark' ? 'sun' : 'moon'} />
+          <Icon name={theme === 'dark' ? 'sun' : 'moon'} size={16} />
         </button>
         <Link to="/notifications" className={styles.iconBtn} data-tour="notifications" aria-label={notifications ? t('Thông báo, {n} chưa đọc', { n: notifications }) : t('Thông báo')}>
-          <Icon name="bell" />
+          <Icon name="bell" size={16} />
           {notifications > 0 && <span className={styles.dot}>{notifications}</span>}
         </Link>
         <DropdownMenu

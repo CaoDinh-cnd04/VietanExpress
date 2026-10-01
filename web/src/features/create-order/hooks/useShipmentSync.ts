@@ -9,9 +9,11 @@ import type { CreateOrderValues } from '../schema';
 const OPTS = { shouldDirty: true } as const;
 
 /**
- * Đồng bộ "Số kiện / Cân nặng" (bước 1) với bảng kiện (bước 2):
- * - Bảng có 1 dòng: sửa ở bước 1 → cập nhật dòng kiện (cân/kiện = tổng cân / số kiện).
- * - Sửa bảng kiện → tổng ở bước 1 cập nhật theo; nhiều dòng thì ô bước 1 chỉ đọc.
+ * Đồng bộ cân nặng giữa bước 1 và bảng kiện (bước 2):
+ * - Bảng có 1 dòng: sửa cân ở bước 1 → cập nhật cân/kiện của dòng đó (= tổng cân / SL dòng).
+ * - Sửa bảng kiện → tổng cân ở bước 1 cập nhật theo; nhiều dòng thì ô cân bước 1 chỉ đọc.
+ * "Số kiện" là tổng khách khai, KHÔNG tự đổi SL trong bảng kiện (dòng mới mặc định SL 1) và ngược lại —
+ * tạo đơn mới kiểm tra tổng SL các dòng phải bằng số kiện (schema).
  * Chạy theo sự kiện nhập (không dùng effect) để tránh vòng lặp cập nhật qua lại.
  * Đồng thời áp quy tắc chứng từ / hàng hoá theo cân (applyDocWeightRule):
  * chứng từ > 2kg tự chuyển PACK; PACK do hệ thống tự chuyển mà cân về ≤ 2kg thì trả lại chứng từ.
@@ -25,16 +27,21 @@ export function useShipmentSync(form: UseFormReturn<CreateOrderValues>) {
 
   const applyTypeRule = useCallback(
     (wasAutoConverted: boolean) => {
-      const { shipment, goods } = getValues();
+      const { shipment } = getValues();
       const next = applyDocWeightRule({ type: shipment.type, autoConverted: wasAutoConverted }, shipment.grossWeight);
       setAutoConverted(next.autoConverted);
       if (next.change === 'toPack') {
         setValue('shipment.type', 'PACK', OPTS);
-        if (goods.docContent && !goods.description) setValue('goods.description', goods.docContent, OPTS);
+        // Chứng từ quá cân → hàng hóa: chuyển số kiện / cân sang dòng kiện đầu tiên
+        const pieces = Math.max(1, Math.trunc(toNumber(shipment.pieces)));
+        const gross = toNumber(shipment.grossWeight);
+        if (getValues('packages').length === 1) {
+          setValue('packages.0.qty', String(pieces), OPTS);
+          setValue('packages.0.weight', gross ? String(Math.round((gross / pieces) * 100) / 100) : '', OPTS);
+        }
         toast.show(t('Tài liệu trên {kg}kg được tính là hàng hóa — đã chuyển sang PACK.', { kg: RULES.docMaxWeightKg }));
       } else if (next.change === 'toDoc') {
         setValue('shipment.type', 'DOC', OPTS);
-        if (goods.description && !goods.docContent) setValue('goods.docContent', goods.description, OPTS);
         toast.show(t('Cân nặng không quá {kg}kg — đã chuyển lại chứng từ (DOC).', { kg: RULES.docMaxWeightKg }));
       }
     },
@@ -50,16 +57,14 @@ export function useShipmentSync(form: UseFormReturn<CreateOrderValues>) {
 
     const { shipment, packages } = getValues();
     if (packages.length !== 1) return;
-    const pieces = Math.max(1, Math.trunc(toNumber(shipment.pieces)));
+    const rowQty = Math.max(1, Math.trunc(toNumber(packages[0]!.qty)));
     const gross = toNumber(shipment.grossWeight);
-    setValue('packages.0.qty', String(pieces), OPTS);
-    setValue('packages.0.weight', gross ? String(Math.round((gross / pieces) * 100) / 100) : '', OPTS);
+    setValue('packages.0.weight', gross ? String(Math.round((gross / rowQty) * 100) / 100) : '', OPTS);
   }, [applyTypeRule, autoConverted, getValues, setValue]);
 
   /** Gọi sau khi người dùng sửa / thêm / xóa dòng kiện. */
   const onPackagesInput = useCallback(() => {
     const summary = summarizePackages(getValues('packages'));
-    setValue('shipment.pieces', String(summary.pieces || 1), OPTS);
     setValue('shipment.grossWeight', summary.grossWeight ? String(summary.grossWeight) : '', OPTS);
   }, [getValues, setValue]);
 

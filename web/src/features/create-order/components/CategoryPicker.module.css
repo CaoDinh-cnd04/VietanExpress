@@ -1,0 +1,188 @@
+/* Nút trong file này tự bỏ kiểu mặc định của trình duyệt (dự án không reset nút toàn cục) */
+.trigger,
+.star,
+.option {
+  margin: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+/* Ô chọn nhóm hàng — trông như ô .cell trong bảng kiện */
+.trigger {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  height: var(--control-h-sm);
+  padding: 0 6px 0 var(--space-2);
+  border: 1px solid var(--color-border-strong);
+  border-radius: 6px;
+  background: var(--color-surface);
+  font-size: var(--text-sm);
+  text-align: left;
+}
+
+.trigger:hover {
+  border-color: var(--color-brand);
+}
+
+.trigger:focus-visible,
+.trigger[aria-expanded='true'] {
+  outline: none;
+  border-color: var(--color-brand);
+  box-shadow: var(--focus-ring);
+}
+
+.trigger svg {
+  flex: none;
+  color: var(--color-text-muted);
+}
+
+.placeholder {
+  color: var(--color-text-muted);
+}
+
+.invalid {
+  border-color: var(--color-danger);
+  background: var(--color-danger-soft);
+}
+
+.value {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Danh sách xổ (vẽ ở body, position: fixed) */
+.panel {
+  position: fixed;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Ô tìm: không khung, kẻ dưới */
+.searchBox {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+}
+
+.search {
+  flex: 1;
+  min-width: 0;
+  height: 38px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-text);
+  font-size: var(--text-sm);
+}
+
+.search:focus {
+  outline: none;
+}
+
+.list {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 4px 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.group {
+  padding: 8px 12px 4px;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  margin: 0 4px;
+  border-radius: 6px;
+}
+
+.row:hover {
+  background: var(--color-surface-muted);
+}
+
+.rowOn,
+.rowOn:hover {
+  background: var(--color-brand-soft);
+}
+
+.option {
+  flex: 1;
+  min-width: 0;
+  padding: 7px 8px;
+  font-size: var(--text-sm);
+  text-align: left;
+}
+
+/* Dòng không có ngôi sao: chữ thẳng hàng với các dòng có sao */
+.indent {
+  padding-left: 40px;
+}
+
+.rowOn .option {
+  color: var(--color-brand-strong);
+  font-weight: 600;
+}
+
+/* Ngôi sao: mờ, rõ khi rê chuột vào dòng; đã yêu thích thì vàng đặc */
+.star {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  margin-right: 2px;
+  color: var(--color-border-strong);
+  opacity: 0.6;
+  transition: opacity 0.12s, color 0.12s;
+}
+
+.row:hover .star,
+.star:focus-visible {
+  opacity: 1;
+}
+
+.star:hover {
+  color: var(--color-warning);
+}
+
+.starOn,
+.star .starOn {
+  color: var(--color-warning);
+  fill: currentColor;
+}
+
+.star:has(.starOn) {
+  opacity: 1;
+}
+
+.empty {
+  padding: var(--space-4) var(--space-3);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  text-align: center;
+}

@@ -17,7 +17,6 @@ export type NavEntry =
  * Menu sidebar. Thêm trang mới: thêm route trong app/routes.tsx rồi thêm 1 dòng ở đây.
  */
 export const NAV: ReadonlyArray<NavEntry> = [
-  { kind: 'link', to: '/home', label: 'Trang chủ', icon: 'home' },
   {
     kind: 'group',
     id: 'create',

@@ -14,21 +14,48 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
-}
-
-/* Bước 1: 2 cột như Bill Online cũ — trái: người gửi, dịch vụ, đơn hàng · phải: người nhận */
-.billGrid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-4);
-  align-items: stretch;
-}
-
-.column {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
   min-width: 0;
+}
+
+/*
+ * THỬ NGHIỆM giao diện dọc: dòng thời gian các bước bên trái (ghim theo khi cuộn, cao bằng màn hình)
+ * + form 1 cột rộng tối đa 1000px theo thứ tự khai bill; cả khối căn giữa.
+ */
+.layout {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1000px);
+  justify-content: center;
+  align-items: start;
+  gap: var(--space-5);
+}
+
+.nav {
+  position: sticky;
+  top: calc(var(--topbar-h) + var(--space-4));
+  z-index: 4;
+}
+
+/* Mỗi khung có id để dòng thời gian nhảy tới — chừa chỗ cho thanh trên cùng khi cuộn tới */
+.section {
+  scroll-margin-top: calc(var(--topbar-h) + var(--space-4));
+}
+
+/* Màn hình hẹp: dòng thời gian thành thanh ngang, ghim ngay dưới thanh trên cùng */
+@media (max-width: 1100px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-3);
+  }
+
+  .nav {
+    top: var(--topbar-h);
+    padding-block: var(--space-2);
+    background: var(--color-bg);
+  }
+
+  .section {
+    scroll-margin-top: calc(var(--topbar-h) + 64px);
+  }
 }
 
 /* Thanh thao tác bám đáy màn hình để luôn thấy nút Tạo đơn / Tiếp tục */
@@ -49,34 +76,6 @@
 
 .spacer {
   flex: 1;
-}
-
-/*
- * Màn hình hẹp (điện thoại, tablet dọc): 1 cột theo thứ tự khai bill —
- * Người gửi → Người nhận → Dịch vụ → Thông tin đơn hàng (cột trái bị "mở" ra để xếp lại thứ tự).
- */
-@media (max-width: 1100px) {
-  .billGrid {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-4);
-  }
-
-  .column {
-    display: contents;
-  }
-
-  .column:first-child > :first-child {
-    order: 1;
-  }
-
-  .column:last-child > * {
-    order: 2;
-  }
-
-  .column:first-child > :nth-child(n + 2) {
-    order: 3;
-  }
 }
 
 .drafts {

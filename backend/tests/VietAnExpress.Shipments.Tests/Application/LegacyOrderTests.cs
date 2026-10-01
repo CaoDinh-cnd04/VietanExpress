@@ -52,6 +52,35 @@ public class LegacyOrderFactoryTests
         Assert.Equal("Hồ sơ", o.GoodsName);
     }
 
+    [Theory]
+    [InlineData("Quần áo, giày dép", "", "Quần áo, giày dép")]          // nhóm thường: tên nhóm, không cần mô tả
+    [InlineData("Quần áo, giày dép", "váy cũ còn sót", "Quần áo, giày dép")]
+    [InlineData("Nhiều loại hàng", "Quần áo + mỹ phẩm", "Quần áo + mỹ phẩm")] // nhiều loại: mô tả mặt hàng chính
+    [InlineData("", "WATCH STRAP", "WATCH STRAP")]                         // nháp cũ chưa có nhóm
+    public void Ten_hang_theo_nhom_hang(string category, string description, string expected) =>
+        Assert.Equal(expected, LegacyOrderFactory.GoodsName(category, description));
+
+    [Fact]
+    public void Ten_hang_lay_theo_tung_dong_kien_bo_trung()
+    {
+        var p = new OrderPayload
+        {
+            Goods = new(),
+            Packages =
+            [
+                new() { Category = "Quần áo, giày dép" },
+                new() { Category = "Nhiều loại hàng", Description = "Mỹ phẩm + đồ chơi" },
+                new() { Category = "Quần áo, giày dép" }
+            ]
+        };
+
+        Assert.Equal("Quần áo, giày dép, Mỹ phẩm + đồ chơi", LegacyOrderFactory.GoodsName(p));
+        // Có mô tả tổng quan (content) ở cấp đơn → dùng làm tên hàng
+        Assert.Equal("Clothes and cosmetics", LegacyOrderFactory.GoodsName(new OrderPayload { Goods = new() { Description = " Clothes and cosmetics " }, Packages = p.Packages }));
+        // Nháp cũ / Excel: dòng kiện không có nhóm → lấy khai báo cấp đơn
+        Assert.Equal("WATCH STRAP", LegacyOrderFactory.GoodsName(new OrderPayload { Goods = new() { Description = "WATCH STRAP" }, Packages = [new()] }));
+    }
+
     [Fact]
     public void Shipper_goc_cua_forwarder_ghi_vao_Ten_Khach_Cua_FWD()
     {
@@ -192,6 +221,7 @@ public class LegacyOrderViewTests
 
     [Theory]
     [InlineData("DOCUMENTS", true)]
+    [InlineData("Documents", true)]
     [InlineData("Document", true)]
     [InlineData("Hồ sơ chứng từ", true)]
     [InlineData("doc", true)]

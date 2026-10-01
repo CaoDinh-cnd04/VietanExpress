@@ -1,5 +1,5 @@
 import { lazy, type ComponentType, type LazyExoticComponent } from 'react';
-import { createBrowserRouter, type RouteObject } from 'react-router-dom';
+import { createBrowserRouter, Navigate, type RouteObject } from 'react-router-dom';
 import { RequireAuth } from '@/features/auth';
 import LandingPage from '@/features/landing/pages/LandingPage';
 import TrackingPage from '@/features/landing/pages/TrackingPage';
@@ -14,7 +14,6 @@ export interface RouteHandle {
 // Mỗi trang tách chunk riêng, chỉ tải khi mở.
 const CreateOrderPage = lazy(() => import('@/features/create-order/pages/CreateOrderPage'));
 const pages = {
-  dashboard: lazy(() => import('@/features/dashboard/pages/DashboardPage')),
   orderImport: lazy(() => import('@/features/order-import/pages/OrderImportPage')),
   orders: lazy(() => import('@/features/orders/pages/OrdersPage')),
   drafts: lazy(() => import('@/features/drafts/pages/DraftsPage')),
@@ -49,7 +48,8 @@ const routes: RouteObject[] = [
       </RequireAuth>
     ),
     children: [
-      page('home', 'Trang chủ', pages.dashboard),
+      // Bỏ trang chủ riêng: link cũ /home chuyển sang Đơn hàng của tôi
+      { path: 'home', element: <Navigate to="/orders" replace /> },
       { path: 'orders/new', element: <CreateOrderPage mode="wizard" />, handle: { title: 'Tạo đơn hàng' } satisfies RouteHandle },
       { path: 'orders/new/quick', element: <CreateOrderPage mode="quick" />, handle: { title: 'Tạo đơn 1 trang' } satisfies RouteHandle },
       page('orders/import', 'Tạo đơn từ Excel', pages.orderImport),

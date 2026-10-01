@@ -8,6 +8,7 @@ import { sanitizePhone } from '@/shared/lib/phone';
 import { useCountries, usePostalLookup, useReceivers, useSaveReceiver } from '../api';
 import { COUNTRIES, RULES } from '../constants';
 import { useFieldBinder, type FieldName } from '../hooks/useFieldBinder';
+import { splitAddressLines } from '../lib/address';
 import { canAutofill, findCountry, normalizePostal, shouldResetAddress } from '../lib/geo';
 import type { CreateOrderValues } from '../schema';
 import { AddressPickerDialog } from './AddressPickerDialog';
@@ -19,7 +20,7 @@ export function ReceiverSection() {
   const bind = useFieldBinder();
   const toast = useToast();
   const { t, lang } = useI18n();
-  const { control, setValue, getValues, clearErrors } = useFormContext<CreateOrderValues>();
+  const { control, setValue, getValues, clearErrors, setFocus } = useFormContext<CreateOrderValues>();
   const [addr1 = '', addr2 = '', addr3 = ''] = useWatch({ control, name: ['receiver.addr1', 'receiver.addr2', 'receiver.addr3'] });
   const [picking, setPicking] = useState(false);
   const receivers = useReceivers();
@@ -106,8 +107,34 @@ export function ReceiverSection() {
     );
   };
 
-  const addressField = (name: 'addr1' | 'addr2' | 'addr3', label: string, value: string, required: boolean) => (
-    <TextField label={label} required={required} wide maxLength={MAX} aside={`${value.length}/${MAX}`} {...bind(`receiver.${name}`)} />
+  // Địa chỉ 1 / 2 quá giới hạn ký tự → tự cắt ở khoảng trắng gần nhất, phần thừa dồn xuống dòng sau (như Bill Online cũ)
+  const ADDR = ['addr1', 'addr2', 'addr3'] as const;
+  const onAddressInput = (name: (typeof ADDR)[number]) => {
+    const current = ADDR.map(k => getValues(`receiver.${k}`) ?? '');
+    const { lines, overflowFrom } = splitAddressLines(current, MAX);
+    if (overflowFrom === null) return;
+    lines.forEach((line, i) => line !== current[i] && setValue(`receiver.${ADDR[i]!}`, line, { shouldDirty: true, shouldValidate: true }));
+    // Đang gõ ở dòng bị tràn → chuyển con trỏ xuống cuối phần vừa dồn sang dòng sau
+    const from = ADDR.indexOf(name);
+    if (from === overflowFrom && from < ADDR.length - 1) {
+      const next = ADDR[from + 1]!;
+      const moved = lines[from + 1]!.length - (current[from + 1] ?? '').trim().length - ((current[from + 1] ?? '').trim() ? 1 : 0);
+      setFocus(`receiver.${next}`);
+      requestAnimationFrame(() => {
+        const el = document.activeElement as HTMLInputElement | null;
+        el?.setSelectionRange?.(moved, moved);
+      });
+    }
+  };
+  const addressField = (name: (typeof ADDR)[number], label: string, value: string, required: boolean) => (
+    <TextField
+      label={label}
+      required={required}
+      wide
+      maxLength={name === 'addr3' ? MAX : undefined}
+      aside={`${value.length}/${MAX}`}
+      {...bind(`receiver.${name}`, { onChange: () => onAddressInput(name) })}
+    />
   );
 
   return (

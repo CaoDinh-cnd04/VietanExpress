@@ -81,12 +81,18 @@ internal sealed class OrderPayload
         public string Height { get; init; } = "";
         /// <summary>Cân 1 kiện (kg).</summary>
         public string Weight { get; init; } = "";
+        /// <summary>Nhóm hàng hóa của dòng kiện (dbo.NhomHangHoa) — form tạo đơn.</summary>
+        public string Category { get; init; } = "";
+        /// <summary>Mô tả mặt hàng — chỉ có khi nhóm là "Nhiều loại hàng".</summary>
+        public string Description { get; init; } = "";
     }
 
     internal sealed class InvoicePart
     {
         /// <summary>Lý do xuất hàng / loại hình: GIFT, SAMPLE, Kinh doanh…</summary>
         public string ExportType { get; init; } = "";
+        /// <summary>Hình thức chịu thuế: DDU (người nhận chịu thuế) | DDP (người gửi chịu thuế).</summary>
+        public string DutyTerms { get; init; } = "";
         public string Currency { get; init; } = "USD";
         public string ShippingFee { get; init; } = "";
         /// <summary>Tổng giá trị khai báo khi không có dòng hàng (vd chứng từ nhập từ Excel, cột Invoice_Value).</summary>

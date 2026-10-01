@@ -121,8 +121,10 @@
   pointer-events: none;
 }
 
+/* Ô bắt buộc bỏ trống / sai: viền đỏ + nền hồng — giống ô lỗi trong bảng kiện, invoice */
 .invalid {
   border-color: var(--color-danger);
+  background: var(--color-danger-soft);
 }
 
 .invalid:focus {

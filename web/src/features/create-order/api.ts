@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { ApiError, http } from '@/shared/api/http';
 import type { Country, PostalInfo } from './lib/geo';
 
@@ -18,6 +18,14 @@ export interface CategoryInput {
 }
 
 const CATEGORIES_KEY = ['catalog', 'categories'] as const;
+
+/** Đổi sao trong cache ngay khi bấm; trả dữ liệu cũ để hoàn lại nếu máy chủ báo lỗi. */
+async function toggleCached<T extends { id?: string; isFavorite?: boolean }>(qc: QueryClient, key: readonly string[], id: string, isFavorite: boolean) {
+  await qc.cancelQueries({ queryKey: key });
+  const previous = qc.getQueryData<T[]>(key);
+  qc.setQueryData<T[]>(key, list => list?.map(x => (x.id === id ? { ...x, isFavorite } : x)));
+  return previous;
+}
 
 /** Hồ sơ người gửi (backend SenderProfile). */
 export interface SenderProfile {
@@ -72,6 +80,19 @@ export function useDeleteCategory() {
   });
 }
 
+/** Đánh dấu / bỏ yêu thích nhóm hàng — được cả nhóm chung Việt An (backend lưu riêng cho từng khách). */
+export function useFavoriteCategory() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, isFavorite }: { id: string; isFavorite: boolean }) =>
+      http.put<{ message: string }>(`/catalog/categories/${encodeURIComponent(id)}/favorite`, { isFavorite }),
+    // Sao đổi ngay trên giao diện, lỗi thì trả lại như cũ
+    onMutate: ({ id, isFavorite }) => toggleCached<Category>(qc, CATEGORIES_KEY, id, isFavorite),
+    onError: (_e, _v, previous) => qc.setQueryData(CATEGORIES_KEY, previous),
+    onSettled: () => void qc.invalidateQueries({ queryKey: CATEGORIES_KEY })
+  });
+}
+
 export function useSenders() {
   return useQuery({
     queryKey: ['addresses', 'senders'],
@@ -96,7 +117,10 @@ export function useSaveReceiver() {
 
 /** Mặt hàng khách đã lưu để khai invoice nhanh (thư viện mặt hàng). */
 export interface SavedProduct {
+  /** Khóa mặt hàng trong thư viện (dùng để đánh dấu yêu thích / xóa). */
   id?: string;
+  /** Mặt hàng khách đánh dấu sao — đứng đầu thư viện. */
+  isFavorite?: boolean;
   descEn: string;
   descVi: string;
   manufacturer: string;
@@ -115,13 +139,59 @@ export interface RecentInvoice {
   items: SavedProduct[];
 }
 
-/** Endpoint mới — xem API_CONTRACT.md. Chưa có thì UI báo "đang cập nhật". */
+/** Biểu phí 1 tùy chọn dịch vụ — `name` khớp ADDONS.name (giá trị lưu trong đơn). */
+export interface AddonFee {
+  name: string;
+  /** Phí; null = chưa có giá / liên hệ CS. */
+  fee: number | null;
+  currency: string;
+  /** Cách tính, vd "đơn", "kiện", "% giá trị hàng". */
+  unit: string;
+  /** Ghi chú (mức tối thiểu, điều kiện…). */
+  note?: string | null;
+}
+
+/** Biểu phí tùy chọn dịch vụ — GET /catalog/addon-fees. Endpoint mới (API_CONTRACT §3); chưa có thì UI báo "đang cập nhật". */
+export function useAddonFees(enabled: boolean) {
+  return useQuery({
+    queryKey: ['catalog', 'addon-fees'],
+    queryFn: () => http.get<{ data: AddonFee[] }>('/catalog/addon-fees').then(r => r.data),
+    enabled,
+    staleTime: ONE_HOUR,
+    retry: false
+  });
+}
+
+const PRODUCTS_KEY = ['catalog', 'products'] as const;
+
+/** Thư viện mặt hàng: yêu thích đứng đầu, mặt hàng đã xóa không trả về. */
 export function useProductLibrary(enabled: boolean) {
   return useQuery({
-    queryKey: ['catalog', 'products'],
+    queryKey: PRODUCTS_KEY,
     queryFn: () => http.get<{ data: SavedProduct[] }>('/catalog/products').then(r => r.data),
     enabled,
     retry: false
+  });
+}
+
+/** Đánh dấu / bỏ yêu thích mặt hàng trong thư viện. */
+export function useFavoriteProduct() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, isFavorite }: { id: string; isFavorite: boolean }) =>
+      http.put<{ message: string }>(`/catalog/products/${encodeURIComponent(id)}/favorite`, { isFavorite }),
+    onMutate: ({ id, isFavorite }) => toggleCached<SavedProduct>(qc, PRODUCTS_KEY, id, isFavorite),
+    onError: (_e, _v, previous) => qc.setQueryData(PRODUCTS_KEY, previous),
+    onSettled: () => void qc.invalidateQueries({ queryKey: PRODUCTS_KEY })
+  });
+}
+
+/** Xóa mặt hàng khỏi thư viện (chỉ ẩn — đơn cũ giữ nguyên). */
+export function useDeleteProduct() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => http.delete<{ message: string }>(`/catalog/products/${encodeURIComponent(id)}`),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: PRODUCTS_KEY })
   });
 }
 
@@ -129,7 +199,7 @@ export function useSaveProduct() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (p: SavedProduct) => http.post<{ message: string }>('/catalog/products', p),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ['catalog', 'products'] })
+    onSuccess: () => void qc.invalidateQueries({ queryKey: PRODUCTS_KEY })
   });
 }
 

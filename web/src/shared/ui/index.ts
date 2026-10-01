@@ -13,3 +13,4 @@ export { SegmentedControl } from './SegmentedControl';
 export { StatusPill, type Tone } from './StatusPill';
 export { Tabs, type TabItem } from './Tabs';
 export { ToastProvider, useToast } from './Toast';
+export { Sheet, SheetBox, SheetFields, SheetLines, SheetName, SheetRow, SheetTable, SheetTotals } from './Sheet';

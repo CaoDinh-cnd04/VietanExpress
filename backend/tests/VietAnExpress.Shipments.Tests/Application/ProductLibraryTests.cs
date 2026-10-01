@@ -35,6 +35,36 @@ public class ProductLibraryTests
     }
 
     [Fact]
+    public void Khoa_mat_hang_on_dinh_khong_phan_biet_hoa_thuong()
+    {
+        var a = ProductLibrary.ToDto(Line(9, 3, "Dress", 12.5m));
+        var b = ProductLibrary.ToDto(Line(5, 2, " DRESS", 10m));
+
+        Assert.Equal(a.Id, b.Id);
+        Assert.True(ProductLibrary.IsValidKey(a.Id));
+        Assert.NotEqual(a.Id, ProductLibrary.ToDto(Line(4, 2, "Dress", 10m, hs: "62044290")).Id);
+        Assert.False(ProductLibrary.IsValidKey("9"));
+        Assert.False(ProductLibrary.IsValidKey(a.Id.ToUpperInvariant()));
+    }
+
+    [Fact]
+    public void Mat_hang_yeu_thich_len_dau_mat_hang_da_xoa_bi_an()
+    {
+        var lines = new[] { Line(9, 3, "Dress", 12.5m), Line(8, 3, "Scarf", 5m), Line(7, 3, "Shirt", 8m) };
+        var key = (string en) => ProductLibrary.ToDto(lines.First(l => l.DescriptionEn == en)).Id;
+        var marks = new Dictionary<string, ProductMark>
+        {
+            [key("Shirt")] = new(IsFavorite: true, IsDeleted: false),
+            [key("Scarf")] = new(IsFavorite: false, IsDeleted: true)
+        };
+
+        var library = ProductLibrary.Build(lines, max: 10, marks);
+
+        Assert.Equal(["Shirt", "Dress"], library.Select(p => p.DescEn));
+        Assert.Equal([true, false], library.Select(p => p.IsFavorite));
+    }
+
+    [Fact]
     public void Invoice_cu_gom_theo_don_moi_nhat_truoc()
     {
         var newer = new LegacyOrder { Id = 3, OrderNumber = 90000003, ConsigneeName = "LINEX", CreateDate = new DateTime(2026, 9, 29), Currency = "SGD" };

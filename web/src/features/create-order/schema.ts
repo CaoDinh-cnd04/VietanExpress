@@ -16,11 +16,12 @@ const maxLen = (max: number) => fill('Tối đa {n} ký tự', { n: max });
 
 const isNumber = (v: string) => v.trim() !== '' && Number.isFinite(Number(v));
 /** Số (dạng chuỗi) ≥ min; `integer` để bắt số nguyên. */
-const numeric = (opts: { min: number; integer?: boolean; message: string }) =>
-  z.string().refine(v => isNumber(v) && Number(v) >= opts.min && (!opts.integer || Number.isInteger(Number(v))), opts.message);
 const optionalNumeric = z.string().refine(v => v.trim() === '' || (isNumber(v) && Number(v) >= 0), 'Số không hợp lệ');
 
 const optionalEmail = z.union([z.literal(''), z.email('Email không hợp lệ')]);
+
+/** Lỗi tổng SL các dòng kiện khác số kiện dự kiến khai ở đầu "Chi tiết kiện hàng". */
+export const PIECES_MISMATCH = 'Tổng SL các dòng kiện là {total}, chưa bằng số kiện dự kiến ({pieces}). Hãy bấm "Thêm kiện" hoặc sửa SL cho khớp — hoặc sửa lại số kiện dự kiến.';
 
 export const packageSchema = z.object({
   qty: z.string(),
@@ -29,7 +30,11 @@ export const packageSchema = z.object({
   width: optionalNumeric,
   height: optionalNumeric,
   /** Cân nặng mỗi kiện (kg). */
-  weight: optionalNumeric
+  weight: optionalNumeric,
+  /** Nhóm hàng hóa của dòng kiện (dbo.NhomHangHoa). Nháp cũ có thể thiếu. */
+  category: z.string().optional(),
+  /** Mô tả mặt hàng chính — chỉ nhập khi nhóm là "Nhiều loại hàng". */
+  description: z.string().optional()
 });
 
 export const invoiceItemSchema = z.object({
@@ -64,8 +69,10 @@ export const createOrderSchema = z
     }),
     shipment: z.object({
       type: z.enum(['DOC', 'PACK']),
-      pieces: numeric({ min: 1, integer: true, message: 'Số kiện tối thiểu là 1' }),
-      grossWeight: numeric({ min: 0.01, message: 'Nhập cân nặng (kg)' })
+      /** DOC: khách khai. PACK: = tổng SL các dòng kiện (tự tính). */
+      pieces: z.string(),
+      /** DOC: khách khai. PACK: = tổng cân các dòng kiện (tự tính). */
+      grossWeight: z.string()
     }),
     receiver: z.object({
       country: required(),
@@ -94,6 +101,8 @@ export const createOrderSchema = z
     addons: z.array(z.string()),
     invoice: z.object({
       exportType: z.string(),
+      /** DDU (người nhận chịu thuế) | DDP (người gửi chịu thuế). Nháp cũ có thể thiếu. */
+      dutyTerms: z.string().optional(),
       currency: z.string(),
       shippingFee: optionalNumeric,
       items: z.array(invoiceItemSchema)
@@ -103,23 +112,42 @@ export const createOrderSchema = z
     const issue = (path: (string | number)[], message = REQUIRED) => ctx.addIssue({ code: 'custom', path, message });
 
     if (v.shipment.type === 'DOC') {
-      if (!v.goods.docContent.trim()) issue(['goods', 'docContent']);
+      // Chứng từ: chỉ khai số kiện + cân nặng; nội dung mặc định "Documents"
+      const pcs = Number(v.shipment.pieces);
+      if (!isNumber(v.shipment.pieces) || pcs < 1 || !Number.isInteger(pcs)) issue(['shipment', 'pieces'], 'Số kiện tối thiểu là 1');
+      if (!isNumber(v.shipment.grossWeight) || Number(v.shipment.grossWeight) < 0.01) issue(['shipment', 'grossWeight'], 'Nhập cân nặng (kg)');
       return;
     }
 
-    // Hàng hóa (PACK): bắt buộc mô tả, chi tiết kiện và invoice
-    if (!v.goods.description.trim()) issue(['goods', 'description']);
-    if (v.goods.category === MULTI_CATEGORY && !v.goods.multi.length) issue(['goods', 'multi'], 'Chọn ít nhất 1 nhóm hàng');
+    // Hàng hóa (PACK): mô tả tổng quan (content) bắt buộc; số kiện / cân lấy từ bảng kiện
+    if (!v.goods.description.trim()) issue(['goods', 'description'], 'Nhập mô tả tổng quan hàng hóa');
+    else if (v.goods.description.trim().length > RULES.contentMax) issue(['goods', 'description'], maxLen(RULES.contentMax));
+
+    // Hàng hóa (PACK): bắt buộc chi tiết kiện và invoice. Mỗi dòng kiện chọn nhóm hàng;
+    // mô tả mặt hàng chỉ cần khi dòng đó chọn "Nhiều loại hàng" (nhóm khác thì tên nhóm là nội dung hàng).
+    v.packages.forEach((p, i) => {
+      if (!(p.category ?? '').trim()) issue(['packages', i, 'category'], 'Chọn nhóm hàng hóa');
+      else if (p.category === MULTI_CATEGORY && !(p.description ?? '').trim()) issue(['packages', i, 'description'], 'Nhập mô tả mặt hàng');
+    });
     if (!v.packages.length) issue(['packages'], 'Cần ít nhất 1 kiện');
+    const declared = Number(v.shipment.pieces);
+    if (!isNumber(v.shipment.pieces) || declared < 1 || !Number.isInteger(declared)) issue(['shipment', 'pieces'], 'Số kiện tối thiểu là 1');
+    else {
+      const totalQty = v.packages.reduce((s, p) => s + (isNumber(p.qty) ? Number(p.qty) : 0), 0);
+      if (v.packages.length && totalQty !== declared) issue(['packages', 'root'], fill(PIECES_MISMATCH, { total: totalQty, pieces: declared }));
+    }
     v.packages.forEach((p, i) => {
       if (!isNumber(p.qty) || Number(p.qty) < 1 || !Number.isInteger(Number(p.qty))) issue(['packages', i, 'qty'], 'SL ≥ 1');
       if (!p.packaging) issue(['packages', i, 'packaging'], 'Chọn bao bì');
+      if (!isNumber(p.weight) || Number(p.weight) <= 0) issue(['packages', i, 'weight'], 'Nhập cân/kiện');
     });
     if (!v.invoice.exportType) issue(['invoice', 'exportType'], 'Chọn hình thức xuất khẩu');
+    if (!v.invoice.dutyTerms) issue(['invoice', 'dutyTerms'], 'Chọn hình thức chịu thuế');
     if (!v.invoice.currency) issue(['invoice', 'currency'], 'Chọn đơn vị tiền tệ');
     if (!v.invoice.items.length) issue(['invoice', 'items'], 'Cần ít nhất 1 mặt hàng');
     v.invoice.items.forEach((it, i) => {
       if (!it.descEn.trim()) issue(['invoice', 'items', i, 'descEn'], 'Nhập tên hàng (EN)');
+      if (!it.descVi.trim()) issue(['invoice', 'items', i, 'descVi'], 'Nhập tên hàng (VN)');
       if (!isNumber(it.qty) || Number(it.qty) <= 0) issue(['invoice', 'items', i, 'qty'], 'SL > 0');
       if (!it.unit.trim()) issue(['invoice', 'items', i, 'unit'], 'Nhập đơn vị tính');
       else if (it.unit.trim().length > UNIT_MAX) issue(['invoice', 'items', i, 'unit'], maxLen(UNIT_MAX));
@@ -141,7 +169,7 @@ export const STEP_FIELDS = [
   ['invoice']
 ] as const satisfies ReadonlyArray<ReadonlyArray<keyof CreateOrderValues>>;
 
-export const emptyPackage = (): PackageValues => ({ qty: '1', packaging: 'Thùng carton', length: '', width: '', height: '', weight: '' });
+export const emptyPackage = (): PackageValues => ({ qty: '1', packaging: 'Thùng carton', length: '', width: '', height: '', weight: '', category: '', description: '' });
 export const emptyInvoiceItem = (): InvoiceItemValues => ({ descEn: '', descVi: '', manufacturer: '', origin: 'VN', hs: '', qty: '1', unit: DEFAULT_UNIT, price: '' });
 
 export const defaultValues = (): CreateOrderValues => ({
@@ -152,5 +180,5 @@ export const defaultValues = (): CreateOrderValues => ({
   goods: { category: '', description: '', docContent: '', multi: [] },
   packages: [emptyPackage()],
   addons: [],
-  invoice: { exportType: 'GIFT', currency: 'USD', shippingFee: '', items: [emptyInvoiceItem()] }
+  invoice: { exportType: 'GIFT', dutyTerms: 'DDU', currency: 'USD', shippingFee: '', items: [emptyInvoiceItem()] }
 });

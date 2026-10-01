@@ -24,9 +24,6 @@ export function ShipmentSection({ onShipmentInput, onTypeChange, docConverted }:
   const { t, lang } = useI18n();
   const { control } = useFormContext<CreateOrderValues>();
   const type = useWatch({ control, name: 'shipment.type' });
-  const packageCount = useWatch({ control, name: 'packages' })?.length ?? 0;
-  // Nhiều dòng kiện → tổng lấy từ bảng kiện, không sửa tay ở đây
-  const derived = type === 'PACK' && packageCount > 1;
 
   return (
     <Card title="Thông tin đơn hàng" subtitle={lang === 'vi' ? '(Info shipment)' : undefined}>
@@ -40,17 +37,34 @@ export function ShipmentSection({ onShipmentInput, onTypeChange, docConverted }:
           )}
         />
       </div>
-      <FormGrid>
-        <TextField label="Số kiện" required type="number" min={1} step={1} suffix={t('kiện')} readOnly={derived} {...bind('shipment.pieces', { onChange: onShipmentInput })} />
-        <TextField label="Cân nặng (gross weight)" required type="number" min={0} step={0.1} suffix="kg" readOnly={derived} {...bind('shipment.grossWeight', { onChange: onShipmentInput })} />
-      </FormGrid>
-      <p className={styles.hint}>
-        {type === 'DOC'
-          ? t('Chứng từ chỉ cần khai nội dung. Trên {kg}kg sẽ tự chuyển sang hàng hóa (PACK) và khai chi tiết kiện, Invoice.', { kg: RULES.docMaxWeightKg })
-          : t(derived
-            ? 'Đơn có nhiều dòng kiện — tổng được tính từ bảng kiện ở bước 2.'
-            : 'Khai kích thước từng kiện ở bước 2 để tính trọng lượng quy đổi.')}
-      </p>
+      {type === 'DOC' ? (
+        <>
+          {/* Chứng từ: chỉ khai số kiện + cân nặng, nội dung mặc định Documents */}
+          <FormGrid>
+            <TextField label="Số kiện" required type="number" min={1} step={1} suffix={t('kiện')} {...bind('shipment.pieces', { onChange: onShipmentInput })} />
+            <TextField label="Cân nặng (gross weight)" required type="number" min={0} step={0.1} suffix="kg" {...bind('shipment.grossWeight', { onChange: onShipmentInput })} />
+          </FormGrid>
+          <p className={styles.hint}>
+            {t('Chứng từ không cần khai thêm — nội dung mặc định là Documents. Trên {kg}kg sẽ tự chuyển sang hàng hóa (PACK).', { kg: RULES.docMaxWeightKg })}
+          </p>
+        </>
+      ) : (
+        <>
+          {/* Hàng hóa: mô tả tổng quan; số kiện và cân nặng khai theo từng dòng ở "Chi tiết kiện hàng" */}
+          <FormGrid>
+            <TextField
+              label="Mô tả tổng quan hàng hóa (content)"
+              required
+              wide
+              maxLength={RULES.contentMax}
+              placeholder="e.g. Clothes, shoes and cosmetics"
+              hint="Ghi bằng tiếng Anh — tên chung của hàng trong lô, in lên bill (vd: Clothes, Dried food, Electronic parts)."
+              {...bind('goods.description')}
+            />
+          </FormGrid>
+          <p className={styles.hint}>{t('Số kiện và cân nặng khai theo từng dòng ở "Chi tiết kiện hàng".')}</p>
+        </>
+      )}
       {docConverted && type === 'PACK' && (
         <p className={styles.notice} role="status">
           {t('Tài liệu trên {kg}kg được xem là hàng hóa. Hệ thống đã chuyển sang PACK — vui lòng khai Invoice đầy đủ.', { kg: RULES.docMaxWeightKg })}

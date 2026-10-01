@@ -11,6 +11,12 @@ export const PACKAGING_TYPES = ['Thùng carton', 'Bao / túi', 'Pallet', 'Kiện
 /** Quy cách (ĐVT) mặt hàng: danh sách có sẵn + "Khác" (khách tự nhập) — xem lib/units.ts. */
 export { OTHER_UNIT, PRESET_UNITS } from './lib/units';
 /** Đơn vị tiền tệ của invoice — lưu mã vào MaVanDon.Loai_Tien. */
+/** Hình thức chịu thuế nhập khẩu tại nước đến (Incoterm). Mặc định DDU. */
+export const DUTY_TERMS = [
+  { value: 'DDU', label: 'DDU — người nhận chịu thuế' },
+  { value: 'DDP', label: 'DDP — người gửi chịu thuế' }
+] as const;
+
 export const CURRENCIES = ['USD', 'SGD', 'EUR', 'GBP', 'AUD'] as const;
 /** Hình thức xuất khẩu — lưu mã vào MaVanDon.Ly_Do_Xuat_Hang (dữ liệu cũ: GIFT, SAMPLE). */
 export const EXPORT_TYPES = [
@@ -69,6 +75,8 @@ export const RULES = {
   /** Hệ số quy đổi thể tích: D×R×C / divisor. */
   volumetricDivisor: 5000,
   shipperAddressMax: 60,
+  /** Mô tả tổng quan hàng hóa (content) — độ dài cột dbo.MaVanDon.Ten_hang. */
+  contentMax: 150,
   /** Tên shipper gốc (FWD) — độ dài cột dbo.MaVanDon.Ten_Khach_Cua_FWD. */
   originalShipperMax: 150,
   /** Tên nhóm hàng — độ dài cột dbo.NhomHangHoa.Ten_Nhom. */
@@ -85,7 +93,7 @@ export const WIZARD_STEPS = [
 /** Chứng từ (DOC): không khai kiện / Invoice → chỉ 2 bước. */
 export const WIZARD_STEPS_DOC = [
   WIZARD_STEPS[0],
-  { title: 'Nội dung chứng từ', description: 'Nội dung, tùy chọn dịch vụ' }
+  { title: 'Tùy chọn dịch vụ', description: 'Dịch vụ cộng thêm (nếu cần)' }
 ] as const;
 
 export type WizardStep = { readonly title: string; readonly description: string };

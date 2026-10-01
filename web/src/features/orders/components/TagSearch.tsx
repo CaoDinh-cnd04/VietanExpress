@@ -108,11 +108,6 @@ export function TagSearch({ tags, onTagsChange, field, onFieldChange }: TagSearc
           </button>
         )}
       </div>
-      <span className={styles.hint}>
-        {tags.length > 0
-          ? t('{n} từ khóa · cùng loại: khớp bất kỳ · khác loại: phải khớp tất cả', { n: tags.length })
-          : t('Mẹo: đổi "Tìm theo" trước khi gõ để lọc kết hợp, vd người nhận + nước đến. Không phân biệt chữ hoa / thường.')}
-      </span>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createOrderSchema, defaultValues, emptyInvoiceItem, emptyPackage } from '../schema';
-import { applyDocWeightRule, buildDraftPayload, invoiceTotal, isDocOverweight, summarizePackages, volumetricWeight } from './shipment';
+import { MULTI_CATEGORY } from '../constants';
+import { applyDocWeightRule, buildDraftPayload, goodsName, invoiceTotal, isDocOverweight, summarizePackages, volumetricWeight } from './shipment';
 
 const pkg = (over: Partial<ReturnType<typeof emptyPackage>>) => ({ ...emptyPackage(), ...over });
 
@@ -57,9 +58,9 @@ describe('createOrderSchema', () => {
     const v = defaultValues();
     v.shipper = { ...v.shipper, company: 'ABC', contact: 'A', tel: '0909 805 845', address: 'HCM' };
     v.receiver = { ...v.receiver, country: 'Singapore', city: 'Singapore', company: 'LINEX', contact: 'Lim', tel: '+65 6545 3778/79', addr1: '1 Raffles', addr2: 'Tower One' };
-    v.shipment.grossWeight = '8';
-    v.goods.description = 'Váy nữ';
-    v.invoice.items = [{ ...emptyInvoiceItem(), descEn: 'Dress', qty: '5', price: '8' }];
+    v.goods.description = 'Clothes';
+    v.packages = [pkg({ category: 'Quần áo, giày dép', weight: '8' })];
+    v.invoice.items = [{ ...emptyInvoiceItem(), descEn: 'Dress', descVi: 'Váy', qty: '5', price: '8' }];
     return v;
   };
 
@@ -83,6 +84,60 @@ describe('createOrderSchema', () => {
     expect(paths).toEqual(expect.arrayContaining(['shipper.tel', 'receiver.tel']));
   });
 
+  it('mỗi dòng kiện bắt buộc nhóm hàng; mô tả mặt hàng chỉ bắt buộc khi dòng đó chọn nhiều loại', () => {
+    const none = valid();
+    none.packages = [pkg({ category: '', weight: '1' })];
+    expect(createOrderSchema.safeParse(none).error?.issues.map(i => i.path.join('.'))).toContain('packages.0.category');
+
+    const multi = valid();
+    multi.shipment.pieces = '2';
+    multi.packages = [pkg({ category: 'Quần áo, giày dép', weight: '1' }), pkg({ category: MULTI_CATEGORY, weight: '1' })];
+    expect(createOrderSchema.safeParse(multi).error?.issues.map(i => i.path.join('.'))).toEqual(['packages.1.description']);
+    multi.packages[1]!.description = 'Quần áo + mỹ phẩm';
+    expect(createOrderSchema.safeParse(multi).success).toBe(true);
+  });
+
+  it('hàng hóa: bắt buộc mô tả tổng quan, cân từng kiện và số kiện dự kiến; cân cấp đơn tự tính', () => {
+    const v = valid();
+    v.goods.description = '';
+    v.packages[0]!.weight = '';
+    v.shipment.pieces = '';
+    v.shipment.grossWeight = '';
+    const paths = createOrderSchema.safeParse(v).error?.issues.map(i => i.path.join('.'));
+    expect(paths).toEqual(expect.arrayContaining(['goods.description', 'packages.0.weight', 'shipment.pieces']));
+    expect(paths).not.toContain('shipment.grossWeight');
+  });
+
+  it('tổng SL các dòng kiện phải bằng số kiện dự kiến', () => {
+    const v = valid();
+    v.shipment.pieces = '2';
+    const issue = createOrderSchema.safeParse(v).error?.issues.find(i => i.path.join('.') === 'packages.root');
+    expect(issue?.message).toContain('Tổng SL các dòng kiện là 1, chưa bằng số kiện dự kiến (2)');
+    v.packages.push(pkg({ category: 'Đồ chơi', weight: '1' }));
+    expect(createOrderSchema.safeParse(v).success).toBe(true);
+  });
+
+  it('chứng từ: chỉ cần số kiện và cân nặng, nội dung mặc định Documents', () => {
+    const doc = valid();
+    doc.shipment.type = 'DOC';
+    doc.shipment.pieces = '1';
+    doc.shipment.grossWeight = '';
+    doc.goods.description = '';
+    expect(createOrderSchema.safeParse(doc).error?.issues.map(i => i.path.join('.'))).toEqual(['shipment.grossWeight']);
+    doc.shipment.grossWeight = '0.5';
+    expect(createOrderSchema.safeParse(doc).success).toBe(true);
+    expect(buildDraftPayload(doc, 'ready').content).toBe('Documents');
+  });
+
+  it('invoice: bắt buộc tên tiếng Việt và hình thức chịu thuế', () => {
+    const v = valid();
+    v.invoice.items[0]!.descVi = '';
+    v.invoice.dutyTerms = '';
+    const paths = createOrderSchema.safeParse(v).error?.issues.map(i => i.path.join('.'));
+    expect(paths).toEqual(expect.arrayContaining(['invoice.items.0.descVi', 'invoice.dutyTerms']));
+    expect(defaultValues().invoice.dutyTerms).toBe('DDU');
+  });
+
   it('PACK bắt buộc invoice; DOC thì không', () => {
     const pack = valid();
     pack.invoice.items = [emptyInvoiceItem()];
@@ -90,9 +145,27 @@ describe('createOrderSchema', () => {
 
     const doc = valid();
     doc.shipment.type = 'DOC';
-    doc.goods.docContent = 'Hợp đồng';
+    doc.shipment.grossWeight = '0.5';
     doc.invoice.items = [emptyInvoiceItem()];
     expect(createOrderSchema.safeParse(doc).success).toBe(true);
+  });
+});
+
+describe('goodsName', () => {
+  const goods = defaultValues().goods;
+
+  it('tên hàng từng dòng kiện: nhóm thường → tên nhóm; nhiều loại → mô tả; bỏ trùng, nối bằng dấu phẩy', () => {
+    const packages = [
+      pkg({ category: 'Quần áo, giày dép', description: 'bỏ qua' }),
+      pkg({ category: MULTI_CATEGORY, description: ' Mỹ phẩm + đồ chơi ' }),
+      pkg({ category: 'Quần áo, giày dép' })
+    ];
+    expect(goodsName({ goods, packages })).toBe('Quần áo, giày dép, Mỹ phẩm + đồ chơi');
+  });
+
+  it('nháp cũ khai nhóm ở cấp đơn: dùng cách cũ', () => {
+    expect(goodsName({ goods: { ...goods, category: 'Đồ chơi' }, packages: [pkg({})] })).toBe('Đồ chơi');
+    expect(goodsName({ goods: { ...goods, description: 'Váy nữ' }, packages: [pkg({})] })).toBe('Váy nữ');
   });
 });
 
@@ -101,8 +174,7 @@ describe('buildDraftPayload', () => {
     const v = defaultValues();
     v.receiver.company = 'LINEX';
     v.receiver.country = 'Singapore';
-    v.goods.description = 'Váy nữ';
-    v.packages = [pkg({ qty: '1', weight: '8', length: '30', width: '20', height: '15' })];
+    v.packages = [pkg({ qty: '1', weight: '8', length: '30', width: '20', height: '15', category: MULTI_CATEGORY, description: 'Váy nữ' })];
     const d = buildDraftPayload(v, 'ready');
     expect(d).toMatchObject({ stt: 'ready', cnee: 'LINEX', service: 'Chuyên tuyến - Singapore', pcs: '1 kiện · 8 kg', content: 'Váy nữ' });
   });

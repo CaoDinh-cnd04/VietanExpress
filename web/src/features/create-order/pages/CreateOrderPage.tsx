@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { FormProvider, useWatch, type FieldErrors } from 'react-hook-form';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { getErrorMessage } from '@/shared/api/http';
@@ -7,7 +7,6 @@ import { Button, Card, LinkButton, PageHeader, SegmentedControl, useToast } from
 import { DraftsTable, useSaveDraft, useUpdateDraft } from '@/features/drafts';
 import { useQuote, type ServiceQuote } from '@/features/pricing';
 import { AddonsSection } from '../components/AddonsSection';
-import { GoodsSection } from '../components/GoodsSection';
 import { HelpLinksMenu } from '../components/HelpLinksMenu';
 import { InvoiceSection } from '../components/InvoiceSection';
 import { PackagesTable } from '../components/PackagesTable';
@@ -15,7 +14,7 @@ import { ReceiverSection } from '../components/ReceiverSection';
 import { ServiceSection } from '../components/ServiceSection';
 import { ShipmentSection } from '../components/ShipmentSection';
 import { ShipperSection } from '../components/ShipperSection';
-import { StepIndicator } from '../components/StepIndicator';
+import { StepIndicator, type StepSection } from '../components/StepIndicator';
 import { SurchargeConfirmDialog } from '../components/SurchargeConfirmDialog';
 import { WIZARD_STEPS, WIZARD_STEPS_DOC } from '../constants';
 import { useCreateOrderForm } from '../hooks/useCreateOrderForm';
@@ -35,6 +34,54 @@ const MODE_OPTIONS = [
 
 const MODE_ROUTES: Record<CreateMode, string> = { wizard: '/orders/new', quick: '/orders/new/quick' };
 const PACKAGES_STEP = 1;
+
+/** Id phần tử của từng khung trong form — mục lục bấm để cuộn tới, theo dõi khung đang xem khi cuộn. */
+const secId = (key: string) => `order-sec-${key}`;
+
+/** Khoảng cách từ đỉnh màn hình (dưới thanh trên cùng) để tính khung "đang xem". */
+const SPY_LINE = 140;
+
+/** Các khung con của từng bước, theo đúng thứ tự trên trang. */
+function stepSections(isPack: boolean): StepSection[][] {
+  return [
+    [
+      { id: secId('shipper'), label: 'Người gửi' },
+      { id: secId('receiver'), label: 'Người nhận' },
+      { id: secId('service'), label: 'Dịch vụ' },
+      { id: secId('shipment'), label: 'Thông tin đơn hàng' }
+    ],
+    [
+      // Hàng hóa: nhóm hàng khai ngay trong "Chi tiết kiện hàng"; chứng từ: khung "Nội dung chứng từ"
+      ...(isPack ? [{ id: secId('packages'), label: 'Chi tiết kiện hàng' }] : []),
+      { id: secId('addons'), label: 'Tùy chọn dịch vụ' }
+    ],
+    ...(isPack ? [[{ id: secId('invoice'), label: 'Invoice (khai báo hải quan)' }]] : [])
+  ];
+}
+
+/** Khung đang xem: khung cuối cùng đã cuộn qua vạch SPY_LINE; cuộn hết trang thì là khung cuối có trên trang. */
+function useActiveSection(ids: readonly string[]) {
+  const [active, setActive] = useState<string>();
+  const key = ids.join('|');
+  useEffect(() => {
+    const list = key.split('|');
+    const update = () => {
+      const present = list.filter(id => document.getElementById(id));
+      let current = present[0];
+      for (const id of present) if (document.getElementById(id)!.getBoundingClientRect().top <= SPY_LINE) current = id;
+      const atBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4;
+      setActive(atBottom ? present[present.length - 1] : current);
+    };
+    update();
+    window.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', update);
+    return () => {
+      window.removeEventListener('scroll', update);
+      window.removeEventListener('resize', update);
+    };
+  }, [key]);
+  return active;
+}
 
 /** Cuộn tới ô lỗi đầu tiên sau khi kiểm tra không đạt. */
 const focusFirstError = () =>
@@ -74,6 +121,18 @@ export default function CreateOrderPage({ mode }: { mode: CreateMode }) {
   const current = Math.min(step, lastStep); // đang ở bước Invoice mà đổi sang DOC → lùi về bước cuối
   const showStep = (i: number) => !isWizard || current === i;
   const saving = saveDraft.isPending || updateDraft.isPending;
+  const sections = stepSections(isPack);
+  const activeSection = useActiveSection(sections.flat().map(sec => sec.id));
+  // 1 trang: bước đang xem = bước chứa khung đang xem
+  const viewingStep = Math.max(0, sections.findIndex(list => list.some(sec => sec.id === activeSection)));
+  const scrollToId = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const selectSection = async (i: number, id: string) => {
+    if (isWizard && i !== current) {
+      await goToStep(i);
+      // đợi bước mới hiện ra rồi mới cuộn tới khung
+      window.setTimeout(() => scrollToId(id), 80);
+    } else scrollToId(id);
+  };
 
   const goToStep = async (target: number) => {
     // Lùi bước luôn được; tiến bước phải qua kiểm tra các bước đang đứng
@@ -164,31 +223,41 @@ export default function CreateOrderPage({ mode }: { mode: CreateMode }) {
         }
       />
 
-      {isWizard && <StepIndicator steps={steps} current={current} onSelect={i => void goToStep(i)} />}
+      <div className={styles.layout}>
+      {/* Mục lục dọc, ghim theo khi cuộn: từng bước → chuyển bước; 1 trang → cuộn tới phần đó và đánh dấu phần đang xem */}
+      <aside className={styles.nav}>
+        <StepIndicator
+          steps={steps}
+          sections={sections}
+          current={isWizard ? current : viewingStep}
+          activeSection={activeSection}
+          showDone={isWizard}
+          onSelectStep={i => (isWizard ? void goToStep(i) : scrollToId(sections[i]![0]!.id))}
+          onSelectSection={(i, id) => void selectSection(i, id)}
+        />
+      </aside>
 
       <form className={styles.form} onSubmit={e => void submit(e)} noValidate>
+        {/* Giao diện dọc: mỗi khung 1 hàng theo thứ tự khai bill, có id để mục lục nhảy tới */}
         {showStep(0) && (
-          <div className={styles.billGrid}>
-            <div className={styles.column}>
-              <ShipperSection />
-              <ServiceSection />
+          <>
+            <div id={secId('shipper')} className={styles.section}><ShipperSection /></div>
+            <div id={secId('receiver')} className={styles.section}><ReceiverSection /></div>
+            <div id={secId('service')} className={styles.section}><ServiceSection /></div>
+            <div id={secId('shipment')} className={styles.section}>
               <ShipmentSection onShipmentInput={onShipmentInput} onTypeChange={onTypeChange} docConverted={docConverted} />
             </div>
-            <div className={styles.column}>
-              <ReceiverSection />
-            </div>
-          </div>
+          </>
         )}
 
         {showStep(1) && (
           <>
-            <GoodsSection />
-            {isPack && <PackagesTable onPackagesInput={onPackagesInput} />}
-            <AddonsSection />
+            {isPack && <div id={secId('packages')} className={styles.section}><PackagesTable onPackagesInput={onPackagesInput} /></div>}
+            <div id={secId('addons')} className={styles.section}><AddonsSection /></div>
           </>
         )}
 
-        {isPack && showStep(2) && <InvoiceSection />}
+        {isPack && showStep(2) && <div id={secId('invoice')} className={styles.section}><InvoiceSection /></div>}
 
         <footer className={styles.footer}>
           {isWizard && current > 0 && <Button onClick={() => void goToStep(current - 1)}>{t('Quay lại')}</Button>}
@@ -205,6 +274,7 @@ export default function CreateOrderPage({ mode }: { mode: CreateMode }) {
           )}
         </footer>
       </form>
+      </div>
 
       {!isWizard && (
         <Card flush title="Đơn nháp & chưa in" subtitle="· bấm In để cấp mã bill" actions={<LinkButton to="/drafts" size="sm" variant="ghost">{t('Mở trang đầy đủ')}</LinkButton>} className={styles.drafts}>

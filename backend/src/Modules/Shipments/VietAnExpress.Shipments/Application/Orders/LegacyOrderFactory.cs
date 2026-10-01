@@ -17,12 +17,36 @@ internal static class LegacyOrderFactory
     private const int NewService = 1;
     private const int NewStatus = 1;
 
+    /// <summary>Nhóm "nhiều loại hàng trong 1 kiện" — khớp MULTI_CATEGORY của frontend.</summary>
+    public const string MultiCategory = "Nhiều loại hàng";
+
+    /// <summary>Tên hàng theo nhóm: "Nhiều loại hàng" (hoặc chưa có nhóm) → mô tả khách nhập; nhóm khác → tên nhóm.</summary>
+    public static string GoodsName(string? category, string? description)
+    {
+        var c = category?.Trim() ?? "";
+        return c.Length > 0 && c != MultiCategory ? c : description?.Trim() ?? "";
+    }
+
+    /// <summary>
+    /// Tên hàng của đơn hàng hóa = tên hàng các dòng kiện (khớp goodsName của frontend), bỏ trùng, nối ", ".
+    /// Nháp cũ / đơn từ Excel chưa có nhóm theo dòng kiện thì lấy theo khai báo cấp đơn (Goods).
+    /// </summary>
+    public static string GoodsName(OrderPayload p)
+    {
+        // Mô tả tổng quan hàng hóa (content) khách khai ở "Thông tin đơn hàng" là tên hàng của đơn
+        if (p.Goods.Description.Trim() is { Length: > 0 } content && string.IsNullOrWhiteSpace(p.Goods.Category)) return content;
+        var names = p.Packages.Select(x => GoodsName(x.Category, x.Description)).Where(n => n.Length > 0).Distinct().ToList();
+        return names.Count > 0 ? string.Join(", ", names) : GoodsName(p.Goods.Category, p.Goods.Description);
+    }
+
     public static LegacyOrder FromPayload(OrderPayload p, LegacyCustomerRef customer, long orderNumber, DateTime todayVn)
     {
         var isDoc = string.Equals(p.Shipment.Type, "DOC", StringComparison.OrdinalIgnoreCase);
-        var pieces = Math.Max(1, (int)Num(p.Shipment.Pieces));
+        // Hàng hóa: số kiện = tổng SL các dòng kiện (form không còn ô số kiện riêng); chứng từ: khách khai
+        var packageQty = p.Packages.Sum(x => (int)Num(x.Qty));
+        var pieces = Math.Max(1, isDoc || packageQty == 0 ? (int)Num(p.Shipment.Pieces) : packageQty);
         var weight = isDoc ? Num(p.Shipment.GrossWeight) : ChargeableWeight(p.Packages, Num(p.Shipment.GrossWeight));
-        var goods = isDoc ? p.Goods.DocContent : p.Goods.Description;
+        var goods = isDoc ? p.Goods.DocContent : GoodsName(p);
         var value = p.Invoice.Items.Sum(i => Num(i.Qty) * Num(i.Price));
         if (value == 0) value = Num(p.Invoice.DeclaredValue);
 
@@ -57,7 +81,7 @@ internal static class LegacyOrderFactory
             ConsigneePhoneCode = Clip(new string(p.Receiver.PhoneCode.Where(char.IsAsciiDigit).ToArray()), 50),
 
             ServiceName = Clip(ServiceName(p.Service.Hub, p.Service.Carrier), 50),
-            GoodsName = Clip(string.IsNullOrWhiteSpace(goods) ? (isDoc ? "DOCUMENTS" : "GOODS") : goods, 150),
+            GoodsName = Clip(string.IsNullOrWhiteSpace(goods) ? (isDoc ? "Documents" : "Goods") : goods, 150),
             Pieces = pieces,
             WeightKg = Round(weight),
             GoodsValue = Round(value),

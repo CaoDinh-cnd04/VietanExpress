@@ -1,28 +1,25 @@
+/* Thanh lọc gọn: mọi ô trên 1 hàng (ngày, loại hàng, cân, tìm theo, xóa lọc); ô nhỏ hơn mặc định */
 .bar {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  padding: var(--space-4);
+  --control-h: 30px;
+  --text-sm: 12px;
+  --text-md: 12.5px;
+  --text-xs: 11.5px;
+  padding: var(--space-3) var(--space-4);
   margin-bottom: var(--space-4);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
+  font-size: var(--text-sm);
 }
 
 .row {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: var(--space-3);
-}
-
-.searchRow {
-  display: flex;
-  align-items: flex-end;
-  gap: var(--space-3);
+  grid-template-columns: 132px 132px 96px 86px 86px minmax(280px, 1fr) auto;
+  align-items: start;
+  gap: var(--space-2) var(--space-3);
 }
 
 .search {
-  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 5px;
@@ -30,14 +27,28 @@
 }
 
 .searchLabel {
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: 500;
-  color: var(--color-text-muted);
+  color: var(--color-text);
 }
 
+/* Nút "Xóa lọc" ngang hàng ô nhập (bỏ qua chiều cao nhãn) */
+.reset {
+  margin-top: 22px;
+}
+
+/* Màn hình vừa: ô lọc 1 hàng, tìm theo xuống hàng dưới */
 @media (max-width: 1280px) {
   .row {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .search {
+    grid-column: 1 / 5;
+  }
+
+  .reset {
+    grid-column: 5;
   }
 }
 
@@ -45,23 +56,113 @@
   .row {
     grid-template-columns: 1fr 1fr;
   }
-  .searchRow {
-    flex-direction: column;
-    align-items: stretch;
+
+  .search {
+    grid-column: 1 / -1;
   }
-}
 
-/* Nút "Xóa lọc" ngang hàng khung tìm (khung có thể cao lên khi nhiều thẻ, dưới còn dòng gợi ý) */
-.searchRow {
-  align-items: flex-start;
-}
-
-.searchRow > :last-child {
-  margin-top: 23px;
-}
-
-@media (max-width: 720px) {
-  .searchRow > :last-child {
+  .reset {
+    grid-column: 1 / -1;
     margin-top: 0;
   }
+}
+
+/* Ô cân (có chữ "kg" bên phải): bỏ mũi tên tăng/giảm — trình duyệt vẽ nó giữa ô, lệch với chữ kg */
+.bar input[type='number'] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.bar input[type='number']::-webkit-inner-spin-button,
+.bar input[type='number']::-webkit-outer-spin-button {
+  margin: 0;
+  -webkit-appearance: none;
+}
+
+/* ---------- Ô cân: số · kg · nút tăng/giảm xếp dọc ở mép phải ---------- */
+.weight {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.weightLabel {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.weightBox {
+  display: flex;
+  align-items: stretch;
+  height: var(--control-h);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  overflow: hidden;
+}
+
+.weightBox:focus-within {
+  border-color: var(--color-brand);
+  box-shadow: var(--focus-ring);
+}
+
+.weightBox input {
+  flex: 1;
+  min-width: 0;
+  padding: 0 4px 0 var(--space-2);
+  border: 0;
+  background: none;
+  font: inherit;
+  text-align: right;
+}
+
+.weightBox input:focus {
+  outline: none;
+}
+
+.weightUnit {
+  display: grid;
+  place-items: center;
+  padding: 0 6px 0 2px;
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+}
+
+/* Nút tăng / giảm liền với ô (cùng nền trắng, không khung riêng) */
+.stepper {
+  display: flex;
+  flex-direction: column;
+  padding-right: 2px;
+}
+
+.stepper button {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-text-muted);
+}
+
+.stepper button:hover {
+  color: var(--color-brand-strong);
+}
+
+.up {
+  transform: rotate(180deg);
+}
+
+/* Chỉ hiện nút tăng / giảm khi rê chuột vào ô hoặc đang gõ trong ô */
+.stepper {
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+
+.weightBox:hover .stepper,
+.weightBox:focus-within .stepper {
+  opacity: 1;
 }

@@ -58,7 +58,7 @@ export function useOrderPrefill(form: UseFormReturn<CreateOrderValues>): { draft
     else form.reset({ ...defaultValues(), receiver: { ...defaultValues().receiver, company: draft.cnee, country: draft.ct }, service: { ...defaultValues().service, reference: draft.ref } });
   }, [draftId, drafts.data, form]);
 
-  // Nhân bản đơn: lấy thông tin người nhận / dịch vụ / hàng hóa; kiện & invoice khai lại
+  // Copy đơn (trước gọi là nhân bản đơn): lấy thông tin người nhận / dịch vụ / hàng hóa; kiện & invoice khai lại
   useEffect(() => {
     const o = source.data;
     if (!fromBill || !o || applied.current === `from:${fromBill}`) return;

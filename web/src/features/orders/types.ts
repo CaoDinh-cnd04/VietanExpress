@@ -30,7 +30,11 @@ export interface Order {
   pcs: string;
   content: string;
   pod?: OrderPod | null;
+  /** Ngày giao dự kiến do hệ thống cũ ghi (POD_Est), 'dd/mm/yyyy'. */
+  podEstimate?: string | null;
   photos: number;
+  /** Người nhận đầy đủ (người liên hệ, SĐT, địa chỉ) — bảng xổ chi tiết. Backend cũ có thể chưa trả. */
+  receiver?: OrderReceiver | null;
 }
 
 export type OrderSearchField = 'all' | 'cnee' | 'bill' | 'ref' | 'ct';
