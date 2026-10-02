@@ -49,6 +49,7 @@ internal static class LegacyOrderFactory
         var goods = isDoc ? p.Goods.DocContent : GoodsName(p);
         var value = p.Invoice.Items.Sum(i => Num(i.Qty) * Num(i.Price));
         if (value == 0) value = Num(p.Invoice.DeclaredValue);
+        var isEuReceiver = EuCountries.IsEuCountry(EuCountries.ReceiverCode(p.Receiver.Country, p.Receiver.CountryCode));
 
         return new LegacyOrder
         {
@@ -77,6 +78,8 @@ internal static class LegacyOrderFactory
             ConsigneePostalCode = Clip(p.Receiver.Postal, 50),
             ConsigneeCountry = Clip(p.Receiver.Country, 50),
             ConsigneeVatTax = Clip(p.Receiver.TaxId, 100),
+            ConsigneeIossNo = isEuReceiver ? Clip(p.Receiver.IossNo, 12) : null,
+            ConsigneeEoriNo = isEuReceiver ? Clip(p.Receiver.EoriNo, 17) : null,
             // Hệ thống cũ lưu mã điện thoại chỉ gồm chữ số, vd "65", "1".
             ConsigneePhoneCode = Clip(new string(p.Receiver.PhoneCode.Where(char.IsAsciiDigit).ToArray()), 50),
 

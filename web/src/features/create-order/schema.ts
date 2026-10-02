@@ -3,6 +3,8 @@ import { fill } from '@/shared/i18n';
 import { isPhone, PHONE_MESSAGE } from '@/shared/lib/phone';
 import { DEFAULT_SERVICE, MULTI_CATEGORY, RULES } from './constants';
 import { DEFAULT_UNIT, UNIT_MAX } from './lib/units';
+import { euCountryCode } from '@/shared/config/eu';
+import { EORI_MESSAGE, IOSS_MESSAGE, validateEoriNo, validateIossNo } from './lib/eu-tax';
 
 /*
  * Schema form tạo đơn — nguồn duy nhất cho kiểu dữ liệu + quy tắc kiểm tra.
@@ -76,6 +78,9 @@ export const createOrderSchema = z
     }),
     receiver: z.object({
       country: required(),
+      countryCode: optional.optional(),
+      iossNo: optional.optional(),
+      eoriNo: optional.optional(),
       city: required(),
       company: required(),
       contact: required(),
@@ -110,6 +115,10 @@ export const createOrderSchema = z
   })
   .superRefine((v, ctx) => {
     const issue = (path: (string | number)[], message = REQUIRED) => ctx.addIssue({ code: 'custom', path, message });
+
+    const countryCode = euCountryCode(v.receiver.country.trim() ? v.receiver.country : v.receiver.countryCode);
+    if (!validateIossNo(countryCode, v.receiver.iossNo)) issue(['receiver', 'iossNo'], IOSS_MESSAGE);
+    if (!validateEoriNo(countryCode, v.receiver.eoriNo)) issue(['receiver', 'eoriNo'], EORI_MESSAGE);
 
     if (v.shipment.type === 'DOC') {
       // Chứng từ: chỉ khai số kiện + cân nặng; nội dung mặc định "Documents"
@@ -170,13 +179,13 @@ export const STEP_FIELDS = [
 ] as const satisfies ReadonlyArray<ReadonlyArray<keyof CreateOrderValues>>;
 
 export const emptyPackage = (): PackageValues => ({ qty: '1', packaging: 'Thùng carton', length: '', width: '', height: '', weight: '', category: '', description: '' });
-export const emptyInvoiceItem = (): InvoiceItemValues => ({ descEn: '', descVi: '', manufacturer: '', origin: 'VN', hs: '', qty: '1', unit: DEFAULT_UNIT, price: '' });
+export const emptyInvoiceItem = (): InvoiceItemValues => ({ descEn: '', descVi: '', manufacturer: '', origin: 'VN', hs: '', qty: '', unit: DEFAULT_UNIT, price: '' });
 
 export const defaultValues = (): CreateOrderValues => ({
   shipper: { company: '', originalShipper: '', contact: '', tel: '', address: '', taxId: '', email: '', country: 'Vietnam', branch: 'TP.HCM' },
   service: { carrier: DEFAULT_SERVICE.carrier, hub: DEFAULT_SERVICE.hub, reference: '' },
   shipment: { type: 'PACK', pieces: '1', grossWeight: '' },
-  receiver: { country: '', city: '', company: '', contact: '', tel: '', phoneCode: '', taxId: '', email: '', postal: '', state: '', addr1: '', addr2: '', addr3: '' },
+  receiver: { country: '', countryCode: '', iossNo: '', eoriNo: '', city: '', company: '', contact: '', tel: '', phoneCode: '', taxId: '', email: '', postal: '', state: '', addr1: '', addr2: '', addr3: '' },
   goods: { category: '', description: '', docContent: '', multi: [] },
   packages: [emptyPackage()],
   addons: [],

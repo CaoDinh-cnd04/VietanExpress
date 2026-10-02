@@ -25,7 +25,7 @@ describe('draftDetail', () => {
     expect(d.shipment).toContainEqual(['Chịu thuế', 'DDP — người gửi chịu thuế']);
     expect(d.items[0]).toMatchObject({ descEn: 'Dress', descVi: 'Đầm', qty: '5 PCS', amount: 40 });
     expect(d.invoice).toContainEqual(['Hình thức xuất khẩu', 'gift (no commercial value)']);
-    expect(d.invoiceTotal).toBe(40);
+    expect(d.invoiceTotal).toBe(43);
     expect(d.shippingFee).toBe(3);
   });
 

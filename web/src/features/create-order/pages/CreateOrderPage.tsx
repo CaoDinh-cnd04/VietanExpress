@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { FormProvider, useWatch, type FieldErrors } from 'react-hook-form';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { getErrorMessage } from '@/shared/api/http';
@@ -100,12 +100,13 @@ const focusFirstError = () =>
  */
 export default function CreateOrderPage({ mode }: { mode: CreateMode }) {
   const navigate = useNavigate();
-  const { search } = useLocation();
+  const { search, pathname } = useLocation();
   const toast = useToast();
   const { t } = useI18n();
   const [initial] = useState(() => (search ? undefined : readAutosave()));
   const form = useCreateOrderForm(initial);
-  const { draftId, finishAutosave } = useOrderPrefill(form);
+  const { draftId, finishAutosave, retainDraft } = useOrderPrefill(form);
+  const persisting = useRef(false);
   const { onShipmentInput, onPackagesInput, onTypeChange, docConverted } = useShipmentSync(form);
   const saveDraft = useSaveDraft();
   const updateDraft = useUpdateDraft();
@@ -151,16 +152,23 @@ export default function CreateOrderPage({ mode }: { mode: CreateMode }) {
   };
 
   const persist = (values: CreateOrderValues, status: 'draft' | 'ready') => {
+    if (persisting.current) return;
+    persisting.current = true;
     const payload = buildDraftPayload(values, status);
-    const onSuccess = () => {
+    const onSuccess = (saved: { id: string }) => {
       finishAutosave();
       setConfirm(null);
       toast.show(status === 'ready' ? 'Đã tạo đơn. Bấm "In & cấp bill" để cấp mã bill và in vận đơn A4.' : 'Đã lưu nháp.', 'success');
-      navigate('/drafts');
+      if (status === 'ready') navigate('/drafts');
+      else {
+        retainDraft(saved.id);
+        navigate(`${pathname}?draft=${encodeURIComponent(saved.id)}`, { replace: true });
+      }
     };
     const onError = (e: unknown) => toast.show(getErrorMessage(e, 'Không lưu được đơn, vui lòng thử lại'), 'error');
-    if (draftId) updateDraft.mutate({ id: draftId, draft: payload }, { onSuccess, onError });
-    else saveDraft.mutate(payload, { onSuccess, onError });
+    const onSettled = () => { persisting.current = false; };
+    if (draftId) updateDraft.mutate({ id: draftId, draft: payload }, { onSuccess, onError, onSettled });
+    else saveDraft.mutate(payload, { onSuccess, onError, onSettled });
   };
 
   /** Trước khi tạo: chặn kiện hãng không nhận; hỏi xác nhận nếu có phụ phí / cảnh báo. */

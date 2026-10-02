@@ -6,12 +6,10 @@ import { useI18n } from '@/shared/i18n';
 import { sanitizePhone } from '@/shared/lib/phone';
 import { cx } from '@/shared/lib/cx';
 import { Button, Card, FormGrid, Icon, SelectField, TextField } from '@/shared/ui';
-import { useSenders } from '../api';
 import { RULES } from '../constants';
 import { useFieldBinder } from '../hooks/useFieldBinder';
 import { shipperFromProfile } from '../lib/shipper-profile';
 import type { CreateOrderValues } from '../schema';
-import { AddressPickerDialog } from './AddressPickerDialog';
 import styles from './form.module.css';
 
 export function ShipperSection() {
@@ -20,7 +18,6 @@ export function ShipperSection() {
   const { setValue, getValues, control } = useFormContext<CreateOrderValues>();
   const shipper = useWatch({ control, name: 'shipper' });
   const address = shipper?.address ?? '';
-  const [picking, setPicking] = useState(false);
   // Thu gọn / mở rộng: mặc định thu gọn khi đã đủ thông tin bắt buộc (thường là điền sẵn từ hồ sơ khách).
   const [open, setOpen] = useState<boolean | null>(null);
   const complete = (['company', 'contact', 'tel', 'address', 'country', 'branch'] as const).every(k => (shipper?.[k] ?? '').trim());
@@ -31,14 +28,13 @@ export function ShipperSection() {
   useEffect(() => {
     if (hasErrors) setOpen(true);
   }, [hasErrors, submitCount]);
-  const senders = useSenders();
   // Ô điện thoại: bỏ chữ cái / ký tự lạ ngay khi gõ hoặc dán.
   const keepPhone = (name: 'shipper.tel', value: string) => {
     const clean = sanitizePhone(value);
     if (clean !== value) setValue(name, clean, { shouldDirty: true });
   };
 
-  // Điền sẵn người gửi theo hồ sơ khách đang đăng nhập (dbo.TCustomer) — chỉ điền ô còn trống, khách vẫn sửa được.
+  // Điền sẵn từ hồ sơ khách; tên công ty và địa chỉ lấy hàng chỉ đọc.
   const session = useSession();
   const profile = session.data?.status === 'authenticated' ? session.data.user : null;
   useEffect(() => {
@@ -53,7 +49,7 @@ export function ShipperSection() {
       subtitle={lang === 'vi' ? '(Shipper)' : undefined}
       actions={
         <>
-          <Button size="sm" onClick={() => setPicking(true)}>{t('Đổi hồ sơ')}</Button>
+          <SelectField className={styles.shipperBranch} label="Chi nhánh gửi hàng" required options={BRANCHES} placeholder="Chọn chi nhánh" {...bind('shipper.branch')} />
           <Button size="sm" variant="ghost" aria-expanded={expanded} aria-controls="shipper-fields" onClick={() => setOpen(!expanded)}>
             {t(expanded ? 'Thu gọn' : 'Mở rộng')} <Icon name="chevronDown" size={14} className={cx(styles.chevron, expanded && styles.chevronOpen)} />
           </Button>
@@ -78,7 +74,7 @@ export function ShipperSection() {
       {/* Ô nhập luôn giữ trong form (chỉ ẩn) để giá trị và kiểm tra lỗi không bị mất khi thu gọn. */}
       <div id="shipper-fields" hidden={!expanded}>
       <FormGrid>
-        <TextField label="Tên công ty / người gửi" required {...bind('shipper.company')} />
+        <TextField label="Tên công ty / người gửi" required readOnly {...bind('shipper.company')} />
         <TextField
           label="Tên shipper gốc"
           hint="Dành cho đơn vị forwarder gửi hộ khách — không bắt buộc"
@@ -90,6 +86,7 @@ export function ShipperSection() {
         <TextField
           label="Địa chỉ lấy hàng"
           required
+          readOnly
           wide
           maxLength={RULES.shipperAddressMax}
           aside={`${address.length}/${RULES.shipperAddressMax}`}
@@ -98,28 +95,9 @@ export function ShipperSection() {
         <TextField label="Mã số thuế / CCCD / CMND" {...bind('shipper.taxId')} />
         <TextField label="Email" type="email" {...bind('shipper.email')} />
         <TextField label="Quốc gia gửi" required {...bind('shipper.country')} />
-        <SelectField label="Chi nhánh gửi hàng" required options={BRANCHES} placeholder="Chọn chi nhánh" {...bind('shipper.branch')} />
       </FormGrid>
       </div>
 
-      <AddressPickerDialog
-        open={picking}
-        title="Chọn hồ sơ người gửi"
-        onClose={() => setPicking(false)}
-        loading={senders.isLoading}
-        items={(senders.data ?? []).map(s => ({
-          key: s.id ?? s.n,
-          title: s.n,
-          subtitle: `${s.d} · ${s.c} · ${s.t}`,
-          onPick: () => {
-            const opts = { shouldDirty: true, shouldValidate: true } as const;
-            setValue('shipper.company', s.n, opts);
-            setValue('shipper.contact', s.c, opts);
-            setValue('shipper.tel', s.t, opts);
-            setValue('shipper.address', s.d, opts);
-          }
-        }))}
-      />
     </Card>
   );
 }

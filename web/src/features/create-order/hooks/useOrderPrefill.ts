@@ -38,7 +38,7 @@ const looksLikeForm = (v: unknown): v is CreateOrderValues =>
  * - không có tham số: khôi phục bản tự lưu trong phiên.
  * Trả về id đơn nháp đang sửa (nếu có) để trang gọi cập nhật thay vì tạo mới.
  */
-export function useOrderPrefill(form: UseFormReturn<CreateOrderValues>): { draftId: string | null; finishAutosave: () => void } {
+export function useOrderPrefill(form: UseFormReturn<CreateOrderValues>): { draftId: string | null; finishAutosave: () => void; retainDraft: (id: string) => void } {
   const [params] = useSearchParams();
   const draftId = params.get('draft');
   const fromBill = params.get('from');
@@ -110,5 +110,10 @@ export function useOrderPrefill(form: UseFormReturn<CreateOrderValues>): { draft
     clearAutosave();
   }, [save]);
 
-  return { draftId, finishAutosave };
+  // Form hiện tại chính là bản vừa lưu; không reset từ cache khi gắn ID vào URL.
+  const retainDraft = useCallback((id: string) => {
+    applied.current = `draft:${id}`;
+  }, []);
+
+  return { draftId, finishAutosave, retainDraft };
 }

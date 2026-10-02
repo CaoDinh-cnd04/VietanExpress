@@ -91,7 +91,8 @@ internal static partial class LegacyOrderView
     private static OrderReceiverDto ReceiverOf(LegacyOrder o) =>
         new(S(o.ConsigneeName), S(o.ConsigneeContactName), S(o.ConsigneePhone), S(o.ConsigneeCountry),
             S(o.ConsigneeCity), S(o.ConsigneePostalCode), S(o.ConsigneeState), S(o.ConsigneeAddress1), S(o.ConsigneeAddress2),
-            S(o.ConsigneeAddress3), S(o.ConsigneeVatTax), S(o.ConsigneeEmail));
+            S(o.ConsigneeAddress3), S(o.ConsigneeVatTax), S(o.ConsigneeEmail),
+            S(o.ConsigneeIossNo), S(o.ConsigneeEoriNo), Domain.EuCountries.CodeOf(o.ConsigneeCountry) ?? "");
 
     /// <summary>Chi tiết đầy đủ kèm kiện + invoice (đọc từ 2 bảng chi tiết).</summary>
     public static OrderDto ToDetailDto(LegacyOrder o, DateTime today, IEnumerable<LegacyPackageLine> packages, IEnumerable<LegacyInvoiceLine> items) =>

@@ -5,11 +5,12 @@ import { Button, Card, FormGrid, TextField, useToast } from '@/shared/ui';
 import { useI18n } from '@/shared/i18n';
 import { useDebouncedCallback } from '@/shared/lib/useDebouncedCallback';
 import { sanitizePhone } from '@/shared/lib/phone';
+import { euCountryCode, isEuCountry } from '@/shared/config/eu';
 import { useCountries, usePostalLookup, useReceivers, useSaveReceiver } from '../api';
 import { COUNTRIES, RULES } from '../constants';
 import { useFieldBinder, type FieldName } from '../hooks/useFieldBinder';
 import { splitAddressLines } from '../lib/address';
-import { canAutofill, findCountry, normalizePostal, shouldResetAddress } from '../lib/geo';
+import { findCountry, normalizePostal, shouldResetAddress } from '../lib/geo';
 import type { CreateOrderValues } from '../schema';
 import { AddressPickerDialog } from './AddressPickerDialog';
 import styles from './form.module.css';
@@ -20,7 +21,7 @@ export function ReceiverSection() {
   const bind = useFieldBinder();
   const toast = useToast();
   const { t, lang } = useI18n();
-  const { control, setValue, getValues, clearErrors, setFocus } = useFormContext<CreateOrderValues>();
+  const { control, setValue, getValues, clearErrors, setFocus, trigger } = useFormContext<CreateOrderValues>();
   const [addr1 = '', addr2 = '', addr3 = ''] = useWatch({ control, name: ['receiver.addr1', 'receiver.addr2', 'receiver.addr3'] });
   const [picking, setPicking] = useState(false);
   const receivers = useReceivers();
@@ -35,6 +36,16 @@ export function ReceiverSection() {
     [countries.data]
   );
   const country = findCountry(countryList, countryText);
+  const countryCode = country?.code.length === 2 ? country.code : euCountryCode(countryText);
+  const showEuTaxFields = isEuCountry(countryCode);
+  useEffect(() => {
+    setValue('receiver.countryCode', countryCode ?? '', { shouldDirty: true });
+    if (!isEuCountry(countryCode)) {
+      setValue('receiver.iossNo', '', { shouldDirty: true });
+      setValue('receiver.eoriNo', '', { shouldDirty: true });
+      clearErrors(['receiver.iossNo', 'receiver.eoriNo']);
+    }
+  }, [countryCode, setValue, clearErrors]);
   const dialCode = country?.dialCode ?? '';
   useEffect(() => {
     if ((getValues('receiver.phoneCode') ?? '') !== dialCode) setValue('receiver.phoneCode', dialCode, { shouldDirty: true });
@@ -45,21 +56,15 @@ export function ReceiverSection() {
   const schedulePostal = useDebouncedCallback((value: string | null) => setPostalQuery(value), 500);
   useEffect(() => schedulePostal(normalizePostal(postalText)), [postalText, schedulePostal]);
   const postal = usePostalLookup(country?.code, postalQuery);
-  /** Giá trị hệ thống đã tự điền — khách tự sửa rồi thì không ghi đè. */
-  const autofilled = useRef<{ city?: string; state?: string }>({});
+  // Kết quả postal code được ưu tiên hơn địa chỉ đã nhập trước đó.
   useEffect(() => {
     const info = postal.data;
-    if (!info) return;
+    // Khách đang đổi mã / nước: không điền kết quả của lần tra cũ trong lúc debounce.
+    if (!info || info.countryCode !== country?.code || info.postalCode !== normalizePostal(postalText)) return;
     const opts = { shouldDirty: true, shouldValidate: true } as const;
-    if (canAutofill(getValues('receiver.city'), autofilled.current.city)) {
-      setValue('receiver.city', info.city, opts);
-      autofilled.current.city = info.city;
-    }
-    if (info.state && canAutofill(getValues('receiver.state'), autofilled.current.state)) {
-      setValue('receiver.state', info.state, opts);
-      autofilled.current.state = info.state;
-    }
-  }, [postal.data, getValues, setValue]);
+    setValue('receiver.city', info.city, opts);
+    setValue('receiver.state', info.state ?? '', opts);
+  }, [postal.data, country?.code, postalText, setValue]);
 
   // ---------- Khách đổi sang nước khác → xoá mã bưu chính, thành phố, tỉnh / bang của nước cũ ----------
   /** Nước nhận ra gần nhất (cả khi điền bằng code: sổ địa chỉ, mở nháp) — chỉ để so sánh, không tự xoá. */
@@ -77,7 +82,6 @@ export function ReceiverSection() {
       setValue('receiver.city', '', opts);
       setValue('receiver.state', '', opts);
       clearErrors(['receiver.postal', 'receiver.city', 'receiver.state']);
-      autofilled.current = {};
       setPostalQuery(null);
     }
     if (next) lastCountryCode.current = next;
@@ -154,6 +158,12 @@ export function ReceiverSection() {
         <TextField label="Điện thoại (tel)" required type="tel" prefix={dialCode || undefined} {...bind('receiver.tel', { onChange: e => { const clean = sanitizePhone(e.target.value); if (clean !== e.target.value) setValue('receiver.tel', clean, { shouldDirty: true }); } })} />
         <TextField label="Tax ID" {...bind('receiver.taxId')} />
         <TextField label="Email" type="email" {...bind('receiver.email')} />
+        {showEuTaxFields && (
+          <>
+            <TextField label="IOSS No" placeholder="IM1234567890" {...bind('receiver.iossNo', { onBlur: () => void trigger('receiver.iossNo') })} />
+            <TextField label="EORI No" placeholder="DE123456789012345" {...bind('receiver.eoriNo', { onBlur: () => void trigger('receiver.eoriNo') })} />
+          </>
+        )}
         {addressField('addr1', 'Địa chỉ 1 (address 1)', addr1, true)}
         {addressField('addr2', 'Địa chỉ 2 (address 2)', addr2, true)}
         {addressField('addr3', 'Địa chỉ 3 (address 3)', addr3, false)}

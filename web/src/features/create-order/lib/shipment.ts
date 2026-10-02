@@ -59,7 +59,9 @@ export function applyDocWeightRule(
 
 export const lineTotal = (item: Pick<InvoiceItemValues, 'qty' | 'price'>): number => round(toNumber(item.qty) * toNumber(item.price));
 
-export const invoiceTotal = (items: ReadonlyArray<InvoiceItemValues>): number => round(items.reduce((s, it) => s + lineTotal(it), 0));
+/** Tổng invoice gồm tiền hàng và shipping fee nếu khách khai. */
+export const invoiceTotal = (items: ReadonlyArray<InvoiceItemValues>, shippingFee?: string): number =>
+  round(items.reduce((s, it) => s + lineTotal(it), 0) + toNumber(shippingFee));
 
 /** Tên hàng của 1 dòng kiện: "Nhiều loại hàng" → mô tả khách nhập; nhóm khác → tên nhóm. */
 export function packageGoodsName(p: Pick<PackageValues, 'category' | 'description'>): string {

@@ -1,4 +1,17 @@
 import type { SavedProduct } from '../api';
+import { emptyInvoiceItem, type InvoiceItemValues } from '../schema';
+
+/** Chép thông tin mặt hàng, khách khai lại số lượng và đơn giá cho lần gửi mới. */
+export const invoiceItemFromProduct = (p: SavedProduct): InvoiceItemValues => ({
+  ...emptyInvoiceItem(),
+  descEn: p.descEn,
+  descVi: p.descVi,
+  manufacturer: p.manufacturer,
+  origin: p.origin,
+  hs: p.hs,
+  unit: p.unit,
+  price: '0'
+});
 
 /** Bỏ dấu tiếng Việt + chữ thường để tìm không phân biệt "ao" / "Áo". */
 export const fold = (s: string) =>

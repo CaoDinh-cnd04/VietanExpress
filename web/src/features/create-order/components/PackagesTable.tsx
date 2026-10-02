@@ -53,7 +53,7 @@ export function PackagesTable({ onPackagesInput }: { onPackagesInput: () => void
       actions={
         <div className={styles.pkgHeader}>
           <label className={styles.piecesField}>
-            <span>{t('Số kiện dự kiến')} <span className={styles.required}>*</span></span>
+            <span>{t('Tổng số lượng dự kiến')} <span className={styles.required}>*</span></span>
             <input
               type="number"
               min={1}

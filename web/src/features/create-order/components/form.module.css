@@ -157,6 +157,23 @@
   white-space: nowrap;
 }
 
+.invoiceTable .amountHeader {
+  text-align: right;
+}
+
+/* Nhập số trực tiếp, không hiện nút tăng / giảm ở bảng invoice. */
+.invoiceTable input[type='number'] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+  text-align: right;
+}
+
+.invoiceTable input[type='number']::-webkit-inner-spin-button,
+.invoiceTable input[type='number']::-webkit-outer-spin-button {
+  margin: 0;
+  -webkit-appearance: none;
+}
+
 .stack {
   display: flex;
   flex-direction: column;
@@ -534,6 +551,24 @@
 }
 
 /* Khung người gửi thu gọn: tóm tắt 3 dòng, bấm để mở ra sửa */
+.shipperBranch {
+  display: grid;
+  grid-template-columns: auto minmax(110px, 150px);
+  align-items: center;
+  column-gap: var(--space-2);
+}
+
+.shipperBranch > p {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 720px) {
+  .shipperBranch {
+    grid-template-columns: minmax(0, 1fr);
+    width: 150px;
+  }
+}
+
 .collapsedSummary {
   position: relative;
   display: flex;

@@ -39,6 +39,8 @@ internal sealed class LegacyOrder
     public string ConsigneeEmail { get; set; } = string.Empty;
     public string? ConsigneeVatTax { get; set; }
     public string? ConsigneePhoneCode { get; set; }
+    public string? ConsigneeIossNo { get; set; }
+    public string? ConsigneeEoriNo { get; set; }
 
     public int? Service { get; set; }
     public int? Status { get; set; }
@@ -111,6 +113,8 @@ internal sealed class LegacyOrderConfiguration : IEntityTypeConfiguration<Legacy
         b.Property(x => x.ConsigneeEmail).HasMaxLength(150).IsRequired();
         b.Property(x => x.ConsigneeVatTax).HasColumnName("CONSIGNEE_VAT_Tax").HasMaxLength(100);
         b.Property(x => x.ConsigneePhoneCode).HasMaxLength(50);
+        b.Property(x => x.ConsigneeIossNo).HasMaxLength(12);
+        b.Property(x => x.ConsigneeEoriNo).HasMaxLength(17);
 
         b.Property(x => x.CreateDate).HasColumnType("date");
         b.Property(x => x.ModifyDate).HasColumnType("date");

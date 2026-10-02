@@ -46,7 +46,8 @@ internal sealed record OrderShipperDto(string Company, string Contact, string Te
 
 internal sealed record OrderReceiverDto(
     string Company, string Contact, string Tel, string Country, string City, string Postal, string State,
-    string Addr1, string Addr2, string Addr3, string TaxId, string Email);
+    string Addr1, string Addr2, string Addr3, string TaxId, string Email,
+    string IossNo = "", string EoriNo = "", string CountryCode = "");
 
 internal sealed record OrderSummaryDto(IReadOnlyDictionary<string, int> StatusCounts, int TotalPieces, decimal TotalWeight);
 

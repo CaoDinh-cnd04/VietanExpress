@@ -3,9 +3,10 @@ import { isNotImplemented } from '@/shared/api/http';
 import { useI18n } from '@/shared/i18n';
 import { downloadTextFile, readFileAsText, toCsv } from '@/shared/lib/files';
 import { Button, Icon, Modal, Notice, useToast } from '@/shared/ui';
-import { useProductLibrary, useRecentInvoices, type SavedProduct } from '../api';
+import { useProductLibrary, useRecentInvoices } from '../api';
 import { invoiceTemplate, parseInvoiceCsv } from '../lib/invoice-import';
-import { emptyInvoiceItem, type InvoiceItemValues } from '../schema';
+import type { InvoiceItemValues } from '../schema';
+import { invoiceItemFromProduct } from '../lib/product-library';
 import { ProductLibraryList } from './ProductLibraryList';
 import styles from './form.module.css';
 
@@ -13,17 +14,6 @@ interface InvoiceToolbarProps {
   /** Thêm dòng vào invoice; replace = thay toàn bộ (dùng khi chép invoice cũ). */
   onItems: (items: InvoiceItemValues[], mode: 'append' | 'replace') => void;
 }
-
-const toItem = (p: SavedProduct): InvoiceItemValues => ({
-  ...emptyInvoiceItem(),
-  descEn: p.descEn,
-  descVi: p.descVi,
-  manufacturer: p.manufacturer,
-  origin: p.origin,
-  hs: p.hs,
-  unit: p.unit,
-  price: p.price
-});
 
 /** Công cụ khai invoice nhanh: thư viện mặt hàng, invoice cũ, import CSV, file mẫu. */
 export function InvoiceToolbar({ onItems }: InvoiceToolbarProps) {
@@ -61,7 +51,7 @@ export function InvoiceToolbar({ onItems }: InvoiceToolbarProps) {
         {library.isError ? unavailable(library.error) : library.isLoading ? <p className={styles.pickerEmpty}>{t('Đang tải…')}</p> : !library.data?.length ? (
           <p className={styles.pickerEmpty}>{t('Chưa có mặt hàng đã lưu.')}</p>
         ) : (
-          <ProductLibraryList products={library.data} onPick={p => { onItems([toItem(p)], 'append'); setDialog(null); }} />
+          <ProductLibraryList products={library.data} onPick={p => { onItems([invoiceItemFromProduct(p)], 'append'); setDialog(null); }} />
         )}
       </Modal>
 
@@ -72,7 +62,7 @@ export function InvoiceToolbar({ onItems }: InvoiceToolbarProps) {
           <ul className={styles.pickerList}>
             {recent.data.map(inv => (
               <li key={inv.bill}>
-                <button type="button" className={styles.pickerItem} onClick={() => { onItems(inv.items.map(toItem), 'replace'); setDialog(null); }}>
+                <button type="button" className={styles.pickerItem} onClick={() => { onItems(inv.items.map(invoiceItemFromProduct), 'replace'); setDialog(null); }}>
                   <span className={styles.pickerText}>
                     <strong>{inv.bill} · {inv.cnee}</strong>
                     <span>{inv.date} · {t('{n} mặt hàng', { n: inv.items.length })} · {inv.currency}</span>

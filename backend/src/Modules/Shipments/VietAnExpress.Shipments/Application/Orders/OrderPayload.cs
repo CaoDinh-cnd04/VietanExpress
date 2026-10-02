@@ -46,6 +46,9 @@ internal sealed class OrderPayload
 
     internal sealed class ReceiverPart
     {
+        public string CountryCode { get; init; } = "";
+        public string IossNo { get; init; } = "";
+        public string EoriNo { get; init; } = "";
         public string Country { get; init; } = "";
         public string City { get; init; } = "";
         public string Company { get; init; } = "";

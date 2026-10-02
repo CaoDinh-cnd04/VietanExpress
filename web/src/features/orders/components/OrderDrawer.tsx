@@ -122,7 +122,7 @@ export function OrderDrawer({ order, onClose, actions }: OrderDrawerProps) {
                 <SheetBox no={++no} title="Người nhận (Consignee)">
                   <SheetName>{r?.company || o.cnee}</SheetName>
                   <SheetLines lines={r ? receiverAddress(r) : [o.ct]} />
-                  <SheetFields items={[['Người liên hệ', r?.contact ?? ''], ['Điện thoại', r?.tel ?? ''], ['Tax ID', r?.taxId ?? ''], ['Email', r?.email ?? '']]} />
+                  <SheetFields items={[['Người liên hệ', r?.contact ?? ''], ['Điện thoại', r?.tel ?? ''], ['Tax ID', r?.taxId ?? ''], ['IOSS No', r?.iossNo ?? ''], ['EORI No', r?.eoriNo ?? ''], ['Email', r?.email ?? '']]} />
                 </SheetBox>
               </SheetRow>
             )}

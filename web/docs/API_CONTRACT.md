@@ -136,6 +136,14 @@ Body POST / PUT (`NewDraft`):
 ```
 
 `stt`: `draft` = đang làm dở · `ready` = đã khai đủ, chờ in. **Backend phải lưu nguyên `payload`** (cột JSON / NVARCHAR(MAX)) để mở lại đơn sửa tiếp.
+
+`payload.receiver` có thêm `countryCode` (ISO-2), `iossNo`, `eoriNo` (chuỗi, không bắt buộc).
+Hai mã chỉ hiển thị / kiểm tra khi nước đến thuộc EU; nguồn danh sách 27 nước dùng chung FE/BE:
+`web/src/shared/config/eu-countries.json` (không gồm GB, NO, CH).
+IOSS: `^IM\d{10}$`; EORI: `^[A-Z]{2}[A-Z0-9]{1,15}$`. Giá trị trống hợp lệ; sai định dạng ở EU trả 400.
+Đổi sang nước ngoài EU: frontend xóa giá trị và lỗi; backend cũng xóa hai mã khỏi payload nháp khi lưu.
+Khi cấp bill, hai mã được lưu vào `dbo.MaVanDon.ConsigneeIossNo` / `ConsigneeEoriNo`
+(migration `AddReceiverEuTaxNumbers`, hai cột nullable). `GET /orders/:bill` trả hai mã trong `receiver`, cùng `countryCode` cho nước EU.
 `POST /drafts/:id/print` trả `{ "message": "...", "billCode": "6156980" }`. Ngay sau đó frontend mở `GET /orders/print?bills=<billCode>&doc=bill-a4` để in vận đơn khổ A4 — vì vậy `billCode` là **bắt buộc**, và bill vừa cấp phải in được ngay.
 
 ---
@@ -225,6 +233,19 @@ Gợi ý bảng SQL: `Services`, `ServiceZones`, `ServiceCountryZones`, `Service
 ---
 
 ## 7. Tài khoản & hỗ trợ
+
+MyTracking cá nhân (`/account/mytracking`) hiện là trang cấu hình / xem trước: tiêu đề, mô tả,
+tối đa 5 ảnh quảng cáo có link đích tùy chọn và 1 hình nền. Cấu hình lưu localStorage riêng theo
+`customerCode` với key `mytracking-draft:{customerCode}`; chưa lưu trên server hay xuất bản link riêng.
+Preview dùng dữ liệu tracking mẫu, không gọi API tracking. Có logo, thông tin thương hiệu và các
+link mạng xã hội, chuyển Desktop / Mobile và cập nhật trực tiếp từ form. Ảnh JPG/JPEG/PNG/WebP
+tối đa 200 KB được nén bằng canvas xuống tối đa 200 KB trước khi lưu base64. Khi localStorage
+bị chặn hoặc đầy, cấu hình vẫn giữ trong bộ nhớ phiên và hiển thị cảnh báo.
+Ảnh từ URL được kiểm tra tải/giải mã trước khi thêm (timeout 15 giây), giữ link gốc;
+không tải về lưu hoặc nén. Giới hạn 200 KB sau nén áp dụng cho ảnh tải từ máy.
+`ConfigRepository` tách lưu trữ khỏi component; hiện dùng `LocalStorageConfigRepository`.
+`ApiConfigRepository` chỉ là adapter nhận transport từ bên ngoài, chưa được kết nối API.
+Phân quyền khách admin / khách user sẽ được bổ sung sau.
 
 | Method | Path | Trạng thái | Mô tả |
 |---|---|---|---|

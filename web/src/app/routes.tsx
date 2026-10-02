@@ -14,6 +14,7 @@ export interface RouteHandle {
 // Mỗi trang tách chunk riêng, chỉ tải khi mở.
 const CreateOrderPage = lazy(() => import('@/features/create-order/pages/CreateOrderPage'));
 const pages = {
+  myTracking: lazy(() => import('@/features/mytracking/pages/MyTrackingPage')),
   orderImport: lazy(() => import('@/features/order-import/pages/OrderImportPage')),
   orders: lazy(() => import('@/features/orders/pages/OrdersPage')),
   drafts: lazy(() => import('@/features/drafts/pages/DraftsPage')),
@@ -62,6 +63,7 @@ const routes: RouteObject[] = [
       page('notifications', 'Thông báo', pages.notifications),
       page('help', 'Trợ giúp & Góp ý', pages.support),
       page('account/api-tracking', 'API Tracking', pages.apiTracking),
+      page('account/mytracking', 'MyTracking cá nhân', pages.myTracking),
       page('account/password', 'Đổi mật khẩu', pages.password),
       { path: '*', element: <NotFoundPage />, handle: { title: 'Không tìm thấy trang' } satisfies RouteHandle }
     ]

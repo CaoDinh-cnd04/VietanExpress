@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using VietAnExpress.SharedKernel.Application;
@@ -25,7 +26,25 @@ internal sealed record DraftInput(
     public OrderDraftSummary ToSummary() => new(
         Stt, Cnee ?? "", Ct ?? "", Service ?? "", Branch ?? "", Ref ?? "", Pcs ?? "", Content ?? "");
 
-    public string PayloadJson => Payload is { ValueKind: JsonValueKind.Object } p ? p.GetRawText() : "{}";
+    public string PayloadJson
+    {
+        get
+        {
+            if (Payload is not { ValueKind: JsonValueKind.Object } p) return "{}";
+            var node = JsonNode.Parse(p.GetRawText())!;
+            if (node["receiver"] is JsonObject receiver)
+            {
+                var country = receiver["country"] is JsonValue cv && cv.TryGetValue<string>(out var c) ? c : "";
+                var code = receiver["countryCode"] is JsonValue cc && cc.TryGetValue<string>(out var iso) ? iso : "";
+                if (!EuCountries.IsEuCountry(EuCountries.ReceiverCode(country, code)))
+                {
+                    receiver["iossNo"] = "";
+                    receiver["eoriNo"] = "";
+                }
+            }
+            return node.ToJsonString();
+        }
+    }
 }
 
 internal static class DraftScope
@@ -110,6 +129,9 @@ internal sealed class PrintDraftHandler(
         try { payload = JsonSerializer.Deserialize<OrderPayload>(draft.PayloadJson, Json); }
         catch (JsonException) { payload = null; }
         if (payload is null || string.IsNullOrWhiteSpace(payload.Receiver.Company)) return OrderErrors.InvalidPayload;
+        var taxValidation = new Validators.ReceiverTaxValidator().Validate(payload.Receiver);
+        if (!taxValidation.IsValid)
+            return Error.Validation("RECEIVER_TAX_INVALID", taxValidation.Errors[0].ErrorMessage);
 
         var writer = await access.WriterAsync(ct);
         if (writer.IsFailure) return writer.Error;

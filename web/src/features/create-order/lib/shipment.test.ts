@@ -48,6 +48,12 @@ describe('isDocOverweight', () => {
 });
 
 describe('invoiceTotal', () => {
+  it('cộng shipping fee khi nhập, để trống thì chỉ tính tiền hàng', () => {
+    const items = [{ ...emptyInvoiceItem(), qty: '5', price: '8' }];
+    expect(invoiceTotal(items, '3.5')).toBe(43.5);
+    expect(invoiceTotal(items, '')).toBe(40);
+    expect(invoiceTotal(items, '0')).toBe(40);
+  });
   it('cộng SL × đơn giá', () => {
     expect(invoiceTotal([{ ...emptyInvoiceItem(), qty: '5', price: '8' }, { ...emptyInvoiceItem(), qty: '2', price: '1.25' }])).toBe(42.5);
   });

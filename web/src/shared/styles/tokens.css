@@ -28,6 +28,8 @@
 
   /* Trạng thái */
   --color-info: #1f64b5;
+  --color-input-filled: #073eaa;
+  --color-tracking-bar: #111111;
   --color-info-soft: #e9f1fb;
   --color-warning: #9a6200;
   --color-warning-soft: #fdf3e0;
@@ -85,6 +87,7 @@
     --color-border: #2c3a31;
     --color-border-strong: #3c4f42;
     --color-info: #6aa6e8;
+    --color-input-filled: #8bbcf2;
     --color-info-soft: #132539;
     --color-warning: #e5a93a;
     --color-warning-soft: #2a2010;
@@ -112,6 +115,7 @@
   --color-border: #2c3a31;
   --color-border-strong: #3c4f42;
   --color-info: #6aa6e8;
+  --color-input-filled: #8bbcf2;
   --color-info-soft: #132539;
   --color-warning: #e5a93a;
   --color-warning-soft: #2a2010;

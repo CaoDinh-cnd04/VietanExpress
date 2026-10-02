@@ -103,6 +103,9 @@ export interface OrderShipper {
 
 /** Người nhận đầy đủ — GET /orders/:bill. */
 export interface OrderReceiver {
+  countryCode?: string;
+  iossNo?: string;
+  eoriNo?: string;
   company: string;
   contact: string;
   tel: string;

@@ -17,6 +17,26 @@
   min-width: 0;
 }
 
+/* Nội dung đã nhập / điền sẵn có màu riêng để dễ phân biệt với nhãn và gợi ý. */
+.form input:not([type='checkbox']):not([type='radio']):not([type='file']):not(:disabled),
+.form textarea:not(:disabled),
+.form select:not(:disabled) {
+  color: var(--color-input-filled);
+  font-weight: 600;
+}
+
+.form input::placeholder,
+.form textarea::placeholder,
+.form select:has(option[value='']:checked) {
+  color: var(--color-text-faint);
+  font-weight: 400;
+}
+
+.form select option {
+  color: var(--color-text);
+  font-weight: 400;
+}
+
 /*
  * THỬ NGHIỆM giao diện dọc: dòng thời gian các bước bên trái (ghim theo khi cuộn, cao bằng màn hình)
  * + form 1 cột rộng tối đa 1000px theo thứ tự khai bill; cả khối căn giữa.

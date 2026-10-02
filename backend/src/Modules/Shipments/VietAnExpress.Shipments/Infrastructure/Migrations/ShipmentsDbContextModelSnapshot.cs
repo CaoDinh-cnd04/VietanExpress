@@ -351,6 +351,14 @@ namespace VietAnExpress.Shipments.Infrastructure.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)");
 
+                    b.Property<string>("ConsigneeEoriNo")
+                        .HasMaxLength(17)
+                        .HasColumnType("nvarchar(17)");
+
+                    b.Property<string>("ConsigneeIossNo")
+                        .HasMaxLength(12)
+                        .HasColumnType("nvarchar(12)");
+
                     b.Property<string>("ConsigneeName")
                         .HasMaxLength(250)
                         .HasColumnType("nvarchar(250)");

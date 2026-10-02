@@ -79,6 +79,8 @@ export function draftDetail(payload: unknown): DraftDetail {
         ['Người liên hệ', text(r.contact)],
         ['Điện thoại', text(r.tel) ? `${text(r.phoneCode)} ${text(r.tel)}`.trim() : ''],
         ['Tax ID', text(r.taxId)],
+        ...(text(r.iossNo) ? [['IOSS No', text(r.iossNo)] as [string, string]] : []),
+        ...(text(r.eoriNo) ? [['EORI No', text(r.eoriNo)] as [string, string]] : []),
         ['Email', text(r.email)]
       ]
     },
@@ -111,7 +113,7 @@ export function draftDetail(payload: unknown): DraftDetail {
       amount: Math.round(num(it.qty) * num(it.price) * 100) / 100
     })),
     invoice: isDoc ? [] : [['Hình thức xuất khẩu', exportType], ['Tiền tệ', currency]],
-    invoiceTotal: invoiceTotal(items),
+    invoiceTotal: invoiceTotal(items, inv.shippingFee),
     shippingFee: num(inv.shippingFee),
     currency
   };

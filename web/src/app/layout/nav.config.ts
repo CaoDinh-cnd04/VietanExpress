@@ -67,6 +67,7 @@ export const NAV: ReadonlyArray<NavEntry> = [
     icon: 'user',
     children: [
       { to: '/account/api-tracking', label: 'API Tracking' },
+      { to: '/account/mytracking', label: 'MyTracking cá nhân' },
       { to: '/account/password', label: 'Đổi mật khẩu' }
     ]
   }

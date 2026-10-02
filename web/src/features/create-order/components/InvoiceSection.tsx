@@ -24,7 +24,7 @@ export function InvoiceSection() {
   const { t } = useI18n();
   const { control, register, formState } = useFormContext<CreateOrderValues>();
   const { fields, append, remove, replace } = useFieldArray({ control, name: 'invoice.items' });
-  const [type, items = [], currency] = useWatch({ control, name: ['shipment.type', 'invoice.items', 'invoice.currency'] });
+  const [type, items = [], currency, shippingFee] = useWatch({ control, name: ['shipment.type', 'invoice.items', 'invoice.currency', 'invoice.shippingFee'] });
   const fmt = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 2 });
   const err = (i: number, key: ItemKey) => get(formState.errors, `invoice.items.${i}.${key}`)?.message as string | undefined;
   const cell = (i: number, key: ItemKey, props: Record<string, unknown> = {}) => (
@@ -71,7 +71,7 @@ export function InvoiceSection() {
           </FormGrid>
 
           <div className={cx(styles.tableScroll, styles.spaced)}>
-            <table className={styles.table}>
+            <table className={cx(styles.table, styles.invoiceTable)}>
               <thead>
                 <tr>
                   <th className={styles.colNo}>#</th>
@@ -80,7 +80,7 @@ export function InvoiceSection() {
                   <th className={styles.colHs}>{t('Mã HS')}</th>
                   <th className={styles.colQtyUnit}>{t('SL')} <span className={styles.required}>*</span> / {t('ĐVT')}</th>
                   <th className={styles.colNum}>{t('Đơn giá')} <span className={styles.required}>*</span></th>
-                  <th className={styles.colNum}>{t('Thành tiền')}</th>
+                  <th className={cx(styles.colNum, styles.amountHeader)}>{t('Thành tiền')}</th>
                   <th className={styles.colDel}><span className="visually-hidden">{t('Xóa')}</span></th>
                 </tr>
               </thead>
@@ -130,7 +130,7 @@ export function InvoiceSection() {
         {type !== 'DOC' && (
           <div className={styles.invoiceTotal}>
             <span>{t('Tổng giá trị invoice · {n} mặt hàng', { n: items.length })}</span>
-            <strong>{fmt.format(invoiceTotal(items))} {currency}</strong>
+            <strong>{fmt.format(invoiceTotal(items, shippingFee))} {currency}</strong>
           </div>
         )}
       </div>
