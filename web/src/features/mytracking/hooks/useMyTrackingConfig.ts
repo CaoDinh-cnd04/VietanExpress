@@ -32,6 +32,7 @@ export function useMyTrackingConfig(userId: string, repository: ConfigRepository
     } catch { setFeedback({ message: 'Không lưu được cấu hình. Nội dung chỉnh sửa vẫn được giữ lại.', warning: true }); }
     finally { setSaving(false); }
   });
-  const restoreDefaults = () => { reset(emptyConfig()); setFeedback(undefined); };
+  // Khôi phục chỉ sửa form; giữ mốc đã lưu để báo đúng thay đổi chưa lưu.
+  const restoreDefaults = () => { reset(emptyConfig(), { keepDefaultValues: true }); setFeedback(undefined); };
   return { form, config: form.watch(), loading, saving, feedback, save, restoreDefaults };
 }

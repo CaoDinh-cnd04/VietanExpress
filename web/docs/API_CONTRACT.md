@@ -235,9 +235,10 @@ Gợi ý bảng SQL: `Services`, `ServiceZones`, `ServiceCountryZones`, `Service
 ## 7. Tài khoản & hỗ trợ
 
 MyTracking cá nhân (`/account/mytracking`) hiện là trang cấu hình / xem trước: tiêu đề, mô tả,
-tối đa 5 ảnh quảng cáo có link đích tùy chọn và 1 hình nền. Cấu hình lưu localStorage riêng theo
+tối đa 5 ảnh quảng cáo có link đích, tiêu đề ảnh (120 ký tự) và chữ nút (40 ký tự) tùy chọn,
+cùng 1 hình nền. Cấu hình lưu localStorage riêng theo
 `customerCode` với key `mytracking-draft:{customerCode}`; chưa lưu trên server hay xuất bản link riêng.
-Preview dùng dữ liệu tracking mẫu, không gọi API tracking. Có logo, thông tin thương hiệu và các
+Preview hiển thị vùng chờ kết quả tra cứu, không gọi API tracking. Có logo, thông tin thương hiệu và các
 link mạng xã hội, chuyển Desktop / Mobile và cập nhật trực tiếp từ form. Ảnh JPG/JPEG/PNG/WebP
 tối đa 200 KB được nén bằng canvas xuống tối đa 200 KB trước khi lưu base64. Khi localStorage
 bị chặn hoặc đầy, cấu hình vẫn giữ trong bộ nhớ phiên và hiển thị cảnh báo.
@@ -246,6 +247,14 @@ không tải về lưu hoặc nén. Giới hạn 200 KB sau nén áp dụng cho 
 `ConfigRepository` tách lưu trữ khỏi component; hiện dùng `LocalStorageConfigRepository`.
 `ApiConfigRepository` chỉ là adapter nhận transport từ bên ngoài, chưa được kết nối API.
 Phân quyền khách admin / khách user sẽ được bổ sung sau.
+
+Form chia khối theo mẫu HTML: thương hiệu, nội dung chính, quảng cáo, nền trang và liên hệ.
+Ảnh có thể đổi thứ tự bằng kéo thả hoặc nút lên/xuống. Tiêu đề và chữ nút hiển thị bên dưới ảnh;
+nút hiện khi có chữ trên nút, nhưng bị vô hiệu hóa nếu chưa có link website hợp lệ.
+Ô “Link website của ảnh” lưu vào `images[].linkUrl`; ảnh và nút cùng mở link này trong tab mới.
+Để trống chữ trên nút thì ẩn nút, ảnh vẫn mở link nếu có. Zalo/WhatsApp nhận URL http(s) hoặc số điện thoại,
+chuyển thành link zalo.me/wa.me; số bắt đầu bằng 0 được hiểu là số Việt Nam (+84).
+Liên hệ để trống thì không hiện nút trong preview. Cấu hình ảnh cũ không có tiêu đề/chữ nút vẫn đọc được.
 
 | Method | Path | Trạng thái | Mô tả |
 |---|---|---|---|

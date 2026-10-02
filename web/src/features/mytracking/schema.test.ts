@@ -1,7 +1,25 @@
 import { describe, expect, it } from 'vitest';
-import { emptyConfig, isWebUrl, MAX_IMAGE_BYTES, myTrackingSchema, parseConfig } from './schema';
+import { contactUrl, emptyConfig, isWebUrl, MAX_IMAGE_BYTES, myTrackingSchema, parseConfig } from './schema';
 import { validateImageFile } from './lib/images';
 describe('MyTracking settings', () => {
+  it('giữ tiêu đề và chữ nút ảnh khi lưu, vẫn đọc được ảnh cũ', () => {
+    const image = { id: '1', src: 'https://example.com/photo.jpg', linkUrl: 'https://example.com', title: 'Dịch vụ quốc tế', buttonText: 'Liên hệ' };
+    expect(parseConfig({ ...emptyConfig(), images: [image] }).images[0]).toEqual(image);
+    expect(myTrackingSchema.safeParse({ ...emptyConfig(), images: [{ ...image, title: 'a'.repeat(121) }] }).success).toBe(false);
+    expect(myTrackingSchema.safeParse({ ...emptyConfig(), images: [{ ...image, buttonText: 'a'.repeat(41) }] }).success).toBe(false);
+  });
+  it('chuyển số điện thoại thành link liên hệ và chặn giao thức không an toàn', () => {
+    expect(contactUrl('0912 345 678', 'zalo')).toBe('https://zalo.me/84912345678');
+    expect(contactUrl('+1 (202) 555-0123', 'whatsapp')).toBe('https://wa.me/12025550123');
+    expect(contactUrl('0084912345678', 'whatsapp')).toBe('https://wa.me/84912345678');
+    expect(contactUrl('https://zalo.me/84912345678', 'zalo')).toBe('https://zalo.me/84912345678');
+    for (const value of ['javascript:alert(1)', 'abc12345678', '123', '']) expect(contactUrl(value, 'zalo')).toBe('');
+    const config = emptyConfig();
+    config.brand.zalo = '0912345678'; config.brand.whatsapp = '+12025550123';
+    expect(myTrackingSchema.safeParse(config).success).toBe(true);
+    config.brand.zalo = 'javascript:alert(1)';
+    expect(myTrackingSchema.safeParse(config).success).toBe(false);
+  });
   it('chặn link javascript cho quảng cáo và mạng xã hội', () => {
     expect(isWebUrl('https://example.com')).toBe(true);
     for (const url of ['javascript:alert(1)', 'file:///photo.jpg', 'data:text/html,test', 'invalid']) expect(isWebUrl(url)).toBe(false);

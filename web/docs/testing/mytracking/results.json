@@ -1,0 +1,102 @@
+[
+  {
+    "name": "Nhập thương hiệu/nội dung cập nhật preview ngay",
+    "status": "passed"
+  },
+  {
+    "name": "Tải logo PNG, nén thành WebP",
+    "status": "passed"
+  },
+  {
+    "name": "Thay logo bằng URL và xóa logo",
+    "status": "passed"
+  },
+  {
+    "name": "Tải ảnh quảng cáo JPG/PNG/WebP bằng giải mã ảnh thật",
+    "status": "passed"
+  },
+  {
+    "name": "Thêm ảnh URL trực tiếp/Enter, đạt tối đa 5 ảnh",
+    "status": "passed"
+  },
+  {
+    "name": "Tiêu đề/chữ nút/link website và vô hiệu hóa nút khi link trống",
+    "status": "passed"
+  },
+  {
+    "name": "Đổi thứ tự bằng Lên/Xuống và kéo thả",
+    "status": "passed"
+  },
+  {
+    "name": "Xóa ảnh, mở lại thêm ảnh và giữ dữ liệu ảnh khác",
+    "status": "passed"
+  },
+  {
+    "name": "Chặn file quá 200 KB, GIF/SVG và ảnh hỏng",
+    "status": "passed"
+  },
+  {
+    "name": "Chặn javascript URL, URL 404 và URL trang HTML",
+    "status": "passed"
+  },
+  {
+    "name": "URL treo: khóa lúc tải, timeout 15 giây rồi mở lại editor",
+    "status": "passed"
+  },
+  {
+    "name": "Tải/thay/xóa nền bằng file và URL",
+    "status": "passed"
+  },
+  {
+    "name": "Ảnh đúng 200 KB và URL HTTP thật từ server được nhận",
+    "status": "passed"
+  },
+  {
+    "name": "Zalo/WhatsApp số điện thoại, mạng xã hội và ẩn khi trống",
+    "status": "passed"
+  },
+  {
+    "name": "Validation link/tiêu đề, giữ dữ liệu khi lưu bị chặn",
+    "status": "passed"
+  },
+  {
+    "name": "Lưu/reload giữ mọi trường, ảnh và thứ tự",
+    "status": "passed"
+  },
+  {
+    "name": "Desktop/mobile preview và màn hình hẹp không tràn ngang",
+    "status": "passed"
+  },
+  {
+    "name": "Xuất bản chưa có API: nút bị khóa",
+    "status": "passed"
+  },
+  {
+    "name": "Khôi phục mặc định chỉ đổi form; lưu xong mới thay bản đã lưu",
+    "status": "passed"
+  },
+  {
+    "name": "Không có lỗi JavaScript trong các thao tác",
+    "status": "passed"
+  },
+  {
+    "name": "Đọc cấu hình ảnh cũ không có tiêu đề/chữ nút",
+    "status": "passed"
+  },
+  {
+    "name": "JSON cấu hình hỏng vẫn mở form mặc định",
+    "status": "passed"
+  },
+  {
+    "name": "Bộ nhớ quota: báo lỗi, giữ form và bản trong phiên",
+    "status": "passed"
+  },
+  {
+    "name": "Bộ nhớ blocked: báo lỗi, giữ form và bản trong phiên",
+    "status": "passed"
+  },
+  {
+    "name": "Cấu hình được tách riêng theo khách sau khi đổi phiên",
+    "status": "passed"
+  }
+]
