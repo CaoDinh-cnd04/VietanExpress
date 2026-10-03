@@ -12,7 +12,7 @@
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Application/Orders/Documents/Assets/logo.webp" LogicalName="VietAnExpress.Shipments.logo.webp" />
-    <EmbeddedResource Include="../../../../../web/src/shared/config/eu-countries.json" LogicalName="VietAnExpress.Shipments.eu-countries.json" />
+    <EmbeddedResource Include="Domain/eu-countries.json" LogicalName="VietAnExpress.Shipments.eu-countries.json" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="VietAnExpress.Shipments.Tests" />

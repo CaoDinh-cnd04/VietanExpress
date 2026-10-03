@@ -94,3 +94,21 @@ jobs:
 
       - name: Test
         run: dotnet test --solution VietAnExpress.slnx -c Release --no-build
+
+      # Hai ứng dụng build độc lập, nhưng phải dùng cùng bộ dữ liệu quốc gia EU.
+      - name: Check EU country data matches web
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          web = json.loads(Path('../web/src/shared/config/eu-countries.json').read_text(encoding='utf-8'))
+          api = json.loads(Path('src/Modules/Shipments/VietAnExpress.Shipments/Domain/eu-countries.json').read_text(encoding='utf-8'))
+          assert web == api, 'EU country data differs between web and backend'
+          PY
+
+      - name: Check deployment entrypoint
+        run: sh tests/deployment/start-api.test.sh
+
+      # Dùng đúng context chỉ có backend như Render để phát hiện phụ thuộc ngoài thư mục.
+      - name: Build deployment Docker image
+        run: docker build --file Dockerfile --tag vietan-api:ci .
