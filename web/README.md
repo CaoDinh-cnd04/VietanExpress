@@ -1,5 +1,7 @@
 # Việt An Express Portal — Web (React + TypeScript)
 
+Giao diện Zalo Mini App là project độc lập trong [`../mini-app/`](../mini-app/README.md). Chạy lệnh Mini App trong thư mục đó; thư mục `web/` chỉ chứa website.
+
 Giao diện portal khách hàng. Toàn bộ dữ liệu lấy từ backend qua REST API — **frontend không chứa dữ liệu giả**.
 Hợp đồng API: [docs/API_CONTRACT.md](docs/API_CONTRACT.md).
 

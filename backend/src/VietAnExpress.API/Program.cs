@@ -37,13 +37,13 @@ try
     var platformPort = Environment.GetEnvironmentVariable("PORT");
     if (!string.IsNullOrEmpty(platformPort)) builder.WebHost.UseUrls($"http://0.0.0.0:{platformPort}");
 
-    // Sau proxy (Vercel → ngrok): lấy IP thật của khách (giới hạn đăng nhập theo IP) và scheme https (cookie Secure).
+    // Sau proxy (Vercel → Render/ngrok): lấy IP thật của khách và scheme HTTPS (cookie Secure).
     builder.Services.Configure<ForwardedHeadersOptions>(o =>
     {
         o.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
         o.KnownIPNetworks.Clear(); // proxy của nền tảng không có IP cố định
         o.KnownProxies.Clear();
-        o.ForwardLimit = 2;        // Vercel + ngrok
+        o.ForwardLimit = 2;        // Vercel + proxy nền tảng
     });
 
     builder.Host.UseSerilog((context, services, logger) =>

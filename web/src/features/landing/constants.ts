@@ -5,27 +5,8 @@ import type { IconName, Tone } from '@/shared/ui';
  * Nội dung trang ngoài — lấy từ website hiện tại vietanexpress.com.vn và bảng hiệu trụ sở.
  * Đổi thông tin liên hệ / chi nhánh: chỉ sửa ở đây.
  */
-export const COMPANY = {
-  name: 'Việt An Express',
-  legalName: 'Viet An Express International Co., Ltd',
-  foundedYear: 2010,
-  copyrightFrom: 2013,
-  address: 'Số 14 Sam Sơn, phường Tân Sơn Nhất, TP. Hồ Chí Minh',
-  mapUrl: 'https://www.google.com/maps/search/?api=1&query=14+Sam+S%C6%A1n+T%C3%A2n+S%C6%A1n+Nh%E1%BA%A5t+H%E1%BB%93+Ch%C3%AD+Minh'
-} as const;
+export { COMPANY, CONTACTS, type ContactLink } from '@/shared/config/company';
 
-export interface ContactLink {
-  label: string;
-  href: string;
-}
-
-/** Kênh liên hệ — `href` dùng trực tiếp cho thẻ <a>. */
-export const CONTACTS = {
-  phone: { label: '028 3948 3949', href: 'tel:+842839483949' },
-  hotline: { label: '0909 805 845', href: 'tel:+84909805845' },
-  email: { label: 'phuc.vo@vietanexpress.com', href: 'mailto:phuc.vo@vietanexpress.com' },
-  zalo: { label: 'Zalo 0909 805 845', href: 'https://zalo.me/0909805845' }
-} as const satisfies Record<string, ContactLink>;
 
 export const BRANCHES: ReadonlyArray<{ city: string; note?: string }> = [
   { city: 'TP. Hồ Chí Minh', note: 'Trụ sở chính' },
@@ -35,7 +16,7 @@ export const BRANCHES: ReadonlyArray<{ city: string; note?: string }> = [
 ];
 
 /** Hãng mà Việt An làm đại lý gom hàng. */
-export const CARRIERS = ['DHL', 'FedEx', 'UPS', 'TNT'] as const;
+export { CARRIERS } from '@/shared/config/company';
 
 export const SERVICES: ReadonlyArray<{ icon: IconName; title: string; desc: string }> = [
   { icon: 'plane', title: 'Chuyển phát nhanh quốc tế', desc: 'Chứng từ và hàng hóa đi hầu hết các nước, Việt An lo thủ tục thông quan để hàng đi nhanh nhất.' },

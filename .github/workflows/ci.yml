@@ -2,7 +2,7 @@ name: CI
 
 # CD không nằm ở đây:
 #  - Frontend: Vercel tự build + deploy khi push (thư mục gốc dự án Vercel: web/).
-#  - Backend: chạy trên máy chủ nội bộ dạng Windows Service — cập nhật bằng backend/scripts/install-service.ps1.
+#  - Backend: Render build Docker từ backend/ (render.yaml), xem DEPLOYMENT.md.
 
 on:
   push:

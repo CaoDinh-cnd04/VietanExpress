@@ -103,7 +103,13 @@ dotnet test --solution VietAnExpress.slnx
 - Chống dò mật khẩu bằng giới hạn tần suất đăng nhập theo IP (10 lần/phút).
 - Frontend gặp 401 thì tự gọi `POST /auth/refresh` một lần rồi thử lại.
 
-## Deploy: Vercel (frontend) + máy chủ nội bộ (backend, qua ngrok)
+## Deploy: Render (backend) + Vercel (frontend)
+
+Hướng dẫn và biến môi trường: [DEPLOYMENT.md](../DEPLOYMENT.md). Repository có `render.yaml` cấu hình Docker từ `backend/`, health check `/health`. Trên Vercel dùng Root Directory `web`, đặt `BACKEND_URL` thành URL HTTPS của dịch vụ Render và giữ API client ở `/api/v1` để cookie đăng nhập hoạt động qua proxy.
+
+SQL Server cần truy cập được từ Render và có sẵn bảng/dữ liệu của hệ thống cũ. Không dùng connection string Windows `Trusted_Connection=True` trên Linux Render. Không commit connection string hoặc JWT secret.
+
+## Phương án máy chủ nội bộ (qua ngrok)
 
 ```
 Trình duyệt ──► Vercel (web + hàm web/api/proxy.ts) ──► https://<tên-miền>.ngrok-free.app ──► ngrok (service) ──► http://localhost:5080 (VietAnExpressApi) ──► SQL Server

@@ -1,11 +1,11 @@
 /**
- * Vercel Edge Function — chuyển tiếp /api/* của portal về backend chạy trên máy chủ Việt An (qua ngrok).
+ * Vercel Edge Function — chuyển tiếp /api/* của portal về backend Render hoặc máy chủ Việt An (qua ngrok).
  *
  * - Trình duyệt chỉ thấy 1 tên miền (Vercel) → cookie đăng nhập SameSite=Strict hoạt động.
  * - Thêm header `ngrok-skip-browser-warning`: ngrok gói miễn phí chèn trang cảnh báo cho request từ trình duyệt.
  * - Máy chủ tắt / ngrok mất kết nối → trả 503 kèm câu tiếng Việt (ngrok trả 404 sẽ bị frontend hiểu là "chưa làm").
  *
- * Cấu hình trên Vercel: Environment Variable BACKEND_URL = https://<tên-miền>.ngrok-free.app
+ * Cấu hình trên Vercel: BACKEND_URL = https://<service>.onrender.com (hoặc domain backend HTTPS).
  * vercel.json rewrite: /api/:path* → /api/proxy?__path=:path*
  */
 export const config = { runtime: 'edge' };

@@ -5,7 +5,7 @@
 ## 1. Tổng quan
 
 Portal khách hàng của Việt An Express: tạo đơn, quản lý vận đơn, giá cước, e-commerce, sự cố, pickup.
-Repo gồm frontend trong `web/` (React 19 + TypeScript + Vite) và backend trong `backend/` (.NET 10, modular monolith, SQL Server database `vietan_app`). Backend phải tuân theo hợp đồng API trong `web/docs/API_CONTRACT.md`; kiến trúc, quy tắc module và cách chạy backend: `backend/README.md`.
+Repo gồm website trong `web/`, Zalo Mini App độc lập trong `mini-app/` (React 19 + TypeScript + Vite) và backend trong `backend/` (.NET 10, modular monolith, SQL Server database `vietan_app`). Backend phải tuân theo hợp đồng API trong `web/docs/API_CONTRACT.md`; kiến trúc, quy tắc module và cách chạy backend: `backend/README.md`.
 
 Ngôn ngữ giao tiếp & giao diện: **Tiếng Việt**.
 
@@ -22,6 +22,8 @@ web/
 ```
 
 Chi tiết quy ước code và cách thêm trang: `web/README.md`.
+
+Mini App là project riêng có `package.json`, lockfile, assets và cấu hình trong `mini-app/`; cấu trúc `src/app`, `src/features`, `src/shared` tuân theo cùng kiến trúc module của web. Không import mã từ `web/`. Quy ước: `mini-app/AGENTS.md`; cách chạy: `mini-app/README.md`. Chạy `npm.cmd ci`, `npm.cmd run dev`, `npm.cmd test`, `npm.cmd run build` trong thư mục `mini-app/`.
 
 ```
 backend/
