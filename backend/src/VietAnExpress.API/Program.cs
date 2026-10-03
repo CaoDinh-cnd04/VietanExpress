@@ -189,7 +189,18 @@ try
     app.UseAuthorization();
 
     app.MapControllers();
-    app.MapHealthChecks("/health").AllowAnonymous();
+    // Identify the deployed revision when checking Render after a push.
+    var deployedRevision = app.Configuration["RENDER_GIT_COMMIT"];
+    app.MapHealthChecks("/health").AllowAnonymous().Add(endpoint =>
+    {
+        var next = endpoint.RequestDelegate!;
+        endpoint.RequestDelegate = async context =>
+        {
+            if (!string.IsNullOrEmpty(deployedRevision))
+                context.Response.Headers["X-Vietan-Revision"] = deployedRevision;
+            await next(context);
+        };
+    });
 
     // Migrate + seed khi khởi động. Tắt bằng Database:RunStartupTasks=false (vd kiểm tra container không có DB trong CI).
     if (app.Configuration.GetValue("Database:RunStartupTasks", true))

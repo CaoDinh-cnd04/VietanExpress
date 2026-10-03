@@ -82,6 +82,12 @@ Bên trong mỗi module: `Domain/`, `Application/` (`Commands/`, `Queries/`, `Dt
 dotnet test --solution VietAnExpress.slnx
 ```
 
+Test truy vấn SQL Server: đặt `VIETAN_TEST_SQLSERVER` thành connection string của **máy chủ dành cho kiểm thử**, rồi chạy lệnh test trên. Test tự tạo database `vietan_tests_queries_<guid>` và xóa khi kết thúc; không thay đổi database ứng dụng. Tài khoản test cần quyền tạo/xóa database. CI đã cấp SQL Server riêng và biến này. Nếu chưa đặt biến, test tích hợp SQL được báo skipped; test dịch truy vấn SQL vẫn chạy.
+
+Danh sách đơn dùng một truy vấn thống kê và một truy vấn trang (trang rỗng chỉ dùng thống kê), đọc đúng các cột giao diện cần. Test so sánh với kết quả và số đếm của truy vấn cũ, gồm lọc trạng thái, ngày, cân nặng, phân trang và phạm vi khách hàng. Invoice gần đây dùng hai truy vấn; tracking và hành trình chỉ đọc các cột cần trả về.
+
+Kiểm tra sau deploy từ thư mục `backend/`: `./scripts/test-published.ps1 -ExpectedRevision <commit-sha>`. Script kiểm tra `/health`, trang đăng nhập, proxy Vercel, phân quyền và validation tra cứu; không tạo/sửa dữ liệu. Render trả commit đang chạy qua header `X-Vietan-Revision` của `/health`. Luồng sau đăng nhập cần tài khoản kiểm thử riêng.
+
 **Thêm use case:** tạo file `Commands/XxxCommand.cs` (gồm record command và handler), thêm validator trong `Validators/`, rồi thêm 1 action trong controller.
 
 **Thêm module mới:** tạo 2 project `VietAnExpress.X` và `VietAnExpress.X.Contracts` (copy csproj từ module có sẵn). Viết `XModule.AddXModule()`, thêm vào `Program.cs` (1 dòng `AddXModule` và thêm assembly vào mảng `moduleAssemblies`), rồi bổ sung tên module vào `Architecture.Tests` và 2 script.

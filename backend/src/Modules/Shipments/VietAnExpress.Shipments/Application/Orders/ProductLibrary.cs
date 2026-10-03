@@ -189,17 +189,16 @@ internal sealed class GetRecentInvoicesHandler(ShipmentsDbContext db, OrderAcces
         var orders = access.Apply(db.LegacyOrders.AsNoTracking(), await access.ScopeAsync(ct));
 
         // Các đơn gần nhất có khai dòng hàng.
-        var orderIds = await db.LegacyInvoiceLines.AsNoTracking()
-            .Where(l => l.OrderId != null && orders.Any(o => o.Id == l.OrderId))
-            .Select(l => l.OrderId!.Value)
-            .Distinct()
-            .OrderByDescending(id => id)
+        var headers = await orders
+            .Where(o => db.LegacyInvoiceLines.Any(l => l.OrderId != null && l.OrderId == o.Id))
+            .OrderByDescending(o => o.Id)
             .Take(q.EffectiveLimit)
+            .Select(LegacyOrderProjections.InvoiceHeader)
             .ToListAsync(ct);
-        if (orderIds.Count == 0) return [];
+        if (headers.Count == 0) return [];
 
-        var ids = orderIds.Select(id => (long)id).ToList();
-        var byId = await orders.Where(o => ids.Contains(o.Id)).ToDictionaryAsync(o => o.Id, ct);
+        var byId = headers.ToDictionary(o => o.Id);
+        var orderIds = headers.Select(o => (int)o.Id).ToList(); // ID ở bảng chi tiết là int.
         var lines = await db.LegacyInvoiceLines.AsNoTracking()
             .Where(l => l.OrderId != null && orderIds.Contains(l.OrderId.Value))
             .OrderByDescending(l => l.OrderId).ThenBy(l => l.Id)

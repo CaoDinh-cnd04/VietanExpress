@@ -31,6 +31,7 @@ internal sealed class LegacyBillReader(ShipmentsDbContext db, ILogger<LegacyBill
                     || (o.BillConnect != null && bills.Contains(o.BillConnect))
                     || (o.Awb != null && bills.Contains(o.Awb))
                     || (o.CustomerBill != null && bills.Contains(o.CustomerBill)))
+                .Select(LegacyOrderProjections.Tracking)
                 .ToListAsync(cancellationToken);
         }
         catch (SqlException ex) when (ex.Number == 208)

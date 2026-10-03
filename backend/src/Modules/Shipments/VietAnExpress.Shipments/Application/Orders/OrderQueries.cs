@@ -41,21 +41,25 @@ internal sealed class GetOrdersHandler(ShipmentsDbContext db, OrderAccess access
         query = OrderListFilter.Apply(query, q);
 
         // Số đếm theo trạng thái tính trên kết quả lọc TRỪ lọc trạng thái — để số trên các tab luôn đúng.
-        var counts = new Dictionary<string, int> { ["all"] = await query.CountAsync(ct) };
-        foreach (var status in LegacyOrderStatus.All)
-            counts[status] = await query.CountAsync(LegacyOrderStatus.Is(status, today), ct);
-        var totals = await query
-            .GroupBy(_ => 1)
-            .Select(g => new { Pieces = g.Sum(o => o.Pieces ?? 0), Weight = g.Sum(o => o.WeightKg ?? 0) })
-            .FirstOrDefaultAsync(ct);
+        var totals = await OrderSummaryQuery.Build(query, today).FirstOrDefaultAsync(ct) ?? OrderSummaryQuery.Totals.Empty;
+        var counts = totals.Counts();
+        var statuses = OrderListFilter.Statuses(q.Status);
+        var total = statuses.Count == 0 || statuses.Count == LegacyOrderStatus.All.Length
+            ? totals.All : statuses.Sum(s => counts[s]);
 
         query = OrderListFilter.ApplyStatus(query, q.Status, today);
 
-        var page = await OrderListFilter.Sort(query, q.SortBy, q.SortDir).ToPagedResultAsync(q.Page, q.PageSize, ct);
+        var (page, size) = Paging.Normalize(q.Page, q.PageSize);
+        var offset = (long)(page - 1) * size;
+        // Không gửi truy vấn trang khi bộ lọc rỗng / trang ngoài phạm vi; tránh tràn số OFFSET.
+        var items = offset < total
+            ? await OrderListFilter.Sort(query, q.SortBy, q.SortDir)
+                .Skip((int)offset).Take(size).Select(LegacyOrderProjections.List).ToListAsync(ct)
+            : [];
         return new OrderListResponse(
-            page.Items.Select(o => LegacyOrderView.ToListDto(o, today)).ToList(),
-            page.TotalCount, page.Page, page.PageSize, page.TotalPages,
-            new OrderSummaryDto(counts, totals?.Pieces ?? 0, totals?.Weight ?? 0));
+            items.Select(o => LegacyOrderView.ToListDto(o, today)).ToList(),
+            total, page, size, (int)Math.Ceiling(total / (double)size),
+            new OrderSummaryDto(counts, totals.Pieces, totals.Weight));
     }
 }
 
@@ -230,21 +234,24 @@ internal sealed class GetOrderHandlers(ShipmentsDbContext db, OrderAccess access
 
     public async Task<Result<IReadOnlyList<OrderEventDto>>> Handle(GetOrderEventsQuery q, CancellationToken ct)
     {
-        var order = await FindAsync(q.Bill, ct);
+        var order = await FindAsync(q.Bill, ct, eventsOnly: true);
         return order is null
             ? Result.Failure<IReadOnlyList<OrderEventDto>>(OrderErrors.NotFound(q.Bill))
             : Result.Success(LegacyOrderView.Events(order, hideSigner: false));
     }
 
     /// <summary>Tìm theo số VA hoặc mã hãng, trong phạm vi khách của người dùng.</summary>
-    private async Task<LegacyOrder?> FindAsync(string bill, CancellationToken ct)
+    private async Task<LegacyOrder?> FindAsync(string bill, CancellationToken ct, bool eventsOnly = false)
     {
         var code = bill.Trim();
         long? number = long.TryParse(code, NumberStyles.None, CultureInfo.InvariantCulture, out var n) ? n : null;
         var query = access.Apply(db.LegacyOrders.AsNoTracking(), await access.ScopeAsync(ct));
-        return await query
-            .Where(o => o.OrderNumber == number || o.BillConnect == code)
-            .OrderByDescending(o => o.Id)
-            .FirstOrDefaultAsync(ct);
+        // Mã hãng không phải số không được khớp nhầm tất cả dòng OrderNumber NULL.
+        query = number is { } parsed
+            ? query.Where(o => o.OrderNumber == parsed || o.BillConnect == code)
+            : query.Where(o => o.BillConnect == code);
+        query = query.OrderByDescending(o => o.Id);
+        if (eventsOnly) query = query.Select(LegacyOrderProjections.Events);
+        return await query.FirstOrDefaultAsync(ct);
     }
 }

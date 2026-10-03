@@ -60,6 +60,7 @@ internal sealed class PrintOrdersHandler(
     private async Task<Dictionary<long, (IReadOnlyList<PrintItem> Items, IReadOnlyList<PrintPackage> Packages)>> LoadDraftDetailsAsync(List<LegacyOrder> orders, CancellationToken ct)
     {
         var numbers = orders.Select(o => o.OrderNumber).OfType<long>().ToList();
+        if (numbers.Count == 0) return [];
         var drafts = await db.OrderDrafts.IgnoreQueryFilters().AsNoTracking()
             .Where(d => d.PrintedOrderNumber != null && numbers.Contains(d.PrintedOrderNumber.Value))
             .Select(d => new { Number = d.PrintedOrderNumber!.Value, d.PayloadJson })
