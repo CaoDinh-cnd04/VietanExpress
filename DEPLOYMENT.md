@@ -8,6 +8,8 @@ Giữ `VITE_API_BASE_URL=/api/v1`. Proxy `web/api/proxy.ts` chuyển tiếp API 
 
 ## 1. Chuẩn bị SQL Server
 
+Nếu giữ SQL Server trên máy Windows và không có quyền cấu hình router, làm theo [hướng dẫn Tailscale → Render](backend/docs/TAILSCALE_RENDER.md). Dockerfile đã có TCP relay riêng; cách này không cần mở cổng SQL ra Internet. Máy Windows phải bật và có Internet.
+
 Backend hiện dùng SQL Server và các bảng của hệ thống cũ (`dbo.TCustomer`, `dbo.MaVanDon`…). Render không tự cung cấp database này qua blueprint.
 
 - Dùng SQL Server / Azure SQL có thể truy cập từ Render, với tài khoản SQL được cấp quyền phù hợp. SQL Express tại máy cá nhân chỉ truy cập trong LAN và `Trusted_Connection=True` sẽ không dùng được trên container Linux Render.

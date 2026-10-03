@@ -22,16 +22,26 @@ COPY src/ src/
 RUN dotnet publish src/VietAnExpress.API/VietAnExpress.API.csproj -c Release -o /app --no-restore /p:UseAppHost=false
 
 # ---------- Runtime ----------
+FROM tailscale/tailscale:v1.102.4 AS tailscale-binaries
+
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
+
+# Tailscale chạy trong userspace; không cần root, /dev/net/tun hoặc mở cổng SQL public.
+# socat chỉ chuyển tiếp SQL trên loopback của container sang tailscale nc.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates socat \
+    && rm -rf /var/lib/apt/lists/*
+COPY --from=tailscale-binaries /usr/local/bin/tailscale /usr/local/bin/tailscaled /usr/local/bin/
 
 ENV ASPNETCORE_ENVIRONMENT=Production \
     PORT=8080 \
     DOTNET_NOLOGO=1
 
 COPY --from=build /app .
+COPY scripts/start-api.sh scripts/tailscale-sql.sh ./scripts/
 
 # Chạy bằng user không phải root (APP_UID có sẵn trong image .NET).
 USER $APP_UID
 EXPOSE 8080
-ENTRYPOINT ["dotnet", "VietAnExpress.API.dll"]
+ENTRYPOINT ["/bin/sh", "/app/scripts/start-api.sh"]
