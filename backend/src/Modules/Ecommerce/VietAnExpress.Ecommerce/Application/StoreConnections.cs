@@ -41,7 +41,7 @@ internal static class StoreErrors
     public static Error ChannelUnavailable(string name) => Error.BusinessRule("ECOM_CHANNEL_UNAVAILABLE", $"Chưa hỗ trợ kết nối {name}, Việt An đang hoàn thiện");
 
     public const string Expired = "Phiên kết nối đã hết hạn, vui lòng bấm Kết nối lại";
-    public const string Rejected = "Shopify không xác nhận được yêu cầu kết nối, vui lòng thử lại";
+    public const string Rejected = "Shopify không xác nhận được yêu cầu kết nối";
 }
 
 internal sealed class StoreConnectionHandlers(
@@ -99,15 +99,23 @@ internal sealed class StoreConnectionHandlers(
         var state = OAuthState.Unprotect(Param("state"), tokens.Key, clock.GetUtcNow());
         if (state is null || state.Nonce != c.CookieNonce) return new(state?.PortalHost, StoreErrors.Expired);
 
+        // Lý do cụ thể nằm trong câu báo lỗi để khách / Việt An biết bước nào hỏng (không lộ secret hay code).
         var shop = ShopifyOAuth.NormalizeShop(Param("shop"));
-        if (shop != state.Shop || !ShopifyOAuth.IsValidHmac(c.Query, o.ClientSecret) || Param("code") is not { Length: > 0 } code)
+        var shopifyError = Param("error_description") ?? Param("error");
+        var reason = shopifyError is not null ? $"Shopify báo: {shopifyError}"
+            : shop != state.Shop ? $"cửa hàng trả về ({Param("shop")}) khác cửa hàng đã chọn ({state.Shop})"
+            : !ShopifyOAuth.IsValidHmac(c.Query, o.ClientSecret) ? "sai chữ ký HMAC — kiểm tra Shopify__ClientSecret trên máy chủ"
+            : Param("code") is not { Length: > 0 } ? "thiếu mã ủy quyền (code)"
+            : null;
+        if (reason is not null || shop is null)
         {
-            logger.LogWarning("Callback Shopify không hợp lệ cho khách {CustomerId}, shop {Shop}", state.CustomerId, Param("shop"));
-            return new(state.PortalHost, StoreErrors.Rejected);
+            logger.LogWarning("Callback Shopify không hợp lệ cho khách {CustomerId}: {Reason}; tham số: {Keys}",
+                state.CustomerId, reason, string.Join(',', c.Query.Select(p => p.Key)));
+            return new(state.PortalHost, $"{StoreErrors.Rejected}: {reason}");
         }
 
-        var token = await client.ExchangeCodeAsync(shop, code, ct);
-        if (token is null) return new(state.PortalHost, StoreErrors.Rejected);
+        var (token, exchangeError) = await client.ExchangeCodeAsync(shop, Param("code")!, ct);
+        if (token is null) return new(state.PortalHost, $"{StoreErrors.Rejected}: đổi mã lấy token thất bại — {exchangeError}");
         var info = await client.GetShopAsync(shop, token.AccessToken, ct);
 
         var now = Now;

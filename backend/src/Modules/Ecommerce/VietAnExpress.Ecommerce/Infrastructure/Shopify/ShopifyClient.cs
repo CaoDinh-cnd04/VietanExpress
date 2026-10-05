@@ -17,8 +17,8 @@ internal sealed class ShopifyClient(HttpClient http, IOptions<ShopifyOptions> op
 {
     private ShopifyOptions O => options.Value;
 
-    /// <summary>Đổi authorization code lấy token (code dùng 1 lần). Null khi Shopify từ chối.</summary>
-    public async Task<ShopifyToken?> ExchangeCodeAsync(string shop, string code, CancellationToken ct)
+    /// <summary>Đổi authorization code lấy token (code dùng 1 lần). Shopify từ chối → Token null, Error là error_description của Shopify.</summary>
+    public async Task<(ShopifyToken? Token, string? Error)> ExchangeCodeAsync(string shop, string code, CancellationToken ct)
     {
         using var body = new FormUrlEncodedContent(new Dictionary<string, string>
         {
@@ -27,16 +27,18 @@ internal sealed class ShopifyClient(HttpClient http, IOptions<ShopifyOptions> op
             ["code"] = code,
             ["expiring"] = "1"
         });
-        using var res = await http.PostAsync($"https://{shop}/admin/oauth/access_token", body, ct);
-        if (!res.IsSuccessStatusCode)
-        {
-            logger.LogWarning("Shopify từ chối đổi code cho {Shop}: HTTP {Status}", shop, (int)res.StatusCode);
-            return null;
-        }
-        var t = await res.Content.ReadFromJsonAsync<TokenResponse>(ct);
-        return t?.AccessToken is { Length: > 0 } access
-            ? new ShopifyToken(access, t.Scope ?? "", t.ExpiresIn, t.RefreshToken, t.RefreshTokenExpiresIn)
-            : null;
+        using var req = new HttpRequestMessage(HttpMethod.Post, $"https://{shop}/admin/oauth/access_token") { Content = body };
+        req.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        using var res = await http.SendAsync(req, ct);
+        TokenResponse? t = null;
+        try { t = await res.Content.ReadFromJsonAsync<TokenResponse>(ct); }
+        catch (JsonException) { } // Shopify đôi khi trả trang lỗi HTML
+        if (res.IsSuccessStatusCode && t?.AccessToken is { Length: > 0 } access)
+            return (new ShopifyToken(access, t.Scope ?? "", t.ExpiresIn, t.RefreshToken, t.RefreshTokenExpiresIn), null);
+
+        var error = t?.ErrorDescription ?? t?.Error ?? $"HTTP {(int)res.StatusCode}";
+        logger.LogWarning("Shopify từ chối đổi code cho {Shop}: HTTP {Status} {Error}", shop, (int)res.StatusCode, error);
+        return (null, error);
     }
 
     public async Task<ShopifyShopInfo?> GetShopAsync(string shop, string accessToken, CancellationToken ct)
@@ -79,5 +81,7 @@ internal sealed class ShopifyClient(HttpClient http, IOptions<ShopifyOptions> op
         [property: JsonPropertyName("scope")] string? Scope,
         [property: JsonPropertyName("expires_in")] int? ExpiresIn,
         [property: JsonPropertyName("refresh_token")] string? RefreshToken,
-        [property: JsonPropertyName("refresh_token_expires_in")] int? RefreshTokenExpiresIn);
+        [property: JsonPropertyName("refresh_token_expires_in")] int? RefreshTokenExpiresIn,
+        [property: JsonPropertyName("error")] string? Error,
+        [property: JsonPropertyName("error_description")] string? ErrorDescription);
 }
