@@ -4,4 +4,7 @@
     <ProjectReference Include="..\..\..\BuildingBlocks\VietAnExpress.SharedKernel\VietAnExpress.SharedKernel.csproj" />
     <ProjectReference Include="..\VietAnExpress.Ecommerce.Contracts\VietAnExpress.Ecommerce.Contracts.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="VietAnExpress.Ecommerce.Tests" />
+  </ItemGroup>
 </Project>

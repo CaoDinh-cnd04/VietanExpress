@@ -12,3 +12,9 @@ public static class SalesChannelCodes
     public const string Shopee = "shopee";
     public const string Lazada = "lazada";
 }
+
+public static class EcommercePermissions
+{
+    public const string View = "ecommerce.view";
+    public const string Connect = "ecommerce.connect";
+}

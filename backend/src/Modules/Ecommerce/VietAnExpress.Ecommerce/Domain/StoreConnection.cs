@@ -60,4 +60,47 @@ internal sealed class StoreConnection
 
     public static StoreConnection Create(long customerId, string channelCode, string shopId, string shopName, DateTime now) =>
         new() { CustomerId = customerId, ChannelCode = channelCode, ShopId = shopId, ShopName = shopName, ConnectedAt = now, CreateDate = now };
+
+    /// <summary>Đã kết nối mới / ủy quyền lại: lưu token (đã mã hóa), bật lại trạng thái active, xóa lỗi cũ.</summary>
+    public void Authorize(StoreAuthorization a, DateTime now)
+    {
+        ShopName = a.ShopName;
+        ShopDomain = a.ShopDomain;
+        Currency = a.Currency;
+        Scopes = a.Scopes;
+        AccessTokenEncrypted = a.AccessTokenEncrypted;
+        AccessTokenExpiresAt = a.AccessTokenExpiresAt;
+        RefreshTokenEncrypted = a.RefreshTokenEncrypted;
+        RefreshTokenExpiresAt = a.RefreshTokenExpiresAt;
+        Status = Active;
+        LastError = null;
+        LastErrorAt = null;
+        DisconnectedAt = null;
+        ConnectedAt = now;
+        ModifyDate = now;
+    }
+
+    /// <summary>Khách ngắt kết nối: xóa token, ẩn khỏi danh sách (giữ dòng để đơn đã nhận vẫn truy được nguồn).</summary>
+    public void Disconnect(DateTime now)
+    {
+        Status = Revoked;
+        AccessTokenEncrypted = null;
+        AccessTokenExpiresAt = null;
+        RefreshTokenEncrypted = null;
+        RefreshTokenExpiresAt = null;
+        WebhookIds = null;
+        DisconnectedAt = now;
+        ModifyDate = now;
+    }
 }
+
+/// <summary>Kết quả ủy quyền 1 shop, token đã mã hóa.</summary>
+internal sealed record StoreAuthorization(
+    string ShopName,
+    string? ShopDomain,
+    string? Currency,
+    string? Scopes,
+    string AccessTokenEncrypted,
+    DateTime? AccessTokenExpiresAt,
+    string? RefreshTokenEncrypted,
+    DateTime? RefreshTokenExpiresAt);

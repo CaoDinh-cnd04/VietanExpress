@@ -24,6 +24,7 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/VietAnExpress.Architecture.Tests/VietAnExpress.Architecture.Tests.csproj" />
+    <Project Path="tests/VietAnExpress.Ecommerce.Tests/VietAnExpress.Ecommerce.Tests.csproj" />
     <Project Path="tests/VietAnExpress.Identity.Tests/VietAnExpress.Identity.Tests.csproj" />
     <Project Path="tests/VietAnExpress.Shipments.Tests/VietAnExpress.Shipments.Tests.csproj" />
   </Folder>

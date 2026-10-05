@@ -220,17 +220,18 @@ Nghiên cứu chi tiết hai sàn và thiết kế backend: `docs/ECOM_INTEGRATI
 
 | Method | Path | Trạng thái | Mô tả |
 |---|---|---|---|
-| GET | `/ecom/stores` | **Mới** | `{ data: StoreConnection[] }` của khách đang đăng nhập |
-| POST | `/ecom/stores/connect` | **Mới** | `{ platform: "shopify"\|"tiktok", shopDomain?, region?: "global"\|"us" }` → `{ authorizeUrl }`. Backend tạo `state` ngẫu nhiên gắn với khách (hết hạn 10 phút); frontend chuyển trình duyệt sang `authorizeUrl` |
-| GET | `/ecom/oauth/shopify/callback` | **Mới** | Shopify redirect về (không do frontend gọi): kiểm `state`, `hmac`, `shop`; đổi `code` lấy token; đăng ký webhook; rồi **302** về `/ecommerce?tab=connect&connected=shopify` hoặc `&error=<thông báo>` |
+| GET | `/ecom/stores` | Có sẵn | `{ data: StoreConnection[] }` của khách đang đăng nhập |
+| POST | `/ecom/stores/connect` | Có sẵn (Shopify; TikTok trả 422 "chưa hỗ trợ") | `{ platform: "shopify"\|"tiktok", shopDomain?, region?: "global"\|"us" }` → `{ authorizeUrl }`. Backend tạo `state` ngẫu nhiên gắn với khách (hết hạn 10 phút); frontend chuyển trình duyệt sang `authorizeUrl` |
+| GET | `/ecom/oauth/shopify/callback` | Có sẵn | Shopify redirect về (không do frontend gọi): kiểm `state`, `hmac`, `shop`; đổi `code` lấy token; đăng ký webhook; rồi **302** về `/ecommerce?tab=connect&connected=shopify` hoặc `&error=<thông báo>` |
 | GET | `/ecom/oauth/tiktok/callback` | **Mới** | TikTok Shop redirect về với `code`, `state`: đổi token, lấy `shop_cipher`, rồi 302 như trên |
 | POST | `/ecom/stores/:id/sync` | **Mới** | Kéo đơn mới ngay → `{ message, importedCount }` |
-| DELETE | `/ecom/stores/:id` | **Mới** | Hủy webhook trên sàn, xóa token → `{ message }` |
+| DELETE | `/ecom/stores/:id` | Có sẵn | Hủy webhook trên sàn, xóa token → `{ message }` |
 | POST | `/ecom/webhook/shopify` | **Mới** | Shopify đẩy sự kiện (`orders/create`, `orders/cancelled`, `app/uninstalled` + 3 webhook GDPR bắt buộc). Kiểm `X-Shopify-Hmac-Sha256` trên body thô, trả 200 trong < 5 giây, xử lý nền, chống trùng theo `X-Shopify-Webhook-Id` |
 | POST | `/ecom/webhook/tiktok` | **Mới** | TikTok Shop đẩy sự kiện (đổi trạng thái đơn, hủy, thu hồi ủy quyền). Kiểm chữ ký header `Authorization` |
 
 `StoreConnection`: `{ id, platform: "shopify"|"tiktok", shopName, shopDomain?, region?, status: "active"|"expired"|"error"|"revoked", connectedAt, lastSyncAt?, lastError? }`.
 Token sàn (access/refresh) **chỉ lưu ở backend** (mã hóa), không bao giờ trả về frontend.
+`state` OAuth tự chứa và ký HMAC (mã khách, shop, domain portal, hạn 10 phút), kèm cookie nonce `vae_ecom_oauth` (SameSite=Lax, path `/api/v1/ecom/oauth`) — cookie đăng nhập là SameSite=Strict nên không đi kèm callback từ sàn. URL callback ghép từ domain portal khách đang dùng (X-Forwarded-Host của proxy Vercel, chỉ nhận domain trong `Company:PortalUrl` / `Cors:AllowedOrigins`); mỗi domain phải khai trong Allowed redirection URL(s) của app Shopify.
 Đơn nhận từ sàn xuất hiện trong `GET /ecom/orders` với `src` = `shopify` / `tiktok`; kết nối luôn **tự nhận đơn mới** và **tự đẩy mã tracking** lên sàn khi đơn được in & cấp bill (không có tùy chọn bật/tắt — muốn dừng thì ngắt kết nối).
 
 ---
