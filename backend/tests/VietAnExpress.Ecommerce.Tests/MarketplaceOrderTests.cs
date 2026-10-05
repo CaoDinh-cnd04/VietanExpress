@@ -21,6 +21,19 @@ public class MarketplaceOrderTests
     }
 
     [Fact]
+    public void Nhap_lai_file_khoi_phuc_don_da_xoa()
+    {
+        var o = MarketplaceOrder.Import(1, null, "shopify", Imported(), Now);
+        o.Edit(MarketplaceRecipient.Empty with { Name = "Taro" }, 1, null, 1, null, null, null, null, null, Now);
+        o.Delete(Now);
+        Assert.True(o.Restore(Imported("#1-file"), Now));
+        Assert.Null(o.DeletedAt);
+        Assert.Null(o.EditedAt);
+        Assert.Equal("#1-file", o.OrderName);
+        Assert.False(o.Restore(Imported(), Now)); // chưa xóa thì không khôi phục
+    }
+
+    [Fact]
     public void Don_da_sua_khong_bi_dong_bo_ghi_de()
     {
         var o = MarketplaceOrder.Import(1, null, "shopify", Imported(), Now);

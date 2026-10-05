@@ -108,6 +108,20 @@ internal sealed class MarketplaceOrder
         return true;
     }
 
+    /// <summary>
+    /// Khách nhập lại file có đơn đã xóa → hiện lại với dữ liệu trong file (bỏ cả dữ liệu đã sửa trước khi xóa).
+    /// Đồng bộ tự động không gọi hàm này nên đơn đã xóa không tự quay lại.
+    /// </summary>
+    public bool Restore(ImportedOrder o, DateTime now)
+    {
+        if (DeletedAt is null || Bill is not null) return false;
+        DeletedAt = null;
+        EditedAt = null;
+        Apply(o);
+        ModifyDate = now;
+        return true;
+    }
+
     /// <summary>Khách sửa đơn trước khi tạo bill. Đã có bill thì không sửa được (dữ liệu đã khai cho hãng).</summary>
     public bool Edit(MarketplaceRecipient recipient, decimal? weightKg, string? productsJson, int itemCount, decimal? totalAmount,
         string? service, string? hub, string? branch, string? note, DateTime now)

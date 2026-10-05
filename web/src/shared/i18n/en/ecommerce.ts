@@ -208,7 +208,7 @@ export const ecommerce: Record<string, string> = {
   'Xóa đơn E-commerce': 'Delete e-commerce orders',
   'Xóa đơn {ref} khỏi danh sách?': 'Delete order {ref} from the list?',
   'Xóa {n} đơn khỏi danh sách?': 'Delete {n} orders from the list?',
-  'Đơn Shopify đã xóa sẽ không về lại khi đồng bộ hay nhập file.': 'Deleted Shopify orders will not come back on sync or file import.',
+  'Đơn Shopify đã xóa không tự về lại khi đồng bộ; muốn lấy lại thì nhập lại file export có đơn đó.': 'Deleted Shopify orders do not come back on sync; to restore one, import an export file that contains it again.',
   '{n} đơn đã có bill sẽ được giữ lại (không xóa được).': '{n} orders with a bill will be kept (cannot be deleted).',
   'Đang xóa…': 'Deleting…',
 };

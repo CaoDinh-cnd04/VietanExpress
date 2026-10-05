@@ -103,13 +103,16 @@ internal sealed class OrderImportAndEditHandlers(EcommerceDbContext db, ICurrent
             .ToDictionaryAsync(o => o.PlatformOrderId!, ct);
 
         var now = Now;
-        int added = 0, updated = 0, kept = 0;
+        int added = 0, restored = 0, updated = 0, edited = 0, billed = 0;
         foreach (var o in wanted)
         {
             if (existing.TryGetValue(o.Order.PlatformOrderId, out var current))
             {
-                if (current.UpdateFrom(o.Order, now)) updated++;
-                else kept++;
+                // Khách chủ động nhập file → đơn đã xóa được khôi phục (khác đồng bộ tự động).
+                if (current.Restore(o.Order, now)) restored++;
+                else if (current.UpdateFrom(o.Order, now)) updated++;
+                else if (current.Bill is not null) billed++;
+                else edited++;
             }
             else
             {
@@ -119,11 +122,15 @@ internal sealed class OrderImportAndEditHandlers(EcommerceDbContext db, ICurrent
         }
         await db.SaveChangesAsync(ct);
 
-        var parts = new List<string> { $"Đã nhập {added} đơn mới" };
+        var parts = new List<string>();
+        if (added > 0) parts.Add($"nhập {added} đơn mới");
+        if (restored > 0) parts.Add($"khôi phục {restored} đơn đã xóa");
         if (updated > 0) parts.Add($"cập nhật {updated} đơn");
-        if (kept > 0) parts.Add($"giữ nguyên {kept} đơn đã sửa / đã có bill / đã xóa");
+        if (edited > 0) parts.Add($"giữ nguyên {edited} đơn bạn đã sửa");
+        if (billed > 0) parts.Add($"giữ nguyên {billed} đơn đã có bill");
         if (skipped > 0) parts.Add($"bỏ qua {skipped} đơn đã giao / đã hủy");
-        return new CsvImportResult(string.Join(", ", parts), added, errors);
+        var message = parts.Count == 0 ? "Không có đơn nào để nhập" : "Đã " + string.Join(", ", parts);
+        return new CsvImportResult(message, added + restored, errors);
     }
 
     public async Task<Result<EcomOrderDto>> Handle(UpdateEcomOrderCommand c, CancellationToken ct)
