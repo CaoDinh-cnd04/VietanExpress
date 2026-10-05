@@ -38,3 +38,9 @@ export function resolveEcomTab(raw: string | null): EcomTab {
   if (!raw) return 'orders';
   return (ECOM_TABS as readonly string[]).includes(raw) ? (raw as EcomTab) : LEGACY_TABS[raw] ?? 'orders';
 }
+
+/** "2026-10-05T14:54:25.6+07:00" → "05/10/2026 14:54" (giờ backend gửi đã là giờ Việt Nam). */
+export function formatSyncTime(iso: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(iso);
+  return m ? `${m[3]}/${m[2]}/${m[1]} ${m[4]}:${m[5]}` : iso;
+}

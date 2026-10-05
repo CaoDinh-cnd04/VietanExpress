@@ -3,7 +3,6 @@ import { useSearchParams } from 'react-router-dom';
 import { isNotImplemented } from '@/shared/api/http';
 import { useI18n } from '@/shared/i18n';
 import { cx } from '@/shared/lib/cx';
-import { formatIsoDate } from '@/shared/lib/format';
 import { useCopyToClipboard } from '@/shared/lib/useCopyToClipboard';
 import { Button, Card, Icon, Modal, Notice, SelectField, StatusPill, TextField, useToast } from '@/shared/ui';
 import {
@@ -17,7 +16,7 @@ import {
   useTestWebhook
 } from '../api';
 import { API_EXAMPLE, STORE_PLATFORMS, STORE_STATUS, TIKTOK_REGIONS, WEBHOOK_EVENTS } from '../constants';
-import { needsReauthorize, normalizeShopifyDomain, readOAuthResult } from '../lib/store-connection';
+import { formatSyncTime, needsReauthorize, normalizeShopifyDomain, readOAuthResult } from '../lib/store-connection';
 import type { EcomSettings, StoreConnection, TiktokRegion } from '../types';
 import styles from './ecommerce.module.css';
 
@@ -130,7 +129,7 @@ function StoreRow({ store, onDisconnect }: { store: StoreConnection; onDisconnec
           <span className={styles.sub}>
             {STORE_PLATFORMS[store.platform].label}
             {' · '}
-            {store.lastSyncAt ? t('đồng bộ {date}', { date: formatIsoDate(store.lastSyncAt) }) : t('chưa đồng bộ')}
+            {store.lastSyncAt ? t('đồng bộ {date}', { date: formatSyncTime(store.lastSyncAt) }) : t('chưa đồng bộ')}
           </span>
         </div>
         <div className={styles.formActions}>

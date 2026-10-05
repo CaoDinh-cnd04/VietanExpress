@@ -6,7 +6,7 @@ using VietAnExpress.SharedKernel.Application;
 namespace VietAnExpress.Ecommerce.Infrastructure.Shopify;
 
 /// <summary>Dòng sản phẩm lưu trong dbo.DonTMDT.San_Pham — trùng <c>EcomProduct</c> của frontend.</summary>
-internal sealed record EcomProductDto(string Name, string Sku, int Qty, decimal FobPrice, decimal SellingPrice);
+internal sealed record EcomProductDto(string Name, string Sku, int Qty, decimal FobPrice, decimal SellingPrice, string? HsCode = null);
 
 /// <summary>Đọc node Order của GraphQL Admin API thành <see cref="ImportedOrder"/>. Hàm thuần — có test.</summary>
 internal static class ShopifyOrderMapper

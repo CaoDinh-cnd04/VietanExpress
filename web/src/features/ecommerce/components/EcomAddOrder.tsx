@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { getErrorMessage } from '@/shared/api/http';
+import { getErrorMessage, isNotImplemented } from '@/shared/api/http';
 import { useI18n } from '@/shared/i18n';
 import { readFileAsText } from '@/shared/lib/files';
-import { Card, FileDrop, Icon, Notice, SegmentedControl } from '@/shared/ui';
-import { useImportEcomCsv } from '../api';
+import { Card, FileDrop, Icon, LinkButton, Notice, SegmentedControl } from '@/shared/ui';
+import { useImportEcomCsv, useStoreConnections } from '../api';
 import { IMPORT_TEMPLATE_NAME, IMPORT_TEMPLATE_URL } from '../constants';
 import { ManualEcomForm } from './ManualEcomForm';
 import styles from './ecommerce.module.css';
@@ -16,10 +16,20 @@ type Method = (typeof METHODS)[number]['value'];
 
 /** Tab "Thêm đơn": nhập tay từng đơn (mặc định) hoặc nhập nhiều đơn bằng file. Đơn từ sàn đã kết nối tự về, không cần thêm ở đây. */
 export function EcomAddOrder() {
+  const { t } = useI18n();
   const [method, setMethod] = useState<Method>('manual');
+  const connected = useStoreConnections().data ?? [];
   return (
     <div className="page-stack">
-      <SegmentedControl ariaLabel="Cách thêm đơn" options={METHODS} value={method} onChange={setMethod} />
+      <div className={styles.addHead}>
+        <SegmentedControl ariaLabel="Cách thêm đơn" options={METHODS} value={method} onChange={setMethod} />
+        <p className={styles.hint}>
+          {connected.length > 0
+            ? t('Đơn trên {shops} tự về tab Đơn hàng khi đồng bộ — ở đây chỉ thêm đơn bán ngoài shop đã kết nối.', { shops: connected.map(s => s.shopName).join(', ') })
+            : t('Bán trên Shopify? Kết nối shop để đơn tự về, không cần nhập tay.')}
+          {connected.length === 0 && <> <LinkButton to="?tab=connect" size="sm" variant="ghost"><Icon name="link" size={15} /> {t('Kết nối sàn')}</LinkButton></>}
+        </p>
+      </div>
       {method === 'manual' ? <ManualEcomForm /> : <CsvImport />}
     </div>
   );
@@ -55,7 +65,13 @@ function CsvImport() {
         />
       </div>
       {badFile && <div className={styles.spaced}><Notice tone="danger">{t('Chỉ nhận file .csv. Với file Excel, hãy lưu lại dạng CSV UTF-8.')}</Notice></div>}
-      {importCsv.isError && <div className={styles.spaced}><Notice tone="danger">{getErrorMessage(importCsv.error)}</Notice></div>}
+      {importCsv.isError && (
+        <div className={styles.spaced}>
+          {isNotImplemented(importCsv.error)
+            ? <Notice tone="warning">{t('Nhập đơn từ file đang được hoàn thiện ở máy chủ. Tạm thời hãy dùng "Nhập tay từng đơn" hoặc kết nối Shopify.')}</Notice>
+            : <Notice tone="danger">{getErrorMessage(importCsv.error)}</Notice>}
+        </div>
+      )}
       {result && (
         <div className={styles.spaced}>
           <Notice tone={result.errors.length ? 'warning' : 'success'} title={`${fileName}: ${t(result.message)}`}>

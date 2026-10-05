@@ -15,7 +15,13 @@ namespace VietAnExpress.Ecommerce.Application;
 /// <summary>Khớp <c>EcomOrder</c> của frontend (API_CONTRACT.md §5).</summary>
 internal sealed record EcomOrderDto(
     string Id, string Src, string Ref, string Bill, string Cnee, string Ct, int Items, decimal Kg, string St,
-    string? Note, IReadOnlyList<EcomProductDto>? Products, string CreatedAt);
+    string? Note, IReadOnlyList<EcomProductDto>? Products, string CreatedAt,
+    decimal? Value, string? Currency, EcomReceiverDto Receiver, string? Service, string? Hub, string? Branch);
+
+/// <summary>Người nhận đầy đủ cho ngăn chi tiết đơn.</summary>
+internal sealed record EcomReceiverDto(
+    string? Name, string? Company, string? Phone, string? Email, string? Address1, string? Address2,
+    string? City, string? State, string? Postal, string? CountryCode, string? Country);
 
 /// <param name="Source">shopify / tiktok / … — trống = mọi nguồn.</param>
 /// <param name="Search">Tìm theo mã đơn, người nhận, bill.</param>
@@ -142,10 +148,14 @@ internal sealed class EcomOrderHandlers(
         return token.AccessToken;
     }
 
-    private static EcomOrderDto ToDto(MarketplaceOrder o) => new(
+    public static EcomOrderDto ToDto(MarketplaceOrder o) => new(
         o.Id.ToString(CultureInfo.InvariantCulture), o.Source, o.OrderName, o.Bill ?? "",
         o.Recipient.Name ?? o.Recipient.Company ?? "", o.Recipient.CountryName ?? o.Recipient.CountryCode ?? "",
         o.ItemCount, o.WeightKg ?? 0, o.Status, o.Note,
         o.ProductsJson is { } json ? JsonSerializer.Deserialize<List<EcomProductDto>>(json, ShopifyOrderMapper.Json) : null,
-        (o.PlacedAt ?? o.CreateDate).ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture));
+        (o.PlacedAt ?? o.CreateDate).ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture),
+        o.TotalAmount, o.Currency,
+        new EcomReceiverDto(o.Recipient.Name, o.Recipient.Company, o.Recipient.Phone, o.Recipient.Email, o.Recipient.Address1, o.Recipient.Address2,
+            o.Recipient.City, o.Recipient.Province, o.Recipient.PostalCode, o.Recipient.CountryCode, o.Recipient.CountryName),
+        o.Service, o.Hub, o.Branch);
 }

@@ -378,3 +378,41 @@
   justify-content: space-between;
   gap: var(--space-2) var(--space-4);
 }
+
+/* Tab Đơn hàng: shop đã kết nối + nút đồng bộ */
+.syncBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-5);
+}
+
+.syncStore {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+  color: var(--color-text-muted);
+}
+
+.syncText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  color: var(--color-text);
+}
+
+.syncText strong {
+  font-weight: 600;
+}
+
+/* Tab Thêm đơn: chọn cách thêm + gợi ý đơn từ sàn tự về */
+.addHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+}
+
+.addHead .hint {
+  margin: 0;
+}

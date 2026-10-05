@@ -1,5 +1,5 @@
 /** Dữ liệu E-commerce — hợp đồng API: docs/API_CONTRACT.md §5. */
-export type EcomSource = 'tiktok' | 'shopify' | 'shopee' | 'lazada' | 'api' | 'excel' | 'manual';
+export type EcomSource = 'tiktok' | 'shopify' | 'shopee' | 'lazada' | 'amazon' | 'ebay' | 'etsy' | 'woocommerce' | 'api' | 'excel' | 'manual';
 export type EcomStatus = 'created' | 'picked_up' | 'departed' | 'delivered' | 'exception' | 'weighing';
 
 export interface EcomProduct {
@@ -27,7 +27,30 @@ export interface EcomOrder {
   st: EcomStatus;
   note?: string;
   products?: EcomProduct[];
+  /** "dd/MM/yyyy HH:mm" — ngày đặt trên sàn / ngày nhập */
   createdAt: string;
+  /** Tổng giá trị đơn theo tiền tệ của shop */
+  value?: number | null;
+  currency?: string | null;
+  receiver?: EcomReceiver;
+  /** Đơn nhập tay: hãng / dịch vụ, hub, chi nhánh gửi đã chọn */
+  service?: string | null;
+  hub?: string | null;
+  branch?: string | null;
+}
+
+export interface EcomReceiver {
+  name?: string | null;
+  company?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  address1?: string | null;
+  address2?: string | null;
+  city?: string | null;
+  state?: string | null;
+  postal?: string | null;
+  countryCode?: string | null;
+  country?: string | null;
 }
 
 /** Khai báo hải quan nâng cao (US/EU) cho đơn nhập tay. */

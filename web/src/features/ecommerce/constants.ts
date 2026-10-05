@@ -6,6 +6,10 @@ export const ECOM_SOURCES: Record<EcomSource, { label: string }> = {
   shopify: { label: 'Shopify' },
   shopee: { label: 'Shopee' },
   lazada: { label: 'Lazada' },
+  amazon: { label: 'Amazon' },
+  ebay: { label: 'eBay' },
+  etsy: { label: 'Etsy' },
+  woocommerce: { label: 'WooCommerce' },
   api: { label: 'API' },
   excel: { label: 'Excel' },
   manual: { label: 'Nhập tay' }

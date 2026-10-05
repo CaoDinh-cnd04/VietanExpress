@@ -18,6 +18,11 @@ internal sealed class MarketplaceOrder
     public const int PostalMaxLength = 20;
     public const int CountryNameMaxLength = 100;
     public const int NoteMaxLength = 1000;
+    public const int ServiceMaxLength = 50;
+    public const int HubMaxLength = 100;
+    public const int BranchMaxLength = 50;
+    /// <summary>Nguồn của đơn nhập tay trên portal.</summary>
+    public const string ManualSource = "manual";
 
     /// <summary>Trạng thái — trùng <c>EcomStatus</c> của frontend.</summary>
     public const string Created = "created";
@@ -46,6 +51,12 @@ internal sealed class MarketplaceOrder
     public string? ProductsJson { get; private set; }
     public string? Note { get; private set; }
     public DateTime? PlacedAt { get; private set; }
+    /// <summary>Đơn nhập tay: hãng / dịch vụ, hub, chi nhánh gửi do khách chọn (đơn từ sàn để trống — chọn khi tạo bill).</summary>
+    public string? Service { get; private set; }
+    public string? Hub { get; private set; }
+    public string? Branch { get; private set; }
+    /// <summary>Khai báo hải quan nâng cao (JSON) — IOSS, EORI, VAT, giá trị khai…</summary>
+    public string? CustomsJson { get; private set; }
     public DateTime? TrackingPushedAt { get; private set; }
     public DateTime CreateDate { get; private set; }
     public DateTime? ModifyDate { get; private set; }
@@ -58,6 +69,18 @@ internal sealed class MarketplaceOrder
         {
             CustomerId = customerId, StoreConnectionId = storeConnectionId, Source = source,
             PlatformOrderId = o.PlatformOrderId, CreateDate = now
+        };
+        order.Apply(o);
+        return order;
+    }
+
+    /// <summary>Đơn khách nhập tay trên portal (không gắn shop đã kết nối).</summary>
+    public static MarketplaceOrder CreateManual(long customerId, string source, ImportedOrder o, ManualShipping shipping, DateTime now)
+    {
+        var order = new MarketplaceOrder
+        {
+            CustomerId = customerId, Source = source, CreateDate = now,
+            Service = shipping.Service, Hub = shipping.Hub, Branch = shipping.Branch, CustomsJson = shipping.CustomsJson
         };
         order.Apply(o);
         return order;
@@ -94,6 +117,9 @@ internal sealed record MarketplaceRecipient(
 {
     public static readonly MarketplaceRecipient Empty = new(null, null, null, null, null, null, null, null, null, null, null);
 }
+
+/// <summary>Thông tin vận chuyển khách chọn khi nhập tay.</summary>
+internal sealed record ManualShipping(string? Service, string? Hub, string? Branch, string? CustomsJson);
 
 /// <summary>Đơn đọc từ sàn, đã chuẩn hóa (giờ Việt Nam, kg, cắt độ dài theo cột).</summary>
 internal sealed record ImportedOrder(

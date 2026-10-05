@@ -1,5 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useFieldArray, useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import { BRANCHES, CARRIERS, COUNTRIES, DEFAULT_SERVICE, defaultHub, hubOptions } from '@/shared/config/domain';
@@ -53,7 +54,7 @@ type FormValues = z.infer<typeof schema>;
 const emptyProduct = (): FormValues['products'][number] => ({ name: '', sku: '', qty: '1', fobPrice: '', sellingPrice: '', hsCode: '' });
 const defaults = (): FormValues => ({
   ref: '',
-  source: 'tiktok',
+  source: 'manual',
   branch: 'TP.HCM',
   cnee: '',
   ct: '',
@@ -68,11 +69,14 @@ const defaults = (): FormValues => ({
   customs: { declaredValue: '', goodsType: GOODS_TYPES[0], receiverId: '', ioss: '', eori: '', vat: '', salesLink: '', paymentRef: '', manufacturer: '' }
 });
 
-const SOURCE_OPTIONS = (Object.keys(ECOM_SOURCES) as EcomSource[]).map(k => ({ value: k, label: ECOM_SOURCES[k].label }));
+/** Nguồn chọn được khi nhập tay: tự nhập, hoặc đơn bán trên 1 sàn chưa kết nối (không có API / Excel — đó là cách nhập khác). */
+const MANUAL_SOURCES: ReadonlyArray<EcomSource> = ['manual', 'shopify', 'tiktok', 'shopee', 'lazada', 'amazon', 'ebay', 'etsy', 'woocommerce'];
+const SOURCE_OPTIONS = MANUAL_SOURCES.map(k => ({ value: k, label: ECOM_SOURCES[k].label }));
 
-/** Đánh bill lẻ cho shop ít đơn: 1 đơn, 1–5 sản phẩm, khai hải quan nâng cao tùy chọn. */
+/** Thêm 1 đơn bán ngoài sàn đã kết nối: 1–5 sản phẩm, khai hải quan nâng cao tùy chọn. Lưu xong chuyển sang tab Đơn hàng. */
 export function ManualEcomForm() {
   const { t } = useI18n();
+  const [, setParams] = useSearchParams();
   const create = useCreateManualEcomOrder();
   const { control, register, handleSubmit, reset, setValue, setError, clearErrors, formState } = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: defaults() });
   const { fields, append, remove } = useFieldArray({ control, name: 'products' });
@@ -142,19 +146,20 @@ export function ManualEcomForm() {
           reset(defaults());
           lastCountry.current = undefined;
           setPostalQuery(null);
+          setParams({ tab: 'orders' }, { replace: true });
         }
       }
     );
   });
 
   return (
-    <Card title="Tạo 1 đơn" subtitle="· tối đa 5 sản phẩm">
+    <Card title="Thêm 1 đơn" subtitle="· 1–5 sản phẩm, lưu vào tab Đơn hàng">
       <form onSubmit={ev => void submit(ev)} noValidate className={styles.formSections}>
         <section>
           <h3 className={styles.subTitle}>{t('Đơn hàng')}</h3>
           <FormGrid columns={3}>
             <TextField label="Mã đơn của shop (REF)" required error={e.ref?.message} {...register('ref')} />
-            <SelectField label="Nguồn" options={SOURCE_OPTIONS} {...register('source')} />
+            <SelectField label="Bán trên" options={SOURCE_OPTIONS} {...register('source')} />
             <SelectField label="Chi nhánh gửi" options={BRANCHES} {...register('branch')} />
           </FormGrid>
         </section>
@@ -237,7 +242,7 @@ export function ManualEcomForm() {
 
         <div className={styles.formActions}>
           <Button onClick={() => reset(defaults())}>{t('Làm mới')}</Button>
-          <Button variant="primary" type="submit" disabled={create.isPending}>{t(create.isPending ? 'Đang tạo…' : 'Tạo đơn & cấp bill')}</Button>
+          <Button variant="primary" type="submit" disabled={create.isPending}><Icon name="check" size={15} /> {t(create.isPending ? 'Đang lưu…' : 'Lưu đơn')}</Button>
         </div>
       </form>
     </Card>

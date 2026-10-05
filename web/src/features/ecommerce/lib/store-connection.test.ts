@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { needsReauthorize, normalizeShopifyDomain, readOAuthResult, resolveEcomTab } from './store-connection';
+import { needsReauthorize, normalizeShopifyDomain, readOAuthResult, resolveEcomTab, formatSyncTime } from './store-connection';
 
 describe('normalizeShopifyDomain', () => {
   it('nhận tên shop, domain myshopify và link admin', () => {
@@ -43,5 +43,12 @@ describe('resolveEcomTab', () => {
     expect(resolveEcomTab('overview')).toBe('orders');
     expect(resolveEcomTab('khac')).toBe('orders');
     expect(resolveEcomTab(null)).toBe('orders');
+  });
+});
+
+describe('formatSyncTime', () => {
+  it('lấy ngày giờ theo múi giờ backend gửi', () => {
+    expect(formatSyncTime('2026-10-05T14:54:25.6+07:00')).toBe('05/10/2026 14:54');
+    expect(formatSyncTime('khác')).toBe('khác');
   });
 });

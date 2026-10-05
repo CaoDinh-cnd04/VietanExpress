@@ -70,6 +70,16 @@ internal sealed class StoresController(PortalHosts portalHosts, IConfiguration c
     public async Task<IActionResult> Orders([FromQuery] string? src, [FromQuery] string? q, CancellationToken ct) =>
         OkData(await Sender.Send(new GetEcomOrdersQuery(src, q), ct));
 
+    /// <summary>Khách nhập tay 1 đơn (1–5 sản phẩm) vào danh sách đơn E-commerce.</summary>
+    [HttpPost("manual")]
+    [HasPermission(EcommercePermissions.Connect)]
+    [ProducesResponseType<ApiResponse<EcomOrderDto>>(StatusCodes.Status200OK)]
+    public async Task<IActionResult> CreateManual(ManualOrderInput body, CancellationToken ct)
+    {
+        var result = await Sender.Send(new CreateManualOrderCommand(body), ct);
+        return FromResult(result, result.IsSuccess ? $"Đã lưu đơn {result.Value.Ref}" : null);
+    }
+
     /// <summary>Ngắt kết nối: gỡ app khỏi shop (nếu được) và xóa token.</summary>
     [HttpDelete("stores/{id:long}")]
     [HasPermission(EcommercePermissions.Connect)]

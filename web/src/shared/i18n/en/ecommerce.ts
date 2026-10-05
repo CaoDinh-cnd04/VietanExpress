@@ -138,4 +138,33 @@ export const ecommerce: Record<string, string> = {
   'Chọn nước trong danh sách': 'Choose a country from the list',
   'Gõ để tìm nước': 'Type to search countries',
   'Đang tải danh sách nước…': 'Loading countries…',
+
+  // Đơn hàng: trạng thái, đồng bộ, chi tiết đơn
+  'Chờ tạo bill': 'Awaiting bill',
+  'Ngày đặt': 'Order date',
+  'Chưa có tên': 'No name yet',
+  'Chưa có đơn cần giao': 'No orders to ship',
+  'Đơn chưa giao trên shop đã kết nối sẽ về đây khi đồng bộ. Đơn bán ngoài sàn thì thêm tay hoặc từ file.': 'Unfulfilled orders from connected stores appear here when you sync. Add off-marketplace orders manually or from a file.',
+  'Kết nối Shopify để đơn tự về, hoặc thêm đơn tay / từ file Excel.': 'Connect Shopify to receive orders automatically, or add orders manually / from an Excel file.',
+  'Đang đồng bộ…': 'Syncing…',
+  'Đơn {source}': '{source} order',
+  'Đã sao chép mã đơn': 'Order number copied',
+  'Sao chép mã đơn': 'Copy order number',
+  'Chưa tạo': 'Not created',
+  'Giá trị đơn': 'Order value',
+  'Chờ cân': 'Awaiting weighing',
+  'Sản phẩm': 'Products',
+  'Tổng tiền hàng': 'Goods total',
+  'Sàn chưa gửi danh sách sản phẩm.': 'The marketplace has not sent the product list.',
+  'Ghi chú của shop': 'Shop note',
+  'Chưa có địa chỉ người nhận: app Shopify cần được cấp quyền dữ liệu khách hàng (Protected customer data), rồi bấm Đồng bộ lại.': 'No recipient address: the Shopify app needs Protected customer data access, then sync again.',
+
+  // Thêm đơn
+  'Thêm 1 đơn': 'Add an order',
+  '· 1–5 sản phẩm, lưu vào tab Đơn hàng': '· 1–5 products, saved to the Orders tab',
+  'Bán trên': 'Sold on',
+  'Lưu đơn': 'Save order',
+  'Đơn trên {shops} tự về tab Đơn hàng khi đồng bộ — ở đây chỉ thêm đơn bán ngoài shop đã kết nối.': 'Orders from {shops} arrive in the Orders tab when you sync — only add orders sold outside connected stores here.',
+  'Bán trên Shopify? Kết nối shop để đơn tự về, không cần nhập tay.': 'Selling on Shopify? Connect your store so orders arrive automatically.',
+  'Nhập đơn từ file đang được hoàn thiện ở máy chủ. Tạm thời hãy dùng "Nhập tay từng đơn" hoặc kết nối Shopify.': 'File import is still being completed on the server. For now, use "Enter orders manually" or connect Shopify.',
 };

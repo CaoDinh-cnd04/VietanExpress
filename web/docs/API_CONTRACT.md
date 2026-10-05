@@ -201,7 +201,7 @@ Gợi ý bảng SQL: `Services`, `ServiceZones`, `ServiceCountryZones`, `Service
 | Method | Path | Trạng thái | Mô tả |
 |---|---|---|---|
 | GET | `/ecom/orders?src=&q=` | Có sẵn | Đơn E-commerce (`dbo.DonTMDT`), lọc theo nguồn & từ khóa (mã đơn, người nhận, bill); mới nhất trước, tối đa 500 |
-| POST | `/ecom/manual` | Có sẵn | Đánh bill lẻ (body `NewManualEcomOrder` dưới) |
+| POST | `/ecom/manual` | Có sẵn | Lưu 1 đơn nhập tay vào `dbo.DonTMDT` (body `NewManualEcomOrder` dưới; `source` ∈ manual, shopify, tiktok, shopee, lazada, amazon, ebay, etsy, woocommerce) → `{ data: EcomOrder, message }`. Chưa cấp bill — bill tạo ở bước sau. Trùng mã đơn cùng nguồn → 409 |
 | POST | `/ecom/import-csv` | Có sẵn | `{ "csv": "<nội dung file mẫu 70 cột>" }` → `{ message, importedCount, errors: [{ row, message }] }` |
 | POST | `/ecom/webhook/:platform` | Có sẵn | Sàn đẩy đơn vào (không do frontend gọi) |
 | POST | `/ecom/labels` | **Mới** | In nhãn hàng loạt `{ ids: string[], format: "A6"\|"A4"\|"ZPL" }` → `{ message, url? }` (url = file PDF/ZPL) |
@@ -212,6 +212,7 @@ Gợi ý bảng SQL: `Services`, `ServiceZones`, `ServiceCountryZones`, `Service
 
 `NewManualEcomOrder`: `{ ref, source, branch, cnee, ct, countryCode?, postal, city, state, address, service, hub, kg, products: [{ name, sku, qty, fobPrice, sellingPrice, hsCode }], customs: { declaredValue, goodsType, receiverId, ioss, eori, vat, salesLink, paymentRef, manufacturer } }`.
 `ct` là tên nước tiếng Anh lấy từ `GET /geo/countries`, `countryCode` là mã ISO 2 ký tự (trống khi danh sách nước tạm lỗi). Form tự điền `city`, `state` từ `GET /geo/postal` (GeoNames); khách vẫn sửa được.
+`EcomOrder` (GET /ecom/orders, POST /ecom/manual): `{ id, src, ref, bill, cnee, ct, items, kg, st, note?, products?: [{ name, sku, qty, fobPrice, sellingPrice, hsCode? }], createdAt: "dd/MM/yyyy HH:mm", value?, currency?, receiver?: { name, company, phone, email, address1, address2, city, state, postal, countryCode, country }, service?, hub?, branch? }`.
 `EcomSettings`: `{ apiKeys: [{ env, key }], webhookUrl, webhookEvents: ("created"|"picked_up"|"departed"|"delivered"|"exception")[] }`. Trên giao diện, phần API key / webhook nằm trong mục thu gọn "Dành cho lập trình viên" ở tab Kết nối.
 
 ### 5.1 Kết nối sàn qua OAuth (Shopify, TikTok Shop) — tab `?tab=connect`
