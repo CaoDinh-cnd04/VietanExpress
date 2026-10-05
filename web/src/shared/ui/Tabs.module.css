@@ -4,6 +4,12 @@
   padding: 0 var(--space-2);
   border-bottom: 1px solid var(--color-border);
   overflow-x: auto;
+  /* Vẫn vuốt ngang được khi hẹp, nhưng không hiện thanh cuộn (gạch chân tab active tràn 1px gây thanh cuộn dọc) */
+  scrollbar-width: none;
+}
+
+.tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .tab {

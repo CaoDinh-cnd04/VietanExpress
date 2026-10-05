@@ -19,5 +19,6 @@
     <ProjectReference Include="..\Modules\Identity\VietAnExpress.Identity\VietAnExpress.Identity.csproj" />
     <ProjectReference Include="..\Modules\Customers\VietAnExpress.Customers\VietAnExpress.Customers.csproj" />
     <ProjectReference Include="..\Modules\Shipments\VietAnExpress.Shipments\VietAnExpress.Shipments.csproj" />
+    <ProjectReference Include="..\Modules\Ecommerce\VietAnExpress.Ecommerce\VietAnExpress.Ecommerce.csproj" />
   </ItemGroup>
 </Project>

@@ -1,35 +1,32 @@
 import { useSearchParams } from 'react-router-dom';
 import { useI18n } from '@/shared/i18n';
 import { Card, PageHeader, Tabs } from '@/shared/ui';
-import { EcomConnections } from '../components/EcomConnections';
+import { EcomAddOrder } from '../components/EcomAddOrder';
+import { EcomConnect } from '../components/EcomConnect';
 import { EcomOrderList } from '../components/EcomOrderList';
-import { EcomOverview } from '../components/EcomOverview';
-import { EcomPush } from '../components/EcomPush';
+import { resolveEcomTab, type EcomTab } from '../lib/store-connection';
 
-const TABS = [
-  { key: 'overview', label: 'Tổng quan' },
-  { key: 'push', label: 'Đẩy đơn' },
-  { key: 'orders', label: 'Đơn e-com' },
-  { key: 'conn', label: 'Kết nối & API' }
-] as const;
-type TabKey = (typeof TABS)[number]['key'];
+const TABS: ReadonlyArray<{ key: EcomTab; label: string }> = [
+  { key: 'orders', label: 'Đơn hàng' },
+  { key: 'add', label: 'Thêm đơn' },
+  { key: 'connect', label: 'Kết nối' }
+];
 
 export default function EcommercePage() {
   const { t } = useI18n();
   const [params, setParams] = useSearchParams();
-  const tab = (TABS.find(x => x.key === params.get('tab'))?.key ?? 'overview') as TabKey;
+  const tab = resolveEcomTab(params.get('tab'));
 
   return (
     <>
-      <PageHeader title="Kênh bán hàng (E-commerce)" description="Đẩy đơn hàng loạt từ shop / sàn (TikTok Shop, Shopify, Shopee…) qua API, Excel hoặc đánh bill lẻ." />
+      <PageHeader title="E-commerce" description="Kết nối Shopify, TikTok Shop để đơn tự về và tracking tự trả lên sàn, hoặc thêm đơn bằng file Excel." />
       <div className="page-stack">
         <Card flush>
-          <Tabs ariaLabel={t('Chức năng e-commerce')} items={TABS} value={tab} onChange={k => setParams({ tab: k }, { replace: true })} />
+          <Tabs ariaLabel={t('Chức năng E-commerce')} items={TABS} value={tab} onChange={k => setParams({ tab: k }, { replace: true })} />
         </Card>
-        {tab === 'overview' && <EcomOverview />}
-        {tab === 'push' && <EcomPush />}
         {tab === 'orders' && <EcomOrderList />}
-        {tab === 'conn' && <EcomConnections />}
+        {tab === 'add' && <EcomAddOrder />}
+        {tab === 'connect' && <EcomConnect />}
       </div>
     </>
   );

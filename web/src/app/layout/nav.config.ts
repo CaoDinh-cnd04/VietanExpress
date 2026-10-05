@@ -46,7 +46,7 @@ export const NAV: ReadonlyArray<NavEntry> = [
     icon: 'bag',
     children: [
       { to: '/pricing', label: 'Giá & gợi ý dịch vụ' },
-      { to: '/ecommerce', label: 'Kênh bán hàng' }
+      { to: '/ecommerce', label: 'E-commerce' }
     ]
   },
   {

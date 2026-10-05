@@ -25,10 +25,21 @@
   margin-top: var(--space-4);
 }
 
+.fullRow {
+  grid-column: 1 / -1;
+}
+
 .subTitle {
-  margin-bottom: var(--space-2);
+  margin: 0 0 var(--space-3);
   font-size: var(--text-md);
   font-weight: 600;
+  color: var(--color-brand-strong);
+}
+
+.formSections {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
 }
 
 .link {
@@ -44,34 +55,122 @@
   gap: var(--space-2);
 }
 
-/* ---------- Nguồn ---------- */
-.sources {
+/* ---------- Danh sách đơn ---------- */
+.listHead {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
 }
 
-.sourceTag {
+.views {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.view {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 2px 10px;
+  gap: 8px;
+  height: var(--control-h);
+  padding: 0 14px;
+  border: 0;
   border-radius: 999px;
-  background: var(--color-surface-muted);
-  border: 1px solid var(--color-border);
-  font-size: var(--text-xs);
-  font-weight: 600;
-  white-space: nowrap;
+  background: none;
+  color: var(--color-text-muted);
+  font: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
 }
 
-/* ---------- Danh sách đơn ---------- */
-.toolbar {
+.view:hover {
+  background: var(--color-surface-muted);
+  color: var(--color-text);
+}
+
+.view:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.viewActive,
+.viewActive:hover {
+  background: var(--color-brand-soft);
+  color: var(--color-brand-strong);
+  font-weight: 600;
+}
+
+.viewCount {
+  min-width: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--color-surface-muted);
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.viewActive .viewCount {
+  background: var(--color-surface);
+}
+
+.viewAlert .viewCount {
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+  font-weight: 600;
+}
+
+.listTools {
   display: flex;
-  align-items: flex-end;
+  flex: 1;
+  justify-content: flex-end;
+  align-items: center;
   gap: var(--space-2);
+  min-width: 260px;
+}
+
+.listTools .search {
+  flex: 0 1 300px;
+  min-width: 180px;
+}
+
+.inlineSelect {
+  height: var(--control-h);
+  padding: 0 var(--space-2);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--text-sm);
+}
+
+.selectionBar {
+  display: flex;
   flex-wrap: wrap;
-  padding: var(--space-3) var(--space-4);
-  border-bottom: 1px solid var(--color-border);
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  margin-bottom: var(--space-2);
+  padding: 8px var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--color-brand-softer);
+  font-size: var(--text-sm);
+}
+
+.emptyActions {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+.note {
+  max-width: 220px;
+  margin-top: 4px;
+  white-space: normal;
 }
 
 .search {
@@ -100,10 +199,6 @@
   outline: none;
   background: none;
   color: var(--color-text);
-}
-
-.formatField {
-  width: 130px;
 }
 
 /* ---------- API ---------- */
@@ -174,13 +269,6 @@
   margin-bottom: 0;
 }
 
-/* ---------- Kết nối ---------- */
-.twoCol {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-4);
-}
-
 .keyList {
   display: flex;
   flex-direction: column;
@@ -237,28 +325,56 @@
   cursor: pointer;
 }
 
-.connGrid {
+@media (max-width: 1100px) {
+  .productRow {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* ---------- Kết nối sàn ---------- */
+.connectRow {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: 110px minmax(0, 1fr) auto;
+  align-items: end;
   gap: var(--space-3);
 }
 
-.connCard {
+.connectName {
+  padding-bottom: 10px;
+}
+
+.devApi {
+  background: var(--color-surface);
+}
+
+.devTitle {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-sm);
+}
+
+@media (max-width: 560px) {
+  .connectRow {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .connectName {
+    padding-bottom: 0;
+  }
+}
+
+.storeRow {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
+  flex-direction: column;
+  gap: var(--space-2);
   padding: var(--space-3) var(--space-4);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
 }
 
-@media (max-width: 1100px) {
-  .twoCol {
-    grid-template-columns: 1fr;
-  }
-
-  .productRow {
-    grid-template-columns: 1fr 1fr;
-  }
+.storeHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
 }

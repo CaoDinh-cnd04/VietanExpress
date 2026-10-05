@@ -1,5 +1,5 @@
 import type { Tone } from '@/shared/ui';
-import type { EcomSettings, EcomSource, EcomStatus } from './types';
+import type { EcomSettings, EcomSource, EcomStatus, StoreConnectionStatus, StorePlatform, TiktokRegion } from './types';
 
 export const ECOM_SOURCES: Record<EcomSource, { label: string }> = {
   tiktok: { label: 'TikTok Shop' },
@@ -20,13 +20,22 @@ export const ECOM_STATUS: Record<EcomStatus, { label: string; tone: Tone }> = {
   weighing: { label: 'Chờ cân đo', tone: 'warning' }
 };
 
-/** Sàn có thể gắn nguồn ở tab Kết nối. */
-export const MARKETPLACES: ReadonlyArray<{ source: EcomSource; description: string }> = [
-  { source: 'tiktok', description: 'Gắn nhãn nguồn cho đơn từ TikTok Shop' },
-  { source: 'shopify', description: 'Gắn nhãn nguồn cho đơn từ Shopify' },
-  { source: 'shopee', description: 'Gắn nhãn nguồn cho đơn từ Shopee' },
-  { source: 'lazada', description: 'Gắn nhãn nguồn cho đơn từ Lazada' }
+export const STORE_PLATFORMS: Record<StorePlatform, { label: string }> = {
+  shopify: { label: 'Shopify' },
+  tiktok: { label: 'TikTok Shop' }
+};
+
+export const TIKTOK_REGIONS: ReadonlyArray<{ value: TiktokRegion; label: string }> = [
+  { value: 'global', label: 'Toàn cầu' },
+  { value: 'us', label: 'Hoa Kỳ (US)' }
 ];
+
+export const STORE_STATUS: Record<StoreConnectionStatus, { label: string; tone: Tone }> = {
+  active: { label: 'Đang hoạt động', tone: 'success' },
+  expired: { label: 'Hết hạn ủy quyền', tone: 'warning' },
+  error: { label: 'Lỗi đồng bộ', tone: 'danger' },
+  revoked: { label: 'Shop đã gỡ ứng dụng', tone: 'neutral' }
+};
 
 export const WEBHOOK_EVENTS: ReadonlyArray<EcomSettings['webhookEvents'][number]> = ['created', 'picked_up', 'departed', 'delivered', 'exception'];
 

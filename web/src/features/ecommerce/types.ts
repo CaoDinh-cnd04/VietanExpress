@@ -1,4 +1,4 @@
-/** Dữ liệu e-commerce — hợp đồng API: docs/API_CONTRACT.md §5. */
+/** Dữ liệu E-commerce — hợp đồng API: docs/API_CONTRACT.md §5. */
 export type EcomSource = 'tiktok' | 'shopify' | 'shopee' | 'lazada' | 'api' | 'excel' | 'manual';
 export type EcomStatus = 'created' | 'picked_up' | 'departed' | 'delivered' | 'exception' | 'weighing';
 
@@ -48,7 +48,13 @@ export interface NewManualEcomOrder {
   source: EcomSource;
   branch: string;
   cnee: string;
+  /** Tên nước tiếng Anh, như /geo/countries */
   ct: string;
+  /** Mã ISO 2 ký tự — trống khi danh sách nước từ API lỗi */
+  countryCode?: string;
+  postal: string;
+  city: string;
+  state: string;
   address: string;
   service: string;
   hub: string;
@@ -68,5 +74,34 @@ export interface EcomSettings {
   apiKeys: Array<{ env: 'production' | 'sandbox'; key: string }>;
   webhookUrl: string;
   webhookEvents: Array<'created' | 'picked_up' | 'departed' | 'delivered' | 'exception'>;
-  connectedSources: EcomSource[];
+}
+
+/** Sàn kết nối qua OAuth — backend giữ token, tự nhận đơn mới và trả tracking; frontend chỉ thấy trạng thái. */
+export type StorePlatform = 'shopify' | 'tiktok';
+/** TikTok Shop tách cổng ủy quyền: global (UK, EU, SEA…) và US. */
+export type TiktokRegion = 'global' | 'us';
+export type StoreConnectionStatus = 'active' | 'expired' | 'error' | 'revoked';
+
+export interface StoreConnection {
+  id: string;
+  platform: StorePlatform;
+  shopName: string;
+  /** Shopify: xxx.myshopify.com · TikTok: mã shop / shop_cipher rút gọn */
+  shopDomain?: string;
+  region?: string;
+  status: StoreConnectionStatus;
+  connectedAt: string;
+  lastSyncAt?: string;
+  lastError?: string;
+}
+
+export interface StartStoreConnection {
+  platform: StorePlatform;
+  shopDomain?: string;
+  region?: TiktokRegion;
+}
+
+export interface StoreSyncResult {
+  message: string;
+  importedCount: number;
 }

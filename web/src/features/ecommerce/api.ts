@@ -2,12 +2,13 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { getErrorMessage, http, type ListResponse } from '@/shared/api/http';
 import { fill } from '@/shared/i18n';
 import { useToast } from '@/shared/ui';
-import type { CsvImportResult, EcomOrder, EcomSettings, EcomSource, NewManualEcomOrder } from './types';
+import type { CsvImportResult, EcomOrder, EcomSettings, EcomSource, NewManualEcomOrder, StartStoreConnection, StoreConnection, StoreSyncResult } from './types';
 
 export const ecomKeys = {
   orders: (src: EcomSource | 'all', q: string) => ['ecom', 'orders', src, q] as const,
   allOrders: ['ecom', 'orders'] as const,
-  settings: ['ecom', 'settings'] as const
+  settings: ['ecom', 'settings'] as const,
+  stores: ['ecom', 'stores'] as const
 };
 
 export function useEcomOrders(src: EcomSource | 'all' = 'all', q = '') {
@@ -92,6 +93,54 @@ export function useTestWebhook() {
   return useMutation({
     mutationFn: () => http.post<{ message: string }>('/ecom/settings/webhook/test'),
     onSuccess: res => toast.show(res.message, 'success'),
+    onError: e => toast.show(getErrorMessage(e), 'error')
+  });
+}
+
+/** Cửa hàng Shopify / TikTok Shop đã kết nối OAuth. Endpoint mới — xem API_CONTRACT.md §5.1. */
+export function useStoreConnections() {
+  return useQuery({
+    queryKey: ecomKeys.stores,
+    queryFn: () => http.get<ListResponse<StoreConnection>>('/ecom/stores').then(r => r.data),
+    retry: false
+  });
+}
+
+/** Backend tạo `state` chống giả mạo và trả link ủy quyền của sàn; trình duyệt chuyển sang sàn. */
+export function useStartStoreConnection() {
+  const toast = useToast();
+  return useMutation({
+    mutationFn: (body: StartStoreConnection) => http.post<{ authorizeUrl: string }>('/ecom/stores/connect', body),
+    onSuccess: res => window.location.assign(res.authorizeUrl),
+    onError: e => toast.show(getErrorMessage(e, 'Chưa kết nối được sàn — chức năng đang được hoàn thiện ở máy chủ'), 'error')
+  });
+}
+
+/** Kéo đơn mới từ sàn ngay (ngoài webhook / lịch tự động). */
+export function useSyncStore() {
+  const qc = useQueryClient();
+  const toast = useToast();
+  return useMutation({
+    mutationFn: (id: string) => http.post<StoreSyncResult>(`/ecom/stores/${encodeURIComponent(id)}/sync`),
+    onSuccess: res => {
+      toast.show(res.message, 'success');
+      void qc.invalidateQueries({ queryKey: ecomKeys.stores });
+      void qc.invalidateQueries({ queryKey: ecomKeys.allOrders });
+    },
+    onError: e => toast.show(getErrorMessage(e), 'error')
+  });
+}
+
+/** Ngắt kết nối: backend xóa token và hủy webhook đã đăng ký trên sàn. */
+export function useDisconnectStore() {
+  const qc = useQueryClient();
+  const toast = useToast();
+  return useMutation({
+    mutationFn: (id: string) => http.delete<{ message: string }>(`/ecom/stores/${encodeURIComponent(id)}`),
+    onSuccess: res => {
+      toast.show(res.message, 'success');
+      void qc.invalidateQueries({ queryKey: ecomKeys.stores });
+    },
     onError: e => toast.show(getErrorMessage(e), 'error')
   });
 }

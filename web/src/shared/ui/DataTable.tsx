@@ -27,20 +27,22 @@ interface DataTableProps<T> {
   highlight?: (row: T) => boolean;
   minWidth?: number;
   caption?: string;
+  /** Không kẻ dòng: hàng tách bằng khoảng trắng, rê chuột / chọn thì nền sáng lên. */
+  plain?: boolean;
 }
 
 /**
  * Bảng dữ liệu dùng chung: khai báo cột bằng mảng `columns`, không cần viết <table> thủ công.
  * Bảng đặc thù (có ô nhập liệu, gộp dòng…) vẫn có thể tự viết riêng.
  */
-export function DataTable<T>({ columns, rows, rowKey, loading, empty, onRowClick, highlight, minWidth = 720, caption }: DataTableProps<T>) {
+export function DataTable<T>({ columns, rows, rowKey, loading, empty, onRowClick, highlight, minWidth = 720, caption, plain }: DataTableProps<T>) {
   const { t } = useI18n();
   const tr = useTranslateNode();
   if (!loading && !rows.length && empty) return <EmptyState {...empty} />;
 
   return (
     <div className={styles.scroll}>
-      <table className={cx(styles.table, loading && styles.loading)} style={{ minWidth }} aria-busy={loading || undefined}>
+      <table className={cx(styles.table, plain && styles.plain, loading && styles.loading)} style={{ minWidth }} aria-busy={loading || undefined}>
         {caption && <caption className="visually-hidden">{t(caption)}</caption>}
         <thead>
           <tr>

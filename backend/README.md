@@ -52,7 +52,8 @@ backend/
 │   └── Modules/
 │       ├── Identity/   VietAnExpress.Identity (+ .Contracts)    đăng nhập khách: dbo.TCustomer
 │       ├── Customers/  VietAnExpress.Customers (+ .Contracts)   hồ sơ khách: dbo.TCustomer (chỉ đọc)
-│       └── Shipments/  VietAnExpress.Shipments (+ .Contracts)   dbo.MaVanDon (+ 2 bảng chi tiết), shipments.OrderDrafts
+│       ├── Shipments/  VietAnExpress.Shipments (+ .Contracts)   dbo.MaVanDon (+ 2 bảng chi tiết), shipments.OrderDrafts
+│       └── Ecommerce/  VietAnExpress.Ecommerce (+ .Contracts)   kênh bán & shop đã kết nối: dbo.KenhTMDT, dbo.KetNoiTMDT
 ├── tests/  Shipments.Tests, Identity.Tests, Architecture.Tests
 └── scripts/ add-migration.ps1, update-database.ps1, drop-portal-tables.sql, install-service.ps1…
 ```
@@ -151,6 +152,10 @@ Hệ thống cũ (kho, vận hành) vẫn chạy song song trên cùng database.
 | Đơn hàng, tra cứu công khai | `dbo.MaVanDon` |
 | Chi tiết kiện / dòng hàng invoice | `dbo.MaVanDon_PCS_DIM`, `dbo.MaVanDon_ChiTietHang` |
 | Đơn nháp & chưa in (tạm giữ) | `shipments.OrderDrafts` |
+| Kênh bán e-com (Shopify, TikTok Shop, Amazon…) — bảng mới | `dbo.KenhTMDT` (danh mục, seed trong migration) |
+| Shop của khách đã kết nối — bảng mới | `dbo.KetNoiTMDT` |
+
+- **E-com (`dbo.KenhTMDT`, `dbo.KetNoiTMDT`):** thêm kênh mới = thêm 1 dòng `KenhTMDT` bằng migration (`Ma_Kenh` trùng `platform` của frontend) và bật `Dang_Hoat_Dong` khi đã có adapter; không đổi cấu trúc bảng. `KetNoiTMDT` giữ 1 dòng cho mỗi (khách, kênh, `Ma_Shop`); token sàn chỉ lưu đã mã hóa (`Access_Token_Ma_Hoa`, `Refresh_Token_Ma_Hoa`); `Trang_Thai` ∈ `active | expired | error | revoked`.
 
 - **Tra cứu công khai:** tìm trong `dbo.MaVanDon` theo số VA (`OrderNumber`), mã hãng (`Bill_Connect`), `AWB` hoặc `CustomerBill`. Tên người ký nhận không hiện ra.
 - **Đơn hàng (`/orders`, `/drafts`):**

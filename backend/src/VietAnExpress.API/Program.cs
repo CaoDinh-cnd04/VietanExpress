@@ -14,6 +14,7 @@ using VietAnExpress.SharedKernel.Authorization;
 using VietAnExpress.SharedKernel.Persistence;
 using VietAnExpress.SharedKernel.Web;
 using VietAnExpress.Shipments;
+using VietAnExpress.Ecommerce;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.Hosting.WindowsServices;
@@ -59,12 +60,13 @@ try
 
     // ---------- Module ----------
     // Thêm module mới: 1 dòng AddXxxModule + thêm assembly vào mảng dưới.
-    Assembly[] moduleAssemblies = [IdentityModule.Assembly, CustomersModule.Assembly, ShipmentsModule.Assembly];
+    Assembly[] moduleAssemblies = [IdentityModule.Assembly, CustomersModule.Assembly, ShipmentsModule.Assembly, EcommerceModule.Assembly];
 
     builder.Services
         .AddIdentityModule(builder.Configuration)
         .AddCustomersModule(builder.Configuration)
-        .AddShipmentsModule(builder.Configuration);
+        .AddShipmentsModule(builder.Configuration)
+        .AddEcommerceModule(builder.Configuration);
 
     // ---------- Dùng chung ----------
     builder.Services.AddSingleton(TimeProvider.System);

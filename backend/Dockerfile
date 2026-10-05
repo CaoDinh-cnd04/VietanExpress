@@ -15,6 +15,8 @@ COPY src/Modules/Customers/VietAnExpress.Customers/*.csproj src/Modules/Customer
 COPY src/Modules/Customers/VietAnExpress.Customers.Contracts/*.csproj src/Modules/Customers/VietAnExpress.Customers.Contracts/
 COPY src/Modules/Shipments/VietAnExpress.Shipments/*.csproj src/Modules/Shipments/VietAnExpress.Shipments/
 COPY src/Modules/Shipments/VietAnExpress.Shipments.Contracts/*.csproj src/Modules/Shipments/VietAnExpress.Shipments.Contracts/
+COPY src/Modules/Ecommerce/VietAnExpress.Ecommerce/*.csproj src/Modules/Ecommerce/VietAnExpress.Ecommerce/
+COPY src/Modules/Ecommerce/VietAnExpress.Ecommerce.Contracts/*.csproj src/Modules/Ecommerce/VietAnExpress.Ecommerce.Contracts/
 COPY src/VietAnExpress.API/*.csproj src/VietAnExpress.API/
 RUN dotnet restore src/VietAnExpress.API/VietAnExpress.API.csproj
 

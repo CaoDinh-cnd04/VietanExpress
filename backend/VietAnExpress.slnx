@@ -6,6 +6,10 @@
     <Project Path="src/BuildingBlocks/VietAnExpress.SharedKernel/VietAnExpress.SharedKernel.csproj" />
   </Folder>
   <Folder Name="/src/Modules/" />
+  <Folder Name="/src/Modules/Ecommerce/">
+    <Project Path="src/Modules/Ecommerce/VietAnExpress.Ecommerce.Contracts/VietAnExpress.Ecommerce.Contracts.csproj" />
+    <Project Path="src/Modules/Ecommerce/VietAnExpress.Ecommerce/VietAnExpress.Ecommerce.csproj" />
+  </Folder>
   <Folder Name="/src/Modules/Customers/">
     <Project Path="src/Modules/Customers/VietAnExpress.Customers.Contracts/VietAnExpress.Customers.Contracts.csproj" />
     <Project Path="src/Modules/Customers/VietAnExpress.Customers/VietAnExpress.Customers.csproj" />

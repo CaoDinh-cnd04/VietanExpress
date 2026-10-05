@@ -84,7 +84,7 @@ export const account: Record<string, string> = {
   'Đã sao chép mã nhúng': 'Embed code copied',
   'Sao chép mã nhúng': 'Copy embed code',
   'Cần lấy trạng thái đơn qua API?': 'Need order status via API?',
-  'Dùng API key ở trang Kênh bán hàng → Kết nối & API, gọi': 'Use the API key from Sales channels → Connections & API and call',
+  'Dùng API key ở trang E-commerce → Kết nối, gọi': 'Use the API key from E-commerce → Connections and call',
   'hoặc đăng ký webhook để nhận cập nhật trạng thái tự động.': 'or register a webhook to receive status updates automatically.',
 
   // Thông báo

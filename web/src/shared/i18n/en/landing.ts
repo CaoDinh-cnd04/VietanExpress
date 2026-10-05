@@ -129,7 +129,7 @@ export const landing: Record<string, string> = {
   'In khổ A4 hoặc A6, mã vận đơn được cấp ngay khi in.': 'Print on A4 or A6; the bill number is issued on printing.',
   'Tra cước theo cân và điểm đến, chọn dịch vụ phù hợp.': 'Check rates by weight and destination and choose the right service.',
   'Hẹn khung giờ lấy hàng tận nơi theo chi nhánh.': 'Book a pickup time slot at your branch.',
-  'Đưa đơn e-commerce lên hệ thống bằng file CSV.': 'Upload e-commerce orders with a CSV file.',
+  'Kết nối Shopify, TikTok Shop hoặc đưa đơn E-commerce lên bằng file CSV.': 'Connect Shopify, TikTok Shop or upload E-commerce orders with a CSV file.',
   'Chưa có tài khoản? Gọi': "Don't have an account? Call",
   'để được cấp.': 'to get one.',
 

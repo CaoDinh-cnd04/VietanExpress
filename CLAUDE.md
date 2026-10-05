@@ -29,13 +29,13 @@ Mini App là project riêng có `package.json`, lockfile, assets và cấu hình
 backend/
 ├── src/VietAnExpress.API/                  # Host (cổng 3000 khi dev)
 ├── src/BuildingBlocks/VietAnExpress.SharedKernel/
-├── src/Modules/{Identity,Customers,Shipments}/   # mỗi module + .Contracts; dùng thẳng bảng dbo có sẵn
+├── src/Modules/{Identity,Customers,Shipments,Ecommerce}/   # mỗi module + .Contracts; dùng thẳng bảng dbo có sẵn
 └── tests/                                  # xUnit v3 + Moq, Architecture.Tests kiểm tra ranh giới module
 ```
 
 Backend: `cd backend && dotnet run --project src/VietAnExpress.API --launch-profile http` · test: `dotnet test --solution VietAnExpress.slnx`. Bí mật (connection string, `Jwt:Secret`) chỉ để trong user-secrets / biến môi trường.
 
-**Database:** không tự tạo bảng / schema mới. Portal chỉ dùng bảng có sẵn (`dbo.TCustomer` cho đăng nhập và hồ sơ khách, `dbo.MaVanDon` + `MaVanDon_PCS_DIM` + `MaVanDon_ChiTietHang` cho vận đơn); ngoại lệ tạm giữ `shipments.OrderDrafts`. Chức năng cần bảng mới thì hỏi người dùng trước.
+**Database:** không tự tạo bảng / schema mới. Portal chỉ dùng bảng có sẵn (`dbo.TCustomer` cho đăng nhập và hồ sơ khách, `dbo.MaVanDon` + `MaVanDon_PCS_DIM` + `MaVanDon_ChiTietHang` cho vận đơn); ngoại lệ tạm giữ `shipments.OrderDrafts`; bảng mới đã được người dùng duyệt: `dbo.NhomHangHoa`, `dbo.MatHangKhachHang`, `dbo.KenhTMDT` + `dbo.KetNoiTMDT` (kênh bán e-com và shop đã kết nối). Chức năng cần bảng mới thì hỏi người dùng trước.
 
 ## 3. Lệnh thường dùng (chạy trong `web/`)
 

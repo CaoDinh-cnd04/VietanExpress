@@ -1,14 +1,9 @@
-/** Tiếng Anh — kênh bán hàng (e-commerce): tổng quan, đẩy đơn, đơn e-com, kết nối & API. */
+/** Tiếng Anh — E-commerce: tổng quan, đẩy đơn, đơn E-commerce, kết nối & API. */
 export const ecommerce: Record<string, string> = {
   // Trang & tab
-  'Kênh bán hàng (E-commerce)': 'Sales channels (E-commerce)',
-  'Đẩy đơn hàng loạt từ shop / sàn (TikTok Shop, Shopify, Shopee…) qua API, Excel hoặc đánh bill lẻ.':
-    'Push orders in bulk from your shop / marketplace (TikTok Shop, Shopify, Shopee…) via API, Excel or single bills.',
-  'Chức năng e-commerce': 'E-commerce functions',
-  'Tổng quan': 'Overview',
-  'Đẩy đơn': 'Push orders',
-  'Đơn e-com': 'E-com orders',
-  'Kết nối & API': 'Connections & API',
+  'Chức năng E-commerce': 'E-commerce functions',
+  'Đơn E-commerce': 'E-commerce orders',
+  'Kết nối sàn': 'Store connections',
 
   // Nguồn & trạng thái
   'Nhập tay': 'Manual',
@@ -16,34 +11,13 @@ export const ecommerce: Record<string, string> = {
   'Đã lấy': 'Picked up',
   'Lỗi': 'Error',
   'Chờ cân đo': 'Awaiting weighing',
-  'Gắn nhãn nguồn cho đơn từ TikTok Shop': 'Tag orders from TikTok Shop with their source',
-  'Gắn nhãn nguồn cho đơn từ Shopify': 'Tag orders from Shopify with their source',
-  'Gắn nhãn nguồn cho đơn từ Shopee': 'Tag orders from Shopee with their source',
-  'Gắn nhãn nguồn cho đơn từ Lazada': 'Tag orders from Lazada with their source',
   'liquid (lỏng)': 'liquid',
 
   // Tổng quan
-  'Tổng đơn e-com': 'Total e-com orders',
-  'Tạo thành công': 'Created successfully',
   'Lỗi cần xử lý': 'Errors to fix',
-  'Theo nguồn': 'By source',
-  'Chưa có đơn.': 'No orders yet.',
-  'Đơn tạo qua API / Excel được cấp mã bill Việt An ngay và trả nhãn (A6 / A4 / ZPL). Đơn thiếu cân hoặc kích thước ở trạng thái':
-    'Orders created via API / Excel get a Viet An bill number immediately and return a label (A6 / A4 / ZPL). Orders missing weight or dimensions stay in',
-  '— kho Việt An cân xong sẽ cập nhật cước.': '— the rate is updated once the Viet An warehouse weighs them.',
 
   // Đẩy đơn
-  'Cách đẩy đơn': 'Push method',
-  'Qua API': 'Via API',
-  'Upload Excel / CSV': 'Upload Excel / CSV',
-  'Đánh bill lẻ': 'Single bill',
-  'Đẩy đơn qua API': 'Push orders via API',
-  'Lấy API key': 'Get API key',
-  'Dành cho shop có lập trình viên. Gọi API để tạo 1 đơn hoặc nhiều đơn (batch ≤ 100); API trả về mã bill và link nhãn.':
-    'For shops with developers. Call the API to create one or many orders (batch ≤ 100); it returns the bill number and label link.',
   'Đã sao chép ví dụ cURL': 'cURL example copied',
-  'Không cần lập trình: tải file mẫu 70 cột → điền nhiều đơn (mỗi đơn ≤ 5 sản phẩm) → lưu dạng CSV (UTF-8) → kéo thả lên đây. Hệ thống báo kết quả từng dòng.':
-    'No coding needed: download the 70-column template → fill in many orders (≤ 5 products each) → save as CSV (UTF-8) → drop it here. The system reports the result for each row.',
   'Đang xử lý {name}…': 'Processing {name}…',
   'Kéo & thả file CSV hoặc bấm để chọn': 'Drag & drop a CSV file or click to choose',
   'Chỉ nhận file .csv. Với file Excel, hãy lưu lại dạng CSV UTF-8.': 'Only .csv files are accepted. For Excel files, save them as CSV UTF-8.',
@@ -52,8 +26,6 @@ export const ecommerce: Record<string, string> = {
   'Chưa in được nhãn — chức năng đang được kết nối máy chủ': 'Could not print labels — this feature is being connected to the server',
 
   // Đánh bill lẻ
-  'Đánh bill lẻ (nhập tay)': 'Single bill (manual entry)',
-  '· 1 đơn, tối đa 5 sản phẩm': '· 1 order, up to 5 products',
   'Mã đơn của shop (REF)': 'Shop order number (REF)',
   'Nhập mã đơn của shop': 'Enter the shop order number',
   'Nguồn': 'Source',
@@ -80,25 +52,17 @@ export const ecommerce: Record<string, string> = {
   'Đang tạo…': 'Creating…',
   'Tạo đơn & cấp bill': 'Create order & issue bill',
 
-  // Đơn e-com
-  'Lọc theo nguồn': 'Filter by source',
-  'Tìm đơn e-com': 'Search e-com orders',
-  'Tìm theo mã đơn shop, VA Bill, người nhận…': 'Search by shop order number, VA Bill, receiver…',
+  // Đơn E-commerce
+  'Tìm đơn E-commerce': 'Search E-commerce orders',
   'Khổ nhãn': 'Label size',
-  'In nhãn ({n})': 'Print labels ({n})',
   'Xuất Excel': 'Export Excel',
-  'Đơn e-commerce': 'E-commerce orders',
   'Không có đơn phù hợp': 'No matching orders',
   'Chọn tất cả': 'Select all',
   'Mã đơn shop': 'Shop order number',
   'Số SP': 'Products',
-  'Cân': 'Weight',
   'chờ cân': 'awaiting weighing',
 
   // Kết nối & API
-  'Chưa kết nối được cấu hình tích hợp': 'Could not load the integration settings',
-  'Máy chủ chưa có chức năng cấu hình tích hợp (GET /ecom/settings). Phần này sẽ hoạt động khi backend hoàn tất.':
-    'The server does not support integration settings yet (GET /ecom/settings). This section will work once the backend is ready.',
   'Không tải được cấu hình, vui lòng thử lại sau.': 'Could not load the settings, please try again later.',
   'Sao chép key {env}': 'Copy {env} key',
   'Đã sao chép API key': 'API key copied',
@@ -111,8 +75,67 @@ export const ecommerce: Record<string, string> = {
   'Sự kiện gửi': 'Events',
   'Gửi thử': 'Send test',
   'Lưu webhook': 'Save webhook',
-  'Gắn nguồn sàn': 'Marketplace sources',
-  '· đơn được gắn nhãn nguồn để lọc & đối soát': '· orders are tagged with their source for filtering & reconciliation',
   'Kết nối': 'Connect',
-  'Ngắt kết nối': 'Disconnect'
+  'Ngắt kết nối': 'Disconnect',
+
+  // Kết nối sàn (OAuth Shopify / TikTok Shop)
+  'Chưa kết nối được sàn — chức năng đang được hoàn thiện ở máy chủ': 'Could not connect the store — this feature is still being completed on the server',
+  'Đã kết nối {platform}': 'Connected {platform}',
+  'Không tải được danh sách cửa hàng, vui lòng thử lại sau.': 'Could not load stores, please try again later.',
+  'Ủy quyền lại': 'Re-authorize',
+  'Ngắt kết nối cửa hàng': 'Disconnect store',
+  'Việt An sẽ ngừng nhận đơn và ngừng đẩy tracking cho {shop}. Đơn đã nhận vẫn giữ nguyên.':
+    'Viet An will stop receiving orders and pushing tracking for {shop}. Orders already received are kept.',
+  'Hoa Kỳ (US)': 'United States (US)',
+  'Đang hoạt động': 'Active',
+  'Hết hạn ủy quyền': 'Authorization expired',
+  'Lỗi đồng bộ': 'Sync error',
+  'Shop đã gỡ ứng dụng': 'App uninstalled by shop',
+
+  // Trang đã gộp: Đơn hàng · Thêm đơn · Kết nối
+  'Kết nối Shopify, TikTok Shop để đơn tự về và tracking tự trả lên sàn, hoặc thêm đơn bằng file Excel.':
+    'Connect Shopify or TikTok Shop so orders arrive and tracking is sent back automatically, or add orders from an Excel file.',
+  'Đơn hàng': 'Orders',
+  'Thêm đơn': 'Add orders',
+  'Đã có bill': 'Bill issued',
+  'Cách thêm đơn': 'How to add orders',
+  'Từ file Excel / CSV': 'From Excel / CSV file',
+  'Nhập tay từng đơn': 'Enter orders manually',
+  'Nhập đơn từ file': 'Import orders from file',
+  'Tải file mẫu, điền đơn (mỗi đơn tối đa 5 sản phẩm), lưu dạng CSV UTF-8 rồi kéo thả lên đây. Hệ thống báo kết quả từng dòng.':
+    'Download the template, fill in orders (up to 5 products each), save as CSV UTF-8 and drop it here. Results are reported per row.',
+  '· đơn mới tự về tab Đơn hàng, mã tracking tự trả lên sàn khi có bill': '· new orders appear in the Orders tab; tracking is sent back once a bill is issued',
+  'Máy chủ chưa có chức năng kết nối sàn. Phần này sẽ hoạt động khi backend hoàn tất.': 'The server does not support store connections yet. This will work once the backend is done.',
+  'Tên cửa hàng': 'Store name',
+  'Nhập dạng ten-shop hoặc ten-shop.myshopify.com': 'Enter shop-name or shop-name.myshopify.com',
+  'Thị trường': 'Market',
+  'Toàn cầu': 'Global',
+  'đồng bộ {date}': 'synced {date}',
+  'chưa đồng bộ': 'not synced yet',
+  'Đồng bộ': 'Sync',
+  'Ngắt kết nối {shop}': 'Disconnect {shop}',
+  'Dành cho lập trình viên: API key, webhook': 'For developers: API key, webhook',
+  'Máy chủ chưa có chức năng cấu hình API. Phần này sẽ hoạt động khi backend hoàn tất.': 'The server does not support API settings yet. This will work once the backend is done.',
+  'Tạo đơn qua API': 'Create orders via API',
+
+  // Tab Đơn hàng
+  'Lọc nhanh': 'Quick filters',
+  'Tìm mã đơn, VA Bill, người nhận…': 'Search order, VA Bill, receiver…',
+  'Nguồn đơn': 'Order source',
+  'Mọi nguồn': 'All sources',
+  'Đơn shop': 'Shop order',
+  'Hàng': 'Goods',
+  'Đã chọn {n} đơn': '{n} orders selected',
+  'Khổ {f}': 'Size {f}',
+  'In nhãn': 'Print labels',
+  'Chưa có đơn nào': 'No orders yet',
+  'Kết nối Shopify, TikTok Shop để đơn tự về, hoặc thêm đơn từ file Excel.': 'Connect Shopify or TikTok Shop to receive orders automatically, or add orders from an Excel file.',
+  'Xóa bộ lọc': 'Clear filters',
+
+  // Thêm đơn — nhập tay
+  'Vận chuyển': 'Shipping',
+  '· tối đa 5 sản phẩm': '· up to 5 products',
+  'Chọn nước trong danh sách': 'Choose a country from the list',
+  'Gõ để tìm nước': 'Type to search countries',
+  'Đang tải danh sách nước…': 'Loading countries…',
 };

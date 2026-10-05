@@ -52,7 +52,7 @@ export const PORTAL_FEATURES: ReadonlyArray<{ icon: IconName; title: string; des
   { icon: 'printer', title: 'In bill & nhãn', desc: 'In khổ A4 hoặc A6, mã vận đơn được cấp ngay khi in.' },
   { icon: 'chart', title: 'Giá & gợi ý dịch vụ', desc: 'Tra cước theo cân và điểm đến, chọn dịch vụ phù hợp.' },
   { icon: 'truck', title: 'Đặt lịch pickup', desc: 'Hẹn khung giờ lấy hàng tận nơi theo chi nhánh.' },
-  { icon: 'bag', title: 'Kênh bán hàng', desc: 'Đưa đơn e-commerce lên hệ thống bằng file CSV.' }
+  { icon: 'bag', title: 'E-commerce', desc: 'Kết nối Shopify, TikTok Shop hoặc đưa đơn E-commerce lên bằng file CSV.' }
 ];
 
 export const STEPS: ReadonlyArray<{ title: string; desc: string }> = [

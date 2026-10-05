@@ -28,7 +28,7 @@ export const common: Record<string, string> = {
   'Đặt lịch Pickup': 'Schedule pickup',
   'Dịch vụ & Bán hàng': 'Services & sales',
   'Giá & gợi ý dịch vụ': 'Rates & service finder',
-  'Kênh bán hàng': 'Sales channels',
+  'E-commerce': 'E-commerce',
   'Hỗ trợ': 'Support',
   'Quản lý sự cố': 'Issue management',
   'Thông báo': 'Notifications',

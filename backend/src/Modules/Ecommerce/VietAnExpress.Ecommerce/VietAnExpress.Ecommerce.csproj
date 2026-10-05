@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Module Ecommerce: kết nối shop trên các kênh bán. Mọi class để internal, chỉ EcommerceModule (đăng ký DI) là public. -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\BuildingBlocks\VietAnExpress.SharedKernel\VietAnExpress.SharedKernel.csproj" />
+    <ProjectReference Include="..\VietAnExpress.Ecommerce.Contracts\VietAnExpress.Ecommerce.Contracts.csproj" />
+  </ItemGroup>
+</Project>

@@ -45,3 +45,40 @@
 .highlight td {
   background: var(--color-brand-soft);
 }
+
+/* Bảng không kẻ dòng */
+.plain {
+  border-collapse: separate;
+  border-spacing: 0 2px;
+}
+
+.plain th {
+  padding: 8px var(--space-3);
+  background: none;
+  border-bottom: 0;
+  font-weight: 500;
+  color: var(--color-text-faint);
+}
+
+.plain td {
+  padding: 10px var(--space-3);
+  border-bottom: 0;
+  transition: background 0.12s;
+}
+
+.plain td:first-child {
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+}
+
+.plain td:last-child {
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+.plain tbody tr:hover td {
+  background: var(--color-surface-muted);
+}
+
+.plain .highlight td,
+.plain .highlight:hover td {
+  background: var(--color-brand-softer);
+}

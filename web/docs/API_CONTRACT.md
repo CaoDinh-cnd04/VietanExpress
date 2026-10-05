@@ -196,11 +196,11 @@ Gợi ý bảng SQL: `Services`, `ServiceZones`, `ServiceCountryZones`, `Service
 
 ---
 
-## 5. Kênh bán hàng — `features/ecommerce`
+## 5. E-commerce — `features/ecommerce`
 
 | Method | Path | Trạng thái | Mô tả |
 |---|---|---|---|
-| GET | `/ecom/orders?src=&q=` | Có sẵn | Đơn e-com, lọc theo nguồn & từ khóa |
+| GET | `/ecom/orders?src=&q=` | Có sẵn | Đơn E-commerce, lọc theo nguồn & từ khóa |
 | POST | `/ecom/manual` | Có sẵn | Đánh bill lẻ (body `NewManualEcomOrder` dưới) |
 | POST | `/ecom/import-csv` | Có sẵn | `{ "csv": "<nội dung file mẫu 70 cột>" }` → `{ message, importedCount, errors: [{ row, message }] }` |
 | POST | `/ecom/webhook/:platform` | Có sẵn | Sàn đẩy đơn vào (không do frontend gọi) |
@@ -210,8 +210,28 @@ Gợi ý bảng SQL: `Services`, `ServiceZones`, `ServiceCountryZones`, `Service
 | POST | `/ecom/settings/api-keys/regenerate` | **Mới** | `{ env: "production"\|"sandbox" }` → `EcomSettings` |
 | POST | `/ecom/settings/webhook/test` | **Mới** | Gửi sự kiện thử tới URL webhook |
 
-`NewManualEcomOrder`: `{ ref, source, branch, cnee, ct, address, service, hub, kg, products: [{ name, sku, qty, fobPrice, sellingPrice, hsCode }], customs: { declaredValue, goodsType, receiverId, ioss, eori, vat, salesLink, paymentRef, manufacturer } }`.
-`EcomSettings`: `{ apiKeys: [{ env, key }], webhookUrl, webhookEvents: ("created"|"picked_up"|"departed"|"delivered"|"exception")[], connectedSources: ("tiktok"|"shopify"|"shopee"|"lazada")[] }`.
+`NewManualEcomOrder`: `{ ref, source, branch, cnee, ct, countryCode?, postal, city, state, address, service, hub, kg, products: [{ name, sku, qty, fobPrice, sellingPrice, hsCode }], customs: { declaredValue, goodsType, receiverId, ioss, eori, vat, salesLink, paymentRef, manufacturer } }`.
+`ct` là tên nước tiếng Anh lấy từ `GET /geo/countries`, `countryCode` là mã ISO 2 ký tự (trống khi danh sách nước tạm lỗi). Form tự điền `city`, `state` từ `GET /geo/postal` (GeoNames); khách vẫn sửa được.
+`EcomSettings`: `{ apiKeys: [{ env, key }], webhookUrl, webhookEvents: ("created"|"picked_up"|"departed"|"delivered"|"exception")[] }`. Trên giao diện, phần API key / webhook nằm trong mục thu gọn "Dành cho lập trình viên" ở tab Kết nối.
+
+### 5.1 Kết nối sàn qua OAuth (Shopify, TikTok Shop) — tab `?tab=connect`
+
+Nghiên cứu chi tiết hai sàn và thiết kế backend: `docs/ECOM_INTEGRATION.md`.
+
+| Method | Path | Trạng thái | Mô tả |
+|---|---|---|---|
+| GET | `/ecom/stores` | **Mới** | `{ data: StoreConnection[] }` của khách đang đăng nhập |
+| POST | `/ecom/stores/connect` | **Mới** | `{ platform: "shopify"\|"tiktok", shopDomain?, region?: "global"\|"us" }` → `{ authorizeUrl }`. Backend tạo `state` ngẫu nhiên gắn với khách (hết hạn 10 phút); frontend chuyển trình duyệt sang `authorizeUrl` |
+| GET | `/ecom/oauth/shopify/callback` | **Mới** | Shopify redirect về (không do frontend gọi): kiểm `state`, `hmac`, `shop`; đổi `code` lấy token; đăng ký webhook; rồi **302** về `/ecommerce?tab=connect&connected=shopify` hoặc `&error=<thông báo>` |
+| GET | `/ecom/oauth/tiktok/callback` | **Mới** | TikTok Shop redirect về với `code`, `state`: đổi token, lấy `shop_cipher`, rồi 302 như trên |
+| POST | `/ecom/stores/:id/sync` | **Mới** | Kéo đơn mới ngay → `{ message, importedCount }` |
+| DELETE | `/ecom/stores/:id` | **Mới** | Hủy webhook trên sàn, xóa token → `{ message }` |
+| POST | `/ecom/webhook/shopify` | **Mới** | Shopify đẩy sự kiện (`orders/create`, `orders/cancelled`, `app/uninstalled` + 3 webhook GDPR bắt buộc). Kiểm `X-Shopify-Hmac-Sha256` trên body thô, trả 200 trong < 5 giây, xử lý nền, chống trùng theo `X-Shopify-Webhook-Id` |
+| POST | `/ecom/webhook/tiktok` | **Mới** | TikTok Shop đẩy sự kiện (đổi trạng thái đơn, hủy, thu hồi ủy quyền). Kiểm chữ ký header `Authorization` |
+
+`StoreConnection`: `{ id, platform: "shopify"|"tiktok", shopName, shopDomain?, region?, status: "active"|"expired"|"error"|"revoked", connectedAt, lastSyncAt?, lastError? }`.
+Token sàn (access/refresh) **chỉ lưu ở backend** (mã hóa), không bao giờ trả về frontend.
+Đơn nhận từ sàn xuất hiện trong `GET /ecom/orders` với `src` = `shopify` / `tiktok`; kết nối luôn **tự nhận đơn mới** và **tự đẩy mã tracking** lên sàn khi đơn được in & cấp bill (không có tùy chọn bật/tắt — muốn dừng thì ngắt kết nối).
 
 ---
 

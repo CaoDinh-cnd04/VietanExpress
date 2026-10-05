@@ -86,6 +86,6 @@ export const support: Record<string, string> = {
   'Mỗi hãng có giới hạn cạnh dài, tổng 3 cạnh và cân nặng mỗi kiện. Kiện vượt giới hạn sẽ bị tính phụ thu hoặc không nhận vận chuyển. Xem bảng phụ thu ở trang Giá & gợi ý dịch vụ.':
     'Each carrier limits the longest side, the sum of the 3 sides and the weight per piece. Pieces over the limits incur a surcharge or are refused. See the surcharge table on the Rates & service finder page.',
   'Tôi có thể tạo nhiều đơn cùng lúc không?': 'Can I create many orders at once?',
-  'Có. Dùng "Tạo đơn từ Excel" (tối đa 100 đơn/lần) hoặc kết nối API ở trang Kênh bán hàng.':
-    'Yes. Use "Import orders from Excel" (up to 100 orders per upload) or connect via API on the Sales channels page.'
+  'Có. Dùng "Tạo đơn từ Excel" (tối đa 100 đơn/lần) hoặc kết nối API ở trang E-commerce.':
+    'Yes. Use "Import orders from Excel" (up to 100 orders per upload) or connect via API on the E-commerce page.'
 };

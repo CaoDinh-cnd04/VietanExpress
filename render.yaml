@@ -23,3 +23,9 @@ services:
         sync: false
       - key: Cors__AllowedOrigins__0
         sync: false
+      - key: Shopify__ClientId
+        sync: false
+      - key: Shopify__ClientSecret
+        sync: false
+      - key: Ecommerce__TokenEncryptionKey
+        sync: false

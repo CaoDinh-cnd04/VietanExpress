@@ -58,7 +58,7 @@ const routes: RouteObject[] = [
       page('drafts', 'Đơn nháp & chưa in', pages.drafts),
       page('pickups', 'Đặt lịch Pickup', pages.pickups),
       page('pricing', 'Giá & gợi ý dịch vụ', pages.pricing),
-      page('ecommerce', 'Kênh bán hàng', pages.ecommerce),
+      page('ecommerce', 'E-commerce', pages.ecommerce),
       page('troubles', 'Quản lý sự cố', pages.troubles),
       page('notifications', 'Thông báo', pages.notifications),
       page('help', 'Trợ giúp & Góp ý', pages.support),

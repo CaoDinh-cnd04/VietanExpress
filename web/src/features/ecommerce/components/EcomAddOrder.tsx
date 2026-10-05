@@ -1,47 +1,27 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { getErrorMessage } from '@/shared/api/http';
 import { useI18n } from '@/shared/i18n';
 import { readFileAsText } from '@/shared/lib/files';
-import { useCopyToClipboard } from '@/shared/lib/useCopyToClipboard';
-import { Button, Card, FileDrop, Icon, Notice, SegmentedControl } from '@/shared/ui';
+import { Card, FileDrop, Icon, Notice, SegmentedControl } from '@/shared/ui';
 import { useImportEcomCsv } from '../api';
-import { API_EXAMPLE, IMPORT_TEMPLATE_NAME, IMPORT_TEMPLATE_URL } from '../constants';
+import { IMPORT_TEMPLATE_NAME, IMPORT_TEMPLATE_URL } from '../constants';
 import { ManualEcomForm } from './ManualEcomForm';
 import styles from './ecommerce.module.css';
 
 const METHODS = [
-  { value: 'api', label: 'Qua API' },
-  { value: 'excel', label: 'Upload Excel / CSV' },
-  { value: 'manual', label: 'Đánh bill lẻ' }
+  { value: 'manual', label: 'Nhập tay từng đơn' },
+  { value: 'excel', label: 'Từ file Excel / CSV' }
 ] as const;
 type Method = (typeof METHODS)[number]['value'];
 
-/** Tab "Đẩy đơn": 3 cách đưa đơn từ shop vào hệ thống. */
-export function EcomPush() {
-  const [method, setMethod] = useState<Method>('api');
+/** Tab "Thêm đơn": nhập tay từng đơn (mặc định) hoặc nhập nhiều đơn bằng file. Đơn từ sàn đã kết nối tự về, không cần thêm ở đây. */
+export function EcomAddOrder() {
+  const [method, setMethod] = useState<Method>('manual');
   return (
     <div className="page-stack">
-      <SegmentedControl ariaLabel="Cách đẩy đơn" options={METHODS} value={method} onChange={setMethod} />
-      {method === 'api' && <ApiGuide />}
-      {method === 'excel' && <CsvImport />}
-      {method === 'manual' && <ManualEcomForm />}
+      <SegmentedControl ariaLabel="Cách thêm đơn" options={METHODS} value={method} onChange={setMethod} />
+      {method === 'manual' ? <ManualEcomForm /> : <CsvImport />}
     </div>
-  );
-}
-
-function ApiGuide() {
-  const { t } = useI18n();
-  const navigate = useNavigate();
-  const copy = useCopyToClipboard();
-  return (
-    <Card title="Đẩy đơn qua API" actions={<Button size="sm" onClick={() => navigate('?tab=conn')}><Icon name="key" size={15} /> {t('Lấy API key')}</Button>}>
-      <p className={styles.muted}>{t('Dành cho shop có lập trình viên. Gọi API để tạo 1 đơn hoặc nhiều đơn (batch ≤ 100); API trả về mã bill và link nhãn.')}</p>
-      <div className={styles.codeWrap}>
-        <button type="button" className={styles.codeCopy} onClick={() => void copy(API_EXAMPLE, t('Đã sao chép ví dụ cURL'))}>{t('Sao chép')}</button>
-        <pre className={styles.code}>{API_EXAMPLE}</pre>
-      </div>
-    </Card>
   );
 }
 
@@ -61,9 +41,9 @@ function CsvImport() {
 
   const result = importCsv.data;
   return (
-    <Card title="Upload Excel / CSV" actions={<a className={styles.link} href={IMPORT_TEMPLATE_URL} download={IMPORT_TEMPLATE_NAME}><Icon name="download" size={15} /> {t('Tải file mẫu')}</a>}>
+    <Card title="Nhập đơn từ file" actions={<a className={styles.link} href={IMPORT_TEMPLATE_URL} download={IMPORT_TEMPLATE_NAME}><Icon name="download" size={15} /> {t('Tải file mẫu')}</a>}>
       <p className={styles.muted}>
-        {t('Không cần lập trình: tải file mẫu 70 cột → điền nhiều đơn (mỗi đơn ≤ 5 sản phẩm) → lưu dạng CSV (UTF-8) → kéo thả lên đây. Hệ thống báo kết quả từng dòng.')}
+        {t('Tải file mẫu, điền đơn (mỗi đơn tối đa 5 sản phẩm), lưu dạng CSV UTF-8 rồi kéo thả lên đây. Hệ thống báo kết quả từng dòng.')}
       </p>
       <div className={styles.spaced}>
         <FileDrop

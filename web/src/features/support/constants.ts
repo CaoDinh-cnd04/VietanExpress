@@ -28,6 +28,6 @@ export const FAQ: ReadonlyArray<{ q: string; a: string }> = [
   },
   {
     q: 'Tôi có thể tạo nhiều đơn cùng lúc không?',
-    a: 'Có. Dùng "Tạo đơn từ Excel" (tối đa 100 đơn/lần) hoặc kết nối API ở trang Kênh bán hàng.'
+    a: 'Có. Dùng "Tạo đơn từ Excel" (tối đa 100 đơn/lần) hoặc kết nối API ở trang E-commerce.'
   }
 ];

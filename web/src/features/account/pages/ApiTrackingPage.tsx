@@ -57,7 +57,7 @@ export default function ApiTrackingPage() {
         </Card>
 
         <Notice title="Cần lấy trạng thái đơn qua API?">
-          {t('Dùng API key ở trang Kênh bán hàng → Kết nối & API, gọi')} <code>GET /v1/orders/{'{bill}'}</code>{' '}
+          {t('Dùng API key ở trang E-commerce → Kết nối, gọi')} <code>GET /v1/orders/{'{bill}'}</code>{' '}
           {t('hoặc đăng ký webhook để nhận cập nhật trạng thái tự động.')}
         </Notice>
       </div>

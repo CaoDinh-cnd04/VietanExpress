@@ -10,7 +10,7 @@ namespace VietAnExpress.Architecture.Tests;
 /// </summary>
 public class ModuleBoundaryTests
 {
-    private static readonly string[] Modules = ["Identity", "Customers", "Shipments"];
+    private static readonly string[] Modules = ["Identity", "Customers", "Shipments", "Ecommerce"];
 
     private static Assembly Load(string name) => Assembly.Load(new AssemblyName(name));
 
