@@ -53,7 +53,7 @@ backend/
 │       ├── Identity/   VietAnExpress.Identity (+ .Contracts)    đăng nhập khách: dbo.TCustomer
 │       ├── Customers/  VietAnExpress.Customers (+ .Contracts)   hồ sơ khách: dbo.TCustomer (chỉ đọc)
 │       ├── Shipments/  VietAnExpress.Shipments (+ .Contracts)   dbo.MaVanDon (+ 2 bảng chi tiết), shipments.OrderDrafts
-│       └── Ecommerce/  VietAnExpress.Ecommerce (+ .Contracts)   kênh bán & shop đã kết nối: dbo.KenhTMDT, dbo.KetNoiTMDT
+│       └── Ecommerce/  VietAnExpress.Ecommerce (+ .Contracts)   kênh bán, shop đã kết nối, đơn e-com: dbo.KenhTMDT, dbo.KetNoiTMDT, dbo.DonTMDT
 ├── tests/  Shipments.Tests, Identity.Tests, Architecture.Tests
 └── scripts/ add-migration.ps1, update-database.ps1, drop-portal-tables.sql, install-service.ps1…
 ```
@@ -154,6 +154,7 @@ Hệ thống cũ (kho, vận hành) vẫn chạy song song trên cùng database.
 | Đơn nháp & chưa in (tạm giữ) | `shipments.OrderDrafts` |
 | Kênh bán e-com (Shopify, TikTok Shop, Amazon…) — bảng mới | `dbo.KenhTMDT` (danh mục, seed trong migration) |
 | Shop của khách đã kết nối — bảng mới | `dbo.KetNoiTMDT` |
+| Đơn e-com (kéo từ sàn; sau này cả nhập tay / Excel) — bảng mới | `dbo.DonTMDT` |
 
 - **E-com (`dbo.KenhTMDT`, `dbo.KetNoiTMDT`):** thêm kênh mới = thêm 1 dòng `KenhTMDT` bằng migration (`Ma_Kenh` trùng `platform` của frontend) và bật `Dang_Hoat_Dong` khi đã có adapter; không đổi cấu trúc bảng. `KetNoiTMDT` giữ 1 dòng cho mỗi (khách, kênh, `Ma_Shop`); token sàn chỉ lưu đã mã hóa (`Access_Token_Ma_Hoa`, `Refresh_Token_Ma_Hoa`); `Trang_Thai` ∈ `active | expired | error | revoked`.
 

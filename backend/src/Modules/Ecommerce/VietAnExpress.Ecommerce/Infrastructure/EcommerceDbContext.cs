@@ -14,6 +14,9 @@ internal sealed class EcommerceDbContext(DbContextOptions<EcommerceDbContext> op
     /// <summary>Shop của khách đã kết nối (dbo.KetNoiTMDT) — bảng mới, người dùng đã đồng ý.</summary>
     public DbSet<StoreConnection> StoreConnections => Set<StoreConnection>();
 
+    /// <summary>Đơn E-commerce (dbo.DonTMDT) — bảng mới, người dùng đã đồng ý.</summary>
+    public DbSet<MarketplaceOrder> MarketplaceOrders => Set<MarketplaceOrder>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema(Schema);

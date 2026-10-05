@@ -27,6 +27,11 @@ internal sealed class ShopifyClient(HttpClient http, IOptions<ShopifyOptions> op
             ["code"] = code,
             ["expiring"] = "1"
         });
+        return await RequestTokenAsync(shop, body, ct);
+    }
+
+    private async Task<(ShopifyToken? Token, string? Error)> RequestTokenAsync(string shop, HttpContent body, CancellationToken ct)
+    {
         using var req = new HttpRequestMessage(HttpMethod.Post, $"https://{shop}/admin/oauth/access_token") { Content = body };
         req.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
         using var res = await http.SendAsync(req, ct);
@@ -37,8 +42,61 @@ internal sealed class ShopifyClient(HttpClient http, IOptions<ShopifyOptions> op
             return (new ShopifyToken(access, t.Scope ?? "", t.ExpiresIn, t.RefreshToken, t.RefreshTokenExpiresIn), null);
 
         var error = t?.ErrorDescription ?? t?.Error ?? $"HTTP {(int)res.StatusCode}";
-        logger.LogWarning("Shopify từ chối đổi code cho {Shop}: HTTP {Status} {Error}", shop, (int)res.StatusCode, error);
+        logger.LogWarning("Shopify từ chối cấp token cho {Shop}: HTTP {Status} {Error}", shop, (int)res.StatusCode, error);
         return (null, error);
+    }
+
+    /// <summary>Đổi refresh token lấy cặp token mới. Token null → refresh token hết hạn / bị thu hồi, khách phải ủy quyền lại.</summary>
+    public async Task<(ShopifyToken? Token, string? Error)> RefreshAsync(string shop, string refreshToken, CancellationToken ct)
+    {
+        using var body = new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["client_id"] = O.ClientId,
+            ["client_secret"] = O.ClientSecret,
+            ["grant_type"] = "refresh_token",
+            ["refresh_token"] = refreshToken
+        });
+        return await RequestTokenAsync(shop, body, ct);
+    }
+
+    /// <summary>Đơn đang mở, chưa giao (tối đa <paramref name="maxPages"/> × 50 đơn). Error: lỗi HTTP / GraphQL của Shopify.</summary>
+    public async Task<(IReadOnlyList<JsonElement> Orders, string? Error)> GetOpenOrdersAsync(string shop, string accessToken, int maxPages, CancellationToken ct)
+    {
+        var orders = new List<JsonElement>();
+        string? after = null;
+        for (var page = 0; page < maxPages; page++)
+        {
+            using var req = new HttpRequestMessage(HttpMethod.Post, $"https://{shop}/admin/api/{O.ApiVersion}/graphql.json")
+            {
+                Content = JsonContent.Create(new { query = ShopifyOrderMapper.OpenOrdersQuery, variables = new { after } })
+            };
+            req.Headers.Add("X-Shopify-Access-Token", accessToken);
+            using var res = await http.SendAsync(req, ct);
+            if (!res.IsSuccessStatusCode)
+            {
+                logger.LogWarning("Shopify trả HTTP {Status} khi đọc đơn của {Shop}", (int)res.StatusCode, shop);
+                return (orders, res.StatusCode == System.Net.HttpStatusCode.Unauthorized ? "unauthorized" : $"HTTP {(int)res.StatusCode}");
+            }
+
+            using var doc = await JsonDocument.ParseAsync(await res.Content.ReadAsStreamAsync(ct), cancellationToken: ct);
+            var root = doc.RootElement;
+            var conn = root.TryGetProperty("data", out var data) && data.ValueKind == JsonValueKind.Object
+                && data.TryGetProperty("orders", out var o) && o.ValueKind == JsonValueKind.Object ? o : (JsonElement?)null;
+            if (conn is null)
+            {
+                var errors = root.TryGetProperty("errors", out var e) && e.ValueKind == JsonValueKind.Array
+                    ? string.Join("; ", e.EnumerateArray().Select(x => x.TryGetProperty("message", out var m) ? m.GetString() : null).OfType<string>())
+                    : "không đọc được danh sách đơn";
+                logger.LogWarning("Shopify GraphQL lỗi khi đọc đơn của {Shop}: {Errors}", shop, errors);
+                return (orders, errors);
+            }
+
+            orders.AddRange(conn.Value.GetProperty("nodes").EnumerateArray().Select(n => n.Clone()));
+            var info = conn.Value.GetProperty("pageInfo");
+            if (!info.GetProperty("hasNextPage").GetBoolean()) break;
+            after = info.GetProperty("endCursor").GetString();
+        }
+        return (orders, null);
     }
 
     public async Task<ShopifyShopInfo?> GetShopAsync(string shop, string accessToken, CancellationToken ct)

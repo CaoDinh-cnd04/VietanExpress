@@ -200,7 +200,7 @@ Gợi ý bảng SQL: `Services`, `ServiceZones`, `ServiceCountryZones`, `Service
 
 | Method | Path | Trạng thái | Mô tả |
 |---|---|---|---|
-| GET | `/ecom/orders?src=&q=` | Có sẵn | Đơn E-commerce, lọc theo nguồn & từ khóa |
+| GET | `/ecom/orders?src=&q=` | Có sẵn | Đơn E-commerce (`dbo.DonTMDT`), lọc theo nguồn & từ khóa (mã đơn, người nhận, bill); mới nhất trước, tối đa 500 |
 | POST | `/ecom/manual` | Có sẵn | Đánh bill lẻ (body `NewManualEcomOrder` dưới) |
 | POST | `/ecom/import-csv` | Có sẵn | `{ "csv": "<nội dung file mẫu 70 cột>" }` → `{ message, importedCount, errors: [{ row, message }] }` |
 | POST | `/ecom/webhook/:platform` | Có sẵn | Sàn đẩy đơn vào (không do frontend gọi) |
@@ -224,7 +224,7 @@ Nghiên cứu chi tiết hai sàn và thiết kế backend: `docs/ECOM_INTEGRATI
 | POST | `/ecom/stores/connect` | Có sẵn (Shopify; TikTok trả 422 "chưa hỗ trợ") | `{ platform: "shopify"\|"tiktok", shopDomain?, region?: "global"\|"us" }` → `{ authorizeUrl }`. Backend tạo `state` ngẫu nhiên gắn với khách (hết hạn 10 phút); frontend chuyển trình duyệt sang `authorizeUrl` |
 | GET | `/ecom/oauth/shopify/callback` | Có sẵn | Shopify redirect về (không do frontend gọi): kiểm `state`, `hmac`, `shop`; đổi `code` lấy token; đăng ký webhook; rồi **302** về `/ecommerce?tab=connect&connected=shopify` hoặc `&error=<thông báo>` |
 | GET | `/ecom/oauth/tiktok/callback` | **Mới** | TikTok Shop redirect về với `code`, `state`: đổi token, lấy `shop_cipher`, rồi 302 như trên |
-| POST | `/ecom/stores/:id/sync` | **Mới** | Kéo đơn mới ngay → `{ message, importedCount }` |
+| POST | `/ecom/stores/:id/sync` | Có sẵn (Shopify) | Kéo đơn đang mở, chưa giao (tối đa 250) vào `dbo.DonTMDT` → `{ message, importedCount }`; token hết hạn tự làm mới, không làm mới được → 422 + trạng thái `expired` |
 | DELETE | `/ecom/stores/:id` | Có sẵn | Hủy webhook trên sàn, xóa token → `{ message }` |
 | POST | `/ecom/webhook/shopify` | **Mới** | Shopify đẩy sự kiện (`orders/create`, `orders/cancelled`, `app/uninstalled` + 3 webhook GDPR bắt buộc). Kiểm `X-Shopify-Hmac-Sha256` trên body thô, trả 200 trong < 5 giây, xử lý nền, chống trùng theo `X-Shopify-Webhook-Id` |
 | POST | `/ecom/webhook/tiktok` | **Mới** | TikTok Shop đẩy sự kiện (đổi trạng thái đơn, hủy, thu hồi ủy quyền). Kiểm chữ ký header `Authorization` |

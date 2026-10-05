@@ -53,6 +53,23 @@ internal sealed class StoresController(PortalHosts portalHosts, IConfiguration c
         return Redirect(PortalHosts.Url(host, target));
     }
 
+    /// <summary>Kéo ngay đơn đang mở, chưa giao từ sàn về dbo.DonTMDT (đơn đã có thì cập nhật nếu chưa cấp bill).</summary>
+    [HttpPost("stores/{id:long}/sync")]
+    [HasPermission(EcommercePermissions.Connect)]
+    [ProducesResponseType<SyncResult>(StatusCodes.Status200OK)]
+    public async Task<IActionResult> Sync(long id, CancellationToken ct)
+    {
+        var result = await Sender.Send(new SyncStoreCommand(id), ct);
+        return result.IsSuccess ? Ok(result.Value) : Problem(result.Error);
+    }
+
+    /// <summary>Đơn E-commerce của khách, lọc theo nguồn (src) và từ khóa (q) — mới nhất trước, tối đa 500.</summary>
+    [HttpGet("orders")]
+    [HasPermission(EcommercePermissions.View)]
+    [ProducesResponseType<ApiResponse<IReadOnlyList<EcomOrderDto>>>(StatusCodes.Status200OK)]
+    public async Task<IActionResult> Orders([FromQuery] string? src, [FromQuery] string? q, CancellationToken ct) =>
+        OkData(await Sender.Send(new GetEcomOrdersQuery(src, q), ct));
+
     /// <summary>Ngắt kết nối: gỡ app khỏi shop (nếu được) và xóa token.</summary>
     [HttpDelete("stores/{id:long}")]
     [HasPermission(EcommercePermissions.Connect)]

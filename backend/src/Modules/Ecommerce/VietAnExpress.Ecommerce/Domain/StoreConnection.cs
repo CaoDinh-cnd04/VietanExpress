@@ -80,6 +80,44 @@ internal sealed class StoreConnection
         ModifyDate = now;
     }
 
+    /// <summary>Đã làm mới token bằng refresh token (Shopify trả cặp mới, bỏ cặp cũ).</summary>
+    public void RefreshTokens(string accessTokenEncrypted, DateTime? accessExpiresAt, string? refreshTokenEncrypted, DateTime? refreshExpiresAt, DateTime now)
+    {
+        AccessTokenEncrypted = accessTokenEncrypted;
+        AccessTokenExpiresAt = accessExpiresAt;
+        if (refreshTokenEncrypted is not null)
+        {
+            RefreshTokenEncrypted = refreshTokenEncrypted;
+            RefreshTokenExpiresAt = refreshExpiresAt;
+        }
+        ModifyDate = now;
+    }
+
+    public void MarkSynced(DateTime now)
+    {
+        Status = Active;
+        LastSyncAt = now;
+        LastError = null;
+        LastErrorAt = null;
+        ModifyDate = now;
+    }
+
+    public void MarkFailed(string error, DateTime now)
+    {
+        Status = Failed;
+        LastError = error.Length <= LastErrorMaxLength ? error : error[..LastErrorMaxLength];
+        LastErrorAt = now;
+        ModifyDate = now;
+    }
+
+    /// <summary>Token hết hạn và không làm mới được — khách phải ủy quyền lại.</summary>
+    public void MarkExpired(DateTime now)
+    {
+        Status = Expired;
+        LastError = null;
+        ModifyDate = now;
+    }
+
     /// <summary>Khách ngắt kết nối: xóa token, ẩn khỏi danh sách (giữ dòng để đơn đã nhận vẫn truy được nguồn).</summary>
     public void Disconnect(DateTime now)
     {

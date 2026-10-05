@@ -1,0 +1,102 @@
+namespace VietAnExpress.Ecommerce.Domain;
+
+/// <summary>
+/// Đơn E-commerce của khách (bảng <c>dbo.DonTMDT</c>) — khớp <c>EcomOrder</c> của frontend.
+/// Nguồn: kênh bán đã kết nối (Shopify…), sau này cả nhập tay / Excel / API. Chống trùng theo (khách, kênh, mã đơn sàn).
+/// </summary>
+internal sealed class MarketplaceOrder
+{
+    public const int PlatformOrderIdMaxLength = 100;
+    public const int OrderNameMaxLength = 100;
+    public const int BillMaxLength = 50;
+    public const int StatusMaxLength = 20;
+    public const int NameMaxLength = 200;
+    public const int PhoneMaxLength = 50;
+    public const int EmailMaxLength = 255;
+    public const int AddressMaxLength = 255;
+    public const int CityMaxLength = 100;
+    public const int PostalMaxLength = 20;
+    public const int CountryNameMaxLength = 100;
+    public const int NoteMaxLength = 1000;
+
+    /// <summary>Trạng thái — trùng <c>EcomStatus</c> của frontend.</summary>
+    public const string Created = "created";
+    public static readonly string[] Statuses = [Created, "picked_up", "departed", "delivered", "exception", "weighing"];
+
+    public long Id { get; private set; }
+    /// <summary>dbo.TCustomer.CustomerID.</summary>
+    public long CustomerId { get; private set; }
+    /// <summary>dbo.KetNoiTMDT.ID — null với đơn nhập tay / Excel / API.</summary>
+    public long? StoreConnectionId { get; private set; }
+    /// <summary>Nguồn: mã kênh (shopify, tiktok…) hoặc manual / excel / api.</summary>
+    public string Source { get; private set; } = "";
+    /// <summary>Id đơn trên sàn (Shopify: số trong gid://shopify/Order/…).</summary>
+    public string? PlatformOrderId { get; private set; }
+    /// <summary>Mã đơn hiển thị của shop, vd "#1001".</summary>
+    public string OrderName { get; private set; } = "";
+    /// <summary>Số vận đơn Việt An (dbo.MaVanDon) khi đã cấp bill.</summary>
+    public string? Bill { get; private set; }
+    public string Status { get; private set; } = Created;
+    public MarketplaceRecipient Recipient { get; private set; } = MarketplaceRecipient.Empty;
+    public int ItemCount { get; private set; }
+    public decimal? WeightKg { get; private set; }
+    public string? Currency { get; private set; }
+    public decimal? TotalAmount { get; private set; }
+    /// <summary>Dòng sản phẩm dạng JSON (mảng <c>EcomProduct</c>).</summary>
+    public string? ProductsJson { get; private set; }
+    public string? Note { get; private set; }
+    public DateTime? PlacedAt { get; private set; }
+    public DateTime? TrackingPushedAt { get; private set; }
+    public DateTime CreateDate { get; private set; }
+    public DateTime? ModifyDate { get; private set; }
+
+    private MarketplaceOrder() { }
+
+    public static MarketplaceOrder Import(long customerId, long storeConnectionId, string source, ImportedOrder o, DateTime now)
+    {
+        var order = new MarketplaceOrder
+        {
+            CustomerId = customerId, StoreConnectionId = storeConnectionId, Source = source,
+            PlatformOrderId = o.PlatformOrderId, CreateDate = now
+        };
+        order.Apply(o);
+        return order;
+    }
+
+    /// <summary>Sàn đổi thông tin đơn: chỉ cập nhật khi chưa cấp bill (bill đã in thì giữ nguyên dữ liệu đã khai).</summary>
+    public bool UpdateFrom(ImportedOrder o, DateTime now)
+    {
+        if (Bill is not null) return false;
+        Apply(o);
+        ModifyDate = now;
+        return true;
+    }
+
+    private void Apply(ImportedOrder o)
+    {
+        OrderName = o.OrderName;
+        Recipient = o.Recipient;
+        ItemCount = o.ItemCount;
+        WeightKg = o.WeightKg;
+        Currency = o.Currency;
+        TotalAmount = o.TotalAmount;
+        ProductsJson = o.ProductsJson;
+        Note = o.Note;
+        PlacedAt = o.PlacedAt;
+    }
+}
+
+/// <summary>Người nhận (owned type — các cột Nguoi_Nhan… của dbo.DonTMDT).</summary>
+internal sealed record MarketplaceRecipient(
+    string? Name, string? Company, string? Phone, string? Email,
+    string? Address1, string? Address2, string? City, string? Province, string? PostalCode,
+    string? CountryCode, string? CountryName)
+{
+    public static readonly MarketplaceRecipient Empty = new(null, null, null, null, null, null, null, null, null, null, null);
+}
+
+/// <summary>Đơn đọc từ sàn, đã chuẩn hóa (giờ Việt Nam, kg, cắt độ dài theo cột).</summary>
+internal sealed record ImportedOrder(
+    string PlatformOrderId, string OrderName, MarketplaceRecipient Recipient,
+    int ItemCount, decimal? WeightKg, string? Currency, decimal? TotalAmount,
+    string? ProductsJson, string? Note, DateTime? PlacedAt);
