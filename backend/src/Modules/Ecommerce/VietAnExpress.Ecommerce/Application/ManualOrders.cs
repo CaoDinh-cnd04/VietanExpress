@@ -88,7 +88,7 @@ internal sealed class ManualOrderHandler(EcommerceDbContext db, ICurrentUser use
         if (built.IsFailure) return built.Error;
 
         var (source, imported, shipping) = built.Value;
-        if (await db.MarketplaceOrders.AnyAsync(o => o.CustomerId == customerId && o.Source == source && o.OrderName == imported.OrderName, ct))
+        if (await db.MarketplaceOrders.AnyAsync(o => o.CustomerId == customerId && o.Source == source && o.OrderName == imported.OrderName && o.DeletedAt == null, ct))
             return Error.Conflict("ECOM_ORDER_EXISTS", $"Mã đơn {imported.OrderName} đã có trong danh sách");
 
         var order = MarketplaceOrder.CreateManual(customerId, source, imported, shipping, now);

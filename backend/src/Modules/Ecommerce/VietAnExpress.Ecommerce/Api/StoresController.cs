@@ -98,6 +98,16 @@ internal sealed class StoresController(PortalHosts portalHosts, IConfiguration c
     public async Task<IActionResult> UpdateOrder(long id, EcomOrderEditInput body, CancellationToken ct) =>
         FromResult(await Sender.Send(new UpdateEcomOrderCommand(id, body), ct), "Đã lưu thay đổi");
 
+    /// <summary>Xóa (ẩn) đơn chưa có bill — 1 hoặc nhiều đơn. Đơn Shopify đã xóa không bị đồng bộ / nhập file tạo lại.</summary>
+    [HttpPost("orders/delete")]
+    [HasPermission(EcommercePermissions.Connect)]
+    [ProducesResponseType<DeleteOrdersResult>(StatusCodes.Status200OK)]
+    public async Task<IActionResult> DeleteOrders(DeleteOrdersRequest body, CancellationToken ct)
+    {
+        var result = await Sender.Send(new DeleteEcomOrdersCommand(body.Ids), ct);
+        return result.IsSuccess ? Ok(result.Value) : Problem(result.Error);
+    }
+
     /// <summary>Ngắt kết nối: gỡ app khỏi shop (nếu được) và xóa token.</summary>
     [HttpDelete("stores/{id:long}")]
     [HasPermission(EcommercePermissions.Connect)]
@@ -121,6 +131,8 @@ internal sealed class StoresController(PortalHosts portalHosts, IConfiguration c
 }
 
 internal sealed record ImportCsvRequest(string? Csv);
+
+internal sealed record DeleteOrdersRequest(IReadOnlyList<string>? Ids);
 
 internal sealed record StartConnectionRequest(string? Platform, string? ShopDomain, string? Region);
 

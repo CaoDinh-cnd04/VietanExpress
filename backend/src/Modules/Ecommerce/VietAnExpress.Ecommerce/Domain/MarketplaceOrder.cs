@@ -60,6 +60,8 @@ internal sealed class MarketplaceOrder
     public DateTime? TrackingPushedAt { get; private set; }
     /// <summary>Khách đã sửa tay (địa chỉ Latin, cân nặng, mã HS…) — đồng bộ lại từ sàn không ghi đè nữa.</summary>
     public DateTime? EditedAt { get; private set; }
+    /// <summary>Khách đã xóa (ẩn) — giữ dòng để đồng bộ / nhập lại từ sàn không tạo lại đơn này.</summary>
+    public DateTime? DeletedAt { get; private set; }
     public DateTime CreateDate { get; private set; }
     public DateTime? ModifyDate { get; private set; }
 
@@ -91,8 +93,17 @@ internal sealed class MarketplaceOrder
     /// <summary>Sàn đổi thông tin đơn: chỉ cập nhật khi chưa cấp bill (bill đã in thì giữ nguyên dữ liệu đã khai).</summary>
     public bool UpdateFrom(ImportedOrder o, DateTime now)
     {
-        if (Bill is not null || EditedAt is not null) return false;
+        if (Bill is not null || EditedAt is not null || DeletedAt is not null) return false;
         Apply(o);
+        ModifyDate = now;
+        return true;
+    }
+
+    /// <summary>Khách xóa đơn chưa có bill (xóa mềm). Đã có bill thì không xóa được.</summary>
+    public bool Delete(DateTime now)
+    {
+        if (Bill is not null || DeletedAt is not null) return false;
+        DeletedAt = now;
         ModifyDate = now;
         return true;
     }

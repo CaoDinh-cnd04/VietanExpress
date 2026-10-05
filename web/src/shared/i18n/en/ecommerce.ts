@@ -202,4 +202,13 @@ export const ecommerce: Record<string, string> = {
   'Chưa có sản phẩm': 'No products yet',
   'Thiếu mã HS': 'Missing HS code',
   'Tên hàng chưa viết bằng chữ Latin': 'Product name is not in Latin script',
+
+  // Xóa đơn
+  'Xóa đơn': 'Delete order',
+  'Xóa đơn E-commerce': 'Delete e-commerce orders',
+  'Xóa đơn {ref} khỏi danh sách?': 'Delete order {ref} from the list?',
+  'Xóa {n} đơn khỏi danh sách?': 'Delete {n} orders from the list?',
+  'Đơn Shopify đã xóa sẽ không về lại khi đồng bộ hay nhập file.': 'Deleted Shopify orders will not come back on sync or file import.',
+  '{n} đơn đã có bill sẽ được giữ lại (không xóa được).': '{n} orders with a bill will be kept (cannot be deleted).',
+  'Đang xóa…': 'Deleting…',
 };

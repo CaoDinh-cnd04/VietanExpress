@@ -121,7 +121,7 @@ internal sealed class OrderImportAndEditHandlers(EcommerceDbContext db, ICurrent
 
         var parts = new List<string> { $"Đã nhập {added} đơn mới" };
         if (updated > 0) parts.Add($"cập nhật {updated} đơn");
-        if (kept > 0) parts.Add($"giữ nguyên {kept} đơn đã sửa / đã có bill");
+        if (kept > 0) parts.Add($"giữ nguyên {kept} đơn đã sửa / đã có bill / đã xóa");
         if (skipped > 0) parts.Add($"bỏ qua {skipped} đơn đã giao / đã hủy");
         return new CsvImportResult(string.Join(", ", parts), added, errors);
     }
@@ -129,7 +129,7 @@ internal sealed class OrderImportAndEditHandlers(EcommerceDbContext db, ICurrent
     public async Task<Result<EcomOrderDto>> Handle(UpdateEcomOrderCommand c, CancellationToken ct)
     {
         if (user.CustomerId is not { } customerId) return StoreErrors.NotLoggedIn;
-        var order = await db.MarketplaceOrders.FirstOrDefaultAsync(o => o.Id == c.Id && o.CustomerId == customerId, ct);
+        var order = await db.MarketplaceOrders.FirstOrDefaultAsync(o => o.Id == c.Id && o.CustomerId == customerId && o.DeletedAt == null, ct);
         if (order is null) return Error.NotFound("ECOM_ORDER_NOT_FOUND", "Không tìm thấy đơn");
         if (order.Bill is not null) return Error.BusinessRule("ECOM_ORDER_BILLED", "Đơn đã có bill, không sửa được");
 

@@ -10,6 +10,7 @@ import { ECOM_SOURCES, LABEL_FORMATS, STORE_PLATFORMS } from '../constants';
 import { ORDER_VIEWS, countByView, displayStatus, filterByView, formatMoney, type OrderView } from '../lib/order-view';
 import { formatSyncTime, needsReauthorize } from '../lib/store-connection';
 import type { EcomOrder, EcomSource, StoreConnection } from '../types';
+import { DeleteOrdersModal } from './DeleteOrdersModal';
 import { EcomOrderDrawer } from './EcomOrderDrawer';
 import styles from './ecommerce.module.css';
 
@@ -23,6 +24,7 @@ export function EcomOrderList() {
   const [format, setFormat] = useState<string>(LABEL_FORMATS[0]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [openedId, setOpenedId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<EcomOrder[]>([]);
   const debouncedSearch = useDebouncedCallback(setQ, 300);
   const all = useEcomOrders();
   const { data: fetched = [], isFetching } = useEcomOrders(src, q);
@@ -167,6 +169,9 @@ export function EcomOrderList() {
             <Button variant="primary" size="sm" disabled={print.isPending} onClick={() => print.mutate({ ids: [...selected], format })}>
               <Icon name="printer" size={15} /> {t('In nhãn')}
             </Button>
+            <Button size="sm" onClick={() => setDeleting(fetched.filter(o => selected.has(o.id)))}>
+              <Icon name="trash" size={15} /> {t('Xóa')}
+            </Button>
             <Button size="sm" variant="ghost" onClick={clearSelection}>{t('Bỏ chọn')}</Button>
           </div>
         )}
@@ -209,7 +214,15 @@ export function EcomOrderList() {
         )}
       </Card>
 
-      <EcomOrderDrawer order={opened} onClose={() => setOpenedId(null)} />
+      <EcomOrderDrawer order={opened} onClose={() => setOpenedId(null)} onDelete={o => setDeleting([o])} />
+      <DeleteOrdersModal
+        orders={deleting}
+        onClose={() => setDeleting([])}
+        onDeleted={() => {
+          clearSelection();
+          if (deleting.some(o => o.id === openedId)) setOpenedId(null);
+        }}
+      />
     </div>
   );
 }

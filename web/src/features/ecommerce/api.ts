@@ -46,6 +46,20 @@ export function useUpdateEcomOrder() {
   });
 }
 
+/** Xóa (ẩn) đơn chưa có bill; đơn Shopify đã xóa không bị đồng bộ / nhập file tạo lại. */
+export function useDeleteEcomOrders() {
+  const qc = useQueryClient();
+  const toast = useToast();
+  return useMutation({
+    mutationFn: (ids: string[]) => http.post<{ message: string; deletedCount: number }>('/ecom/orders/delete', { ids }),
+    onSuccess: res => {
+      toast.show(res.message, 'success');
+      void qc.invalidateQueries({ queryKey: ecomKeys.allOrders });
+    },
+    onError: e => toast.show(getErrorMessage(e), 'error')
+  });
+}
+
 /** Gửi nội dung CSV (file Export orders của Shopify; mẫu 70 cột của Việt An đang hoàn thiện). Backend trả số đơn thành công + lỗi từng dòng. */
 export function useImportEcomCsv() {
   const qc = useQueryClient();

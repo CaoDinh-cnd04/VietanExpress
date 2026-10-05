@@ -59,7 +59,7 @@ internal sealed class EcomOrderHandlers(
     public async Task<IReadOnlyList<EcomOrderDto>> Handle(GetEcomOrdersQuery q, CancellationToken ct)
     {
         if (user.CustomerId is not { } customerId) return [];
-        var orders = db.MarketplaceOrders.AsNoTracking().Where(o => o.CustomerId == customerId);
+        var orders = db.MarketplaceOrders.AsNoTracking().Where(o => o.CustomerId == customerId && o.DeletedAt == null);
         if (!string.IsNullOrWhiteSpace(q.Source)) orders = orders.Where(o => o.Source == q.Source);
         if (q.Search?.Trim() is { Length: > 0 } s)
             orders = orders.Where(o => o.OrderName.Contains(s) || (o.Bill != null && o.Bill.Contains(s)) || (o.Recipient.Name != null && o.Recipient.Name.Contains(s)));

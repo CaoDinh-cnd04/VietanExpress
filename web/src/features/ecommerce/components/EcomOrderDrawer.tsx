@@ -10,7 +10,7 @@ import { EcomOrderEditForm } from './EcomOrderEditForm';
 import styles from './EcomOrderDrawer.module.css';
 
 /** Ngăn chi tiết 1 đơn E-commerce: việc cần bổ sung, người nhận, đơn hàng, sản phẩm; đơn chưa có bill thì sửa được ngay trong ngăn. */
-export function EcomOrderDrawer({ order, onClose }: { order: EcomOrder | null; onClose: () => void }) {
+export function EcomOrderDrawer({ order, onClose, onDelete }: { order: EcomOrder | null; onClose: () => void; onDelete: (o: EcomOrder) => void }) {
   const { t } = useI18n();
   const copy = useCopyToClipboard();
   const [editing, setEditing] = useState(false);
@@ -59,6 +59,9 @@ export function EcomOrderDrawer({ order, onClose }: { order: EcomOrder | null; o
           <div className={styles.toolbar}>
             <Button size="sm" variant="primary" onClick={() => setEditing(true)}>
               <Icon name="edit" size={15} /> {t('Sửa đơn')}
+            </Button>
+            <Button size="sm" onClick={() => onDelete(o)}>
+              <Icon name="trash" size={15} /> {t('Xóa đơn')}
             </Button>
           </div>
         )}
