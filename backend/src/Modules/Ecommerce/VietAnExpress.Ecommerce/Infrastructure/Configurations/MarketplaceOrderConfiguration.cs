@@ -48,6 +48,7 @@ internal sealed class MarketplaceOrderConfiguration : IEntityTypeConfiguration<M
         b.Property(x => x.Hub).HasColumnName("Hub").HasMaxLength(MarketplaceOrder.HubMaxLength);
         b.Property(x => x.Branch).HasColumnName("Chi_Nhanh").HasMaxLength(MarketplaceOrder.BranchMaxLength);
         b.Property(x => x.CustomsJson).HasColumnName("Hai_Quan");
+        b.Property(x => x.EditedAt).HasColumnName("Ngay_Sua").HasColumnType("datetime");
         b.Property(x => x.TrackingPushedAt).HasColumnName("Ngay_Day_Tracking").HasColumnType("datetime");
         b.Property(x => x.CreateDate).HasColumnType("datetime").HasDefaultValueSql("GETDATE()");
         b.Property(x => x.ModifyDate).HasColumnType("datetime");

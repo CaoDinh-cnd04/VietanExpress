@@ -4,7 +4,6 @@ import { useI18n } from '@/shared/i18n';
 import { readFileAsText } from '@/shared/lib/files';
 import { Card, FileDrop, Icon, LinkButton, Notice, SegmentedControl } from '@/shared/ui';
 import { useImportEcomCsv, useStoreConnections } from '../api';
-import { IMPORT_TEMPLATE_NAME, IMPORT_TEMPLATE_URL } from '../constants';
 import { ManualEcomForm } from './ManualEcomForm';
 import styles from './ecommerce.module.css';
 
@@ -51,9 +50,14 @@ function CsvImport() {
 
   const result = importCsv.data;
   return (
-    <Card title="Nhập đơn từ file" actions={<a className={styles.link} href={IMPORT_TEMPLATE_URL} download={IMPORT_TEMPLATE_NAME}><Icon name="download" size={15} /> {t('Tải file mẫu')}</a>}>
+    <Card title="Nhập đơn từ file Shopify">
+      <ol className={styles.steps}>
+        <li>{t('Vào Shopify admin → Orders → Export.')}</li>
+        <li>{t('Chọn đơn cần gửi (vd "Current page" hoặc "All orders"), định dạng "CSV for Excel…", bấm Export orders.')}</li>
+        <li>{t('Kéo thả file .csv nhận được vào ô dưới.')}</li>
+      </ol>
       <p className={styles.muted}>
-        {t('Tải file mẫu, điền đơn (mỗi đơn tối đa 5 sản phẩm), lưu dạng CSV UTF-8 rồi kéo thả lên đây. Hệ thống báo kết quả từng dòng.')}
+        {t('Đơn nhiều sản phẩm được gộp lại; đơn đã giao / đã hủy bị bỏ qua; đơn đã có trong danh sách thì cập nhật, không tạo trùng. File Shopify không có cân nặng và mã HS — bổ sung ở tab Đơn hàng.')}
       </p>
       <div className={styles.spaced}>
         <FileDrop
@@ -61,7 +65,7 @@ function CsvImport() {
           disabled={importCsv.isPending}
           onFile={f => void onFile(f)}
           title={importCsv.isPending ? t('Đang xử lý {name}…', { name: fileName }) : 'Kéo & thả file CSV hoặc bấm để chọn'}
-          hint="Excel: File → Save As → CSV UTF-8 (.csv)"
+          hint="File .csv tải từ Shopify, tối đa 5 MB"
         />
       </div>
       {badFile && <div className={styles.spaced}><Notice tone="danger">{t('Chỉ nhận file .csv. Với file Excel, hãy lưu lại dạng CSV UTF-8.')}</Notice></div>}
@@ -75,6 +79,7 @@ function CsvImport() {
       {result && (
         <div className={styles.spaced}>
           <Notice tone={result.errors.length ? 'warning' : 'success'} title={`${fileName}: ${t(result.message)}`}>
+            <LinkButton to="?tab=orders" size="sm">{t('Xem tab Đơn hàng')}</LinkButton>
             {result.errors.length > 0 && (
               <ul className={styles.errorList}>
                 {result.errors.map((e, i) => <li key={i}>{typeof e === 'string' ? t(e) : t('Dòng {row}: {message}', { row: e.row, message: t(e.message) })}</li>)}

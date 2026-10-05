@@ -58,12 +58,14 @@ internal sealed class MarketplaceOrder
     /// <summary>Khai báo hải quan nâng cao (JSON) — IOSS, EORI, VAT, giá trị khai…</summary>
     public string? CustomsJson { get; private set; }
     public DateTime? TrackingPushedAt { get; private set; }
+    /// <summary>Khách đã sửa tay (địa chỉ Latin, cân nặng, mã HS…) — đồng bộ lại từ sàn không ghi đè nữa.</summary>
+    public DateTime? EditedAt { get; private set; }
     public DateTime CreateDate { get; private set; }
     public DateTime? ModifyDate { get; private set; }
 
     private MarketplaceOrder() { }
 
-    public static MarketplaceOrder Import(long customerId, long storeConnectionId, string source, ImportedOrder o, DateTime now)
+    public static MarketplaceOrder Import(long customerId, long? storeConnectionId, string source, ImportedOrder o, DateTime now)
     {
         var order = new MarketplaceOrder
         {
@@ -89,8 +91,27 @@ internal sealed class MarketplaceOrder
     /// <summary>Sàn đổi thông tin đơn: chỉ cập nhật khi chưa cấp bill (bill đã in thì giữ nguyên dữ liệu đã khai).</summary>
     public bool UpdateFrom(ImportedOrder o, DateTime now)
     {
-        if (Bill is not null) return false;
+        if (Bill is not null || EditedAt is not null) return false;
         Apply(o);
+        ModifyDate = now;
+        return true;
+    }
+
+    /// <summary>Khách sửa đơn trước khi tạo bill. Đã có bill thì không sửa được (dữ liệu đã khai cho hãng).</summary>
+    public bool Edit(MarketplaceRecipient recipient, decimal? weightKg, string? productsJson, int itemCount, decimal? totalAmount,
+        string? service, string? hub, string? branch, string? note, DateTime now)
+    {
+        if (Bill is not null) return false;
+        Recipient = recipient;
+        WeightKg = weightKg;
+        ProductsJson = productsJson;
+        ItemCount = itemCount;
+        if (totalAmount is not null) TotalAmount = totalAmount;
+        Service = service;
+        Hub = hub;
+        Branch = branch;
+        Note = note;
+        EditedAt = now;
         ModifyDate = now;
         return true;
     }

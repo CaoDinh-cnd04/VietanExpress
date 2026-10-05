@@ -2,7 +2,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { getErrorMessage, http, type ListResponse } from '@/shared/api/http';
 import { fill } from '@/shared/i18n';
 import { useToast } from '@/shared/ui';
-import type { CsvImportResult, EcomOrder, EcomSettings, EcomSource, NewManualEcomOrder, StartStoreConnection, StoreConnection, StoreSyncResult } from './types';
+import type { CsvImportResult, EcomOrder, EcomOrderUpdate, EcomSettings, EcomSource, NewManualEcomOrder, StartStoreConnection, StoreConnection, StoreSyncResult } from './types';
 
 export const ecomKeys = {
   orders: (src: EcomSource | 'all', q: string) => ['ecom', 'orders', src, q] as const,
@@ -32,7 +32,21 @@ export function useCreateManualEcomOrder() {
   });
 }
 
-/** Gửi nội dung CSV (mẫu 70 cột). Backend trả số đơn thành công + lỗi từng dòng. */
+/** Sửa đơn chưa có bill. Đồng bộ lại từ sàn sẽ không ghi đè dữ liệu đã sửa. */
+export function useUpdateEcomOrder() {
+  const qc = useQueryClient();
+  const toast = useToast();
+  return useMutation({
+    mutationFn: ({ id, body }: { id: string; body: EcomOrderUpdate }) => http.put<{ message: string; data: EcomOrder }>(`/ecom/orders/${encodeURIComponent(id)}`, body),
+    onSuccess: res => {
+      toast.show(res.message, 'success');
+      void qc.invalidateQueries({ queryKey: ecomKeys.allOrders });
+    },
+    onError: e => toast.show(getErrorMessage(e), 'error')
+  });
+}
+
+/** Gửi nội dung CSV (file Export orders của Shopify; mẫu 70 cột của Việt An đang hoàn thiện). Backend trả số đơn thành công + lỗi từng dòng. */
 export function useImportEcomCsv() {
   const qc = useQueryClient();
   return useMutation({

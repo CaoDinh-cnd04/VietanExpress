@@ -167,4 +167,39 @@ export const ecommerce: Record<string, string> = {
   'Đơn trên {shops} tự về tab Đơn hàng khi đồng bộ — ở đây chỉ thêm đơn bán ngoài shop đã kết nối.': 'Orders from {shops} arrive in the Orders tab when you sync — only add orders sold outside connected stores here.',
   'Bán trên Shopify? Kết nối shop để đơn tự về, không cần nhập tay.': 'Selling on Shopify? Connect your store so orders arrive automatically.',
   'Nhập đơn từ file đang được hoàn thiện ở máy chủ. Tạm thời hãy dùng "Nhập tay từng đơn" hoặc kết nối Shopify.': 'File import is still being completed on the server. For now, use "Enter orders manually" or connect Shopify.',
+
+  // Nhập file Shopify, sửa đơn, việc cần bổ sung
+  'Cần bổ sung': 'Needs info',
+  '(+{n} việc)': '(+{n} more)',
+  'Cần bổ sung trước khi tạo bill': 'Complete before creating the bill',
+  'Sửa đơn': 'Edit order',
+  'Lưu thay đổi': 'Save changes',
+  'Địa chỉ (dòng 2)': 'Address (line 2)',
+  'Chọn nước': 'Choose country',
+  'Chọn nước đến': 'Choose destination country',
+  'Cân nặng không hợp lệ': 'Invalid weight',
+  'Nhập giá': 'Enter price',
+  '6–10 số': '6–10 digits',
+  'Chưa phải chữ Latin — nhãn hãng bay không in được': 'Not Latin script — carrier labels cannot print it',
+  'Kèm mã nước, vd +81…; số nội địa sẽ tự thêm mã nước': 'Include country code, e.g. +81…; local numbers get it added automatically',
+  'Nhãn DHL / FedEx / UPS chỉ in chữ Latin: địa chỉ tiếng Nhật, Hàn, Trung… cần viết lại (vd romaji). Sau khi lưu, đồng bộ lại từ sàn sẽ không ghi đè đơn này.':
+    'DHL / FedEx / UPS labels only print Latin script: Japanese, Korean, Chinese… addresses must be rewritten (e.g. romaji). After saving, syncing again will not overwrite this order.',
+  'Nhập đơn từ file Shopify': 'Import orders from a Shopify file',
+  'Vào Shopify admin → Orders → Export.': 'In Shopify admin, go to Orders → Export.',
+  'Chọn đơn cần gửi (vd "Current page" hoặc "All orders"), định dạng "CSV for Excel…", bấm Export orders.':
+    'Choose the orders to ship (e.g. "Current page" or "All orders"), format "CSV for Excel…", then click Export orders.',
+  'Kéo thả file .csv nhận được vào ô dưới.': 'Drag the downloaded .csv file into the box below.',
+  'Đơn nhiều sản phẩm được gộp lại; đơn đã giao / đã hủy bị bỏ qua; đơn đã có trong danh sách thì cập nhật, không tạo trùng. File Shopify không có cân nặng và mã HS — bổ sung ở tab Đơn hàng.':
+    'Multi-product orders are merged; fulfilled / cancelled orders are skipped; existing orders are updated, not duplicated. Shopify files have no weight or HS code — add them in the Orders tab.',
+  'File .csv tải từ Shopify, tối đa 5 MB': '.csv file exported from Shopify, up to 5 MB',
+  'Xem tab Đơn hàng': 'Go to Orders tab',
+  // Việc cần bổ sung (backend gửi)
+  'Thiếu tên người nhận': 'Missing recipient name',
+  'Thiếu địa chỉ / nước đến': 'Missing address / destination country',
+  'Địa chỉ chưa viết bằng chữ Latin': 'Address is not in Latin script',
+  'Thiếu số điện thoại người nhận': 'Missing recipient phone',
+  'Chưa có cân nặng': 'No weight yet',
+  'Chưa có sản phẩm': 'No products yet',
+  'Thiếu mã HS': 'Missing HS code',
+  'Tên hàng chưa viết bằng chữ Latin': 'Product name is not in Latin script',
 };

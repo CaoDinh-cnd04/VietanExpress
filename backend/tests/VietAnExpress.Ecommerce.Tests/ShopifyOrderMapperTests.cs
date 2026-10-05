@@ -28,7 +28,7 @@ public class ShopifyOrderMapperTests
         Assert.Equal("5551234", o.PlatformOrderId);
         Assert.Equal("#1001", o.OrderName);
         Assert.Equal("Jane Doe", o.Recipient.Name);
-        Assert.Equal("+61 400 000 000", o.Recipient.Phone);
+        Assert.Equal("+61400000000", o.Recipient.Phone);
         Assert.Null(o.Recipient.Address2);
         Assert.Equal("AU", o.Recipient.CountryCode);
         Assert.Equal(3, o.ItemCount);

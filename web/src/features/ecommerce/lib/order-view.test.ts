@@ -3,19 +3,20 @@ import type { EcomOrder } from '../types';
 import { countByView, displayStatus, filterByView, formatMoney, receiverLines } from './order-view';
 
 const order = (id: string, st: EcomOrder['st'], bill = ''): EcomOrder => ({ id, src: 'shopify', ref: id, bill, cnee: 'A', ct: 'US', items: 1, kg: 1, st, createdAt: '05/10/2026 09:00' });
-const orders = [order('1', 'created'), order('2', 'exception'), order('3', 'created', 'VA1'), order('4', 'delivered', 'VA2'), order('5', 'weighing')];
+const orders = [{ ...order('1', 'created'), issues: ['Chưa có cân nặng'] }, order('2', 'exception'), order('3', 'created', 'VA1'), order('4', 'delivered', 'VA2'), order('5', 'weighing')];
 
 describe('filterByView / countByView', () => {
   it('lọc theo việc cần làm', () => {
     expect(filterByView(orders, 'all')).toHaveLength(5);
+    expect(filterByView(orders, 'needsInfo').map(o => o.id)).toEqual(['1']);
     expect(filterByView(orders, 'pending').map(o => o.id)).toEqual(['1', '5']);
     expect(filterByView(orders, 'billed').map(o => o.id)).toEqual(['3', '4']);
     expect(filterByView(orders, 'exception').map(o => o.id)).toEqual(['2']);
   });
 
   it('đếm từng nhóm', () => {
-    expect(countByView(orders)).toEqual({ all: 5, pending: 2, billed: 2, exception: 1 });
-    expect(countByView([])).toEqual({ all: 0, pending: 0, billed: 0, exception: 0 });
+    expect(countByView(orders)).toEqual({ all: 5, needsInfo: 1, pending: 2, billed: 2, exception: 1 });
+    expect(countByView([])).toEqual({ all: 0, needsInfo: 0, pending: 0, billed: 0, exception: 0 });
   });
 });
 

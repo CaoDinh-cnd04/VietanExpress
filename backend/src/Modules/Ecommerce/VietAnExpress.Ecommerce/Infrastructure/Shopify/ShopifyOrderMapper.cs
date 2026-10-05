@@ -38,13 +38,13 @@ internal static class ShopifyOrderMapper
         var recipient = new MarketplaceRecipient(
             Cut(Str(address, "name"), MarketplaceOrder.NameMaxLength),
             Cut(Str(address, "company"), MarketplaceOrder.NameMaxLength),
-            Cut(Str(address, "phone") ?? Str(order, "phone"), MarketplaceOrder.PhoneMaxLength),
+            Cut(Application.OrderData.NormalizePhone(Str(address, "phone") ?? Str(order, "phone"), Str(address, "countryCodeV2")), MarketplaceOrder.PhoneMaxLength),
             Cut(Str(order, "email"), MarketplaceOrder.EmailMaxLength),
             Cut(Str(address, "address1"), MarketplaceOrder.AddressMaxLength),
             Cut(Str(address, "address2"), MarketplaceOrder.AddressMaxLength),
             Cut(Str(address, "city"), MarketplaceOrder.CityMaxLength),
             Cut(Str(address, "province"), MarketplaceOrder.CityMaxLength),
-            Cut(Str(address, "zip"), MarketplaceOrder.PostalMaxLength),
+            Cut(Application.OrderData.NormalizePostal(Str(address, "zip")), MarketplaceOrder.PostalMaxLength),
             Str(address, "countryCodeV2") is { Length: 2 } cc ? cc : null,
             Cut(Str(address, "country"), MarketplaceOrder.CountryNameMaxLength));
 

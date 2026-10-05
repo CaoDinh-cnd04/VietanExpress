@@ -37,6 +37,21 @@ export interface EcomOrder {
   service?: string | null;
   hub?: string | null;
   branch?: string | null;
+  /** Việc cần bổ sung trước khi tạo bill (backend tính: thiếu cân nặng, địa chỉ chưa Latin, thiếu mã HS…) */
+  issues?: string[];
+  /** Chưa có bill → sửa được */
+  editable?: boolean;
+}
+
+/** PUT /ecom/orders/:id — khách sửa đơn trước khi tạo bill. */
+export interface EcomOrderUpdate {
+  receiver: { name: string; company: string; phone: string; email: string; address1: string; address2: string; city: string; state: string; postal: string; countryCode: string };
+  kg: number | null;
+  products: Array<{ name: string; sku: string; qty: number; fobPrice: number; sellingPrice: number; hsCode: string }>;
+  service?: string | null;
+  hub?: string | null;
+  branch?: string | null;
+  note: string;
 }
 
 export interface EcomReceiver {

@@ -22,7 +22,7 @@ export function EcomOrderList() {
   const [search, setSearch] = useState('');
   const [format, setFormat] = useState<string>(LABEL_FORMATS[0]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [opened, setOpened] = useState<EcomOrder | null>(null);
+  const [openedId, setOpenedId] = useState<string | null>(null);
   const debouncedSearch = useDebouncedCallback(setQ, 300);
   const all = useEcomOrders();
   const { data: fetched = [], isFetching } = useEcomOrders(src, q);
@@ -30,6 +30,8 @@ export function EcomOrderList() {
   const print = usePrintEcomLabels();
 
   const allOrders = all.data ?? [];
+  // Đọc từ danh sách mới nhất → sửa xong ngăn chi tiết hiện ngay dữ liệu mới.
+  const opened = allOrders.find(o => o.id === openedId) ?? fetched.find(o => o.id === openedId) ?? null;
   const connected = stores.data ?? [];
   const counts = countByView(fetched);
   const rows = filterByView(fetched, view);
@@ -102,6 +104,12 @@ export function EcomOrderList() {
         return (
           <>
             <StatusPill tone={s.tone}>{t(s.label)}</StatusPill>
+            {!o.bill && o.issues?.[0] && (
+              <div className={styles.issueText}>
+                {t(o.issues[0])}
+                {o.issues.length > 1 && <> {t('(+{n} việc)', { n: o.issues.length - 1 })}</>}
+              </div>
+            )}
             {o.note && <div className={cx(styles.sub, styles.note)}>{o.note}</div>}
           </>
         );
@@ -191,7 +199,7 @@ export function EcomOrderList() {
             rowKey={o => o.id}
             loading={isFetching}
             highlight={o => selected.has(o.id)}
-            onRowClick={setOpened}
+            onRowClick={o => setOpenedId(o.id)}
             minWidth={860}
             empty={{
               title: 'Không có đơn phù hợp',
@@ -201,7 +209,7 @@ export function EcomOrderList() {
         )}
       </Card>
 
-      <EcomOrderDrawer order={opened} onClose={() => setOpened(null)} />
+      <EcomOrderDrawer order={opened} onClose={() => setOpenedId(null)} />
     </div>
   );
 }

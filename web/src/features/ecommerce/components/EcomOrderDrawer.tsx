@@ -1,17 +1,22 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useI18n } from '@/shared/i18n';
 import { formatNumber } from '@/shared/lib/format';
 import { useCopyToClipboard } from '@/shared/lib/useCopyToClipboard';
-import { Icon, Sheet, SheetBox, SheetFields, SheetLines, SheetName, SheetRow, SheetTable, SheetTotals, StatusPill } from '@/shared/ui';
+import { Button, Icon, Notice, Sheet, SheetBox, SheetFields, SheetLines, SheetName, SheetRow, SheetTable, SheetTotals, StatusPill } from '@/shared/ui';
 import { ECOM_SOURCES } from '../constants';
 import { displayStatus, formatMoney, receiverLines } from '../lib/order-view';
 import type { EcomOrder } from '../types';
+import { EcomOrderEditForm } from './EcomOrderEditForm';
 import styles from './EcomOrderDrawer.module.css';
 
-/** Ngăn chi tiết 1 đơn E-commerce: người nhận, đơn hàng, sản phẩm — dữ liệu có sẵn trong dòng của GET /ecom/orders. */
+/** Ngăn chi tiết 1 đơn E-commerce: việc cần bổ sung, người nhận, đơn hàng, sản phẩm; đơn chưa có bill thì sửa được ngay trong ngăn. */
 export function EcomOrderDrawer({ order, onClose }: { order: EcomOrder | null; onClose: () => void }) {
   const { t } = useI18n();
   const copy = useCopyToClipboard();
+  const [editing, setEditing] = useState(false);
+
+  // Mở đơn khác → về chế độ xem.
+  useEffect(() => setEditing(false), [order?.id]);
 
   useEffect(() => {
     if (!order) return;
@@ -50,7 +55,26 @@ export function EcomOrderDrawer({ order, onClose }: { order: EcomOrder | null; o
           </button>
         </header>
 
+        {o.editable && !editing && (
+          <div className={styles.toolbar}>
+            <Button size="sm" variant="primary" onClick={() => setEditing(true)}>
+              <Icon name="edit" size={15} /> {t('Sửa đơn')}
+            </Button>
+          </div>
+        )}
+
         <div className={styles.body}>
+          {editing ? (
+            <EcomOrderEditForm order={o} onDone={() => setEditing(false)} />
+          ) : (
+          <>
+          {o.issues && o.issues.length > 0 && (
+            <div className={styles.issues}>
+              <Notice tone="warning" title={t('Cần bổ sung trước khi tạo bill')}>
+                <ul className={styles.issueList}>{o.issues.map(i => <li key={i}>{t(i)}</li>)}</ul>
+              </Notice>
+            </div>
+          )}
           <Sheet>
             <SheetRow>
               <SheetBox no={1} title="Người nhận">
@@ -97,6 +121,8 @@ export function EcomOrderDrawer({ order, onClose }: { order: EcomOrder | null; o
             <p className={styles.muted}>
               {t('Chưa có địa chỉ người nhận: app Shopify cần được cấp quyền dữ liệu khách hàng (Protected customer data), rồi bấm Đồng bộ lại.')}
             </p>
+          )}
+          </>
           )}
         </div>
       </aside>

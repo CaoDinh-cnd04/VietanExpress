@@ -48,8 +48,6 @@ export const GOODS_TYPES = ['general', 'battery (pin)', 'liquid (lỏng)', 'sens
 export const MAX_PRODUCTS = 5;
 
 /** Tên file mẫu import — cấu trúc 70 cột của Yun/EPK/Việt An. */
-export const IMPORT_TEMPLATE_NAME = 'VietAn_Ecom_Import_Template.csv';
-export const IMPORT_TEMPLATE_URL = '/templates/VietAn_Ecom_Import_Template.csv';
 
 /** Ví dụ body tạo đơn — giá trị gửi API giữ nguyên tiếng Việt (tên dịch vụ, hub). */
 const API_EXAMPLE_BODY = {

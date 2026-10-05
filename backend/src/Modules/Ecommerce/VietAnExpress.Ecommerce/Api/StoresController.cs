@@ -80,6 +80,24 @@ internal sealed class StoresController(PortalHosts portalHosts, IConfiguration c
         return FromResult(result, result.IsSuccess ? $"Đã lưu đơn {result.Value.Ref}" : null);
     }
 
+    /// <summary>Nhập đơn từ file CSV (hiện nhận file "Export orders" của Shopify) → { message, importedCount, errors: [{ row, message }] }.</summary>
+    [HttpPost("import-csv")]
+    [HasPermission(EcommercePermissions.Connect)]
+    [RequestSizeLimit(6 * 1024 * 1024)]
+    [ProducesResponseType<CsvImportResult>(StatusCodes.Status200OK)]
+    public async Task<IActionResult> ImportCsv(ImportCsvRequest body, CancellationToken ct)
+    {
+        var result = await Sender.Send(new ImportOrdersCsvCommand(body.Csv), ct);
+        return result.IsSuccess ? Ok(result.Value) : Problem(result.Error);
+    }
+
+    /// <summary>Sửa đơn chưa có bill: người nhận, cân nặng, sản phẩm / mã HS, dịch vụ. Đồng bộ lại từ sàn không ghi đè dữ liệu đã sửa.</summary>
+    [HttpPut("orders/{id:long}")]
+    [HasPermission(EcommercePermissions.Connect)]
+    [ProducesResponseType<ApiResponse<EcomOrderDto>>(StatusCodes.Status200OK)]
+    public async Task<IActionResult> UpdateOrder(long id, EcomOrderEditInput body, CancellationToken ct) =>
+        FromResult(await Sender.Send(new UpdateEcomOrderCommand(id, body), ct), "Đã lưu thay đổi");
+
     /// <summary>Ngắt kết nối: gỡ app khỏi shop (nếu được) và xóa token.</summary>
     [HttpDelete("stores/{id:long}")]
     [HasPermission(EcommercePermissions.Connect)]
@@ -101,6 +119,8 @@ internal sealed class StoresController(PortalHosts portalHosts, IConfiguration c
         IsEssential = true
     };
 }
+
+internal sealed record ImportCsvRequest(string? Csv);
 
 internal sealed record StartConnectionRequest(string? Platform, string? ShopDomain, string? Region);
 
