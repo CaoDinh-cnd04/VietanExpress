@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using VietAnExpress.Identity.Domain;
 
 namespace VietAnExpress.Identity.Infrastructure;
 
@@ -39,11 +40,25 @@ internal sealed class CustomerLoginConfiguration : IEntityTypeConfiguration<Cust
     }
 }
 
-/// <summary>Chỉ dùng bảng có sẵn dbo.TCustomer — không có migration.</summary>
+/// <summary>
+/// dbo.TCustomer (bảng cũ, không migration) + 2 bảng mới người dùng đã đồng ý: dbo.TaiKhoanNhanVien (tạm), dbo.MyTrackingCauHinh.
+/// Schema "identity" chỉ chứa lịch sử migration.
+/// </summary>
 internal sealed class IdentityDbContext(DbContextOptions<IdentityDbContext> options) : DbContext(options)
 {
+    public const string Schema = "identity";
+
     public DbSet<CustomerLogin> Logins => Set<CustomerLogin>();
 
-    protected override void OnModelCreating(ModelBuilder modelBuilder) =>
+    /// <summary>Tài khoản con của nhân viên (dbo.TaiKhoanNhanVien).</summary>
+    public DbSet<StaffAccount> StaffAccounts => Set<StaffAccount>();
+
+    /// <summary>Trang MyTracking của khách (dbo.MyTrackingCauHinh).</summary>
+    public DbSet<MyTrackingPage> MyTrackingPages => Set<MyTrackingPage>();
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.HasDefaultSchema(Schema);
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(IdentityDbContext).Assembly);
+    }
 }

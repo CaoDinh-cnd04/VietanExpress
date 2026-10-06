@@ -12,23 +12,27 @@ namespace VietAnExpress.Identity.Infrastructure;
 internal sealed record IssuedToken(string Token, DateTimeOffset ExpiresAt);
 
 /// <summary>Nội dung 1 refresh token hợp lệ.</summary>
-internal sealed record RefreshClaims(long CustomerId, string PasswordStamp, bool IsPersistent);
+/// <param name="StaffId">Có khi là tài khoản con (nhân viên); null = tài khoản chính của khách.</param>
+internal sealed record RefreshClaims(long CustomerId, long? StaffId, string PasswordStamp, bool IsPersistent);
 
 internal interface ITokenService
 {
-    IssuedToken CreateAccessToken(long customerId, string userName, IReadOnlyCollection<string> roles, IReadOnlyCollection<string> permissions);
+    IssuedToken CreateAccessToken(long customerId, long? staffId, string userName, IReadOnlyCollection<string> roles, IReadOnlyCollection<string> permissions);
 
     /// <summary>
     /// Refresh token tự chứa (JWT ký, không lưu DB) mang "dấu" của mật khẩu hiện tại:
     /// đổi mật khẩu (trên portal hay hệ thống cũ) thì mọi refresh token cũ hết hiệu lực.
     /// </summary>
-    IssuedToken CreateRefreshToken(long customerId, string passwordStamp, bool persistent);
+    IssuedToken CreateRefreshToken(long customerId, long? staffId, string passwordStamp, bool persistent);
 
     /// <summary>Null nếu token sai chữ ký, hết hạn, hoặc không phải refresh token.</summary>
     Task<RefreshClaims?> ReadRefreshTokenAsync(string token);
 
-    /// <summary>Dấu mật khẩu = HMAC(secret, CustomerID + mật khẩu): không lộ mật khẩu, đổi mật khẩu là đổi dấu.</summary>
-    string PasswordStamp(long customerId, string password);
+    /// <summary>
+    /// Dấu mật khẩu = HMAC(secret, CustomerID + mật khẩu): không lộ mật khẩu, đổi mật khẩu là đổi dấu.
+    /// Tài khoản con: HMAC(secret, "staff:" + ID + mật khẩu đã băm).
+    /// </summary>
+    string PasswordStamp(long customerId, string password, long? staffId = null);
 }
 
 internal sealed class JwtTokenService(IOptions<JwtOptions> options, TimeProvider clock) : ITokenService
@@ -39,7 +43,7 @@ internal sealed class JwtTokenService(IOptions<JwtOptions> options, TimeProvider
     private readonly JwtOptions _jwt = options.Value;
     private readonly JsonWebTokenHandler _handler = new();
 
-    public IssuedToken CreateAccessToken(long customerId, string userName, IReadOnlyCollection<string> roles, IReadOnlyCollection<string> permissions)
+    public IssuedToken CreateAccessToken(long customerId, long? staffId, string userName, IReadOnlyCollection<string> roles, IReadOnlyCollection<string> permissions)
     {
         var id = customerId.ToString(CultureInfo.InvariantCulture);
         var claims = new List<Claim>
@@ -49,22 +53,24 @@ internal sealed class JwtTokenService(IOptions<JwtOptions> options, TimeProvider
             new(VaClaimTypes.CustomerId, id),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
+        if (staffId is { } sid) claims.Add(new Claim(VaClaimTypes.StaffId, sid.ToString(CultureInfo.InvariantCulture)));
         claims.AddRange(roles.Select(r => new Claim(VaClaimTypes.Role, r)));
         claims.AddRange(permissions.Select(p => new Claim(VaClaimTypes.Permission, p)));
         return Create(claims, _jwt.Audience, clock.GetUtcNow().AddMinutes(_jwt.AccessTokenMinutes));
     }
 
-    public IssuedToken CreateRefreshToken(long customerId, string passwordStamp, bool persistent)
+    public IssuedToken CreateRefreshToken(long customerId, long? staffId, string passwordStamp, bool persistent)
     {
         var now = clock.GetUtcNow();
         var expires = persistent ? now.AddDays(_jwt.RefreshTokenDays) : now.AddHours(_jwt.SessionRefreshTokenHours);
-        Claim[] claims =
-        [
+        var claims = new List<Claim>
+        {
             new(VaClaimTypes.Subject, customerId.ToString(CultureInfo.InvariantCulture)),
             new(StampClaim, passwordStamp),
             new(PersistentClaim, persistent ? "1" : "0"),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
-        ];
+        };
+        if (staffId is { } sid) claims.Add(new Claim(VaClaimTypes.StaffId, sid.ToString(CultureInfo.InvariantCulture)));
         return Create(claims, _jwt.RefreshAudience, expires);
     }
 
@@ -80,16 +86,25 @@ internal sealed class JwtTokenService(IOptions<JwtOptions> options, TimeProvider
         if (!result.IsValid) return null;
 
         var claims = result.ClaimsIdentity;
-        return long.TryParse(claims.FindFirst(VaClaimTypes.Subject)?.Value, NumberStyles.None, CultureInfo.InvariantCulture, out var id)
-               && claims.FindFirst(StampClaim)?.Value is { Length: > 0 } stamp
-            ? new RefreshClaims(id, stamp, claims.FindFirst(PersistentClaim)?.Value == "1")
-            : null;
+        if (!long.TryParse(claims.FindFirst(VaClaimTypes.Subject)?.Value, NumberStyles.None, CultureInfo.InvariantCulture, out var id)
+            || claims.FindFirst(StampClaim)?.Value is not { Length: > 0 } stamp)
+            return null;
+
+        long? staffId = null;
+        if (claims.FindFirst(VaClaimTypes.StaffId)?.Value is { } staffClaim)
+        {
+            if (!long.TryParse(staffClaim, NumberStyles.None, CultureInfo.InvariantCulture, out var sid)) return null;
+            staffId = sid;
+        }
+        return new RefreshClaims(id, staffId, stamp, claims.FindFirst(PersistentClaim)?.Value == "1");
     }
 
-    public string PasswordStamp(long customerId, string password)
+    public string PasswordStamp(long customerId, string password, long? staffId = null)
     {
-        var mac = HMACSHA256.HashData(Encoding.UTF8.GetBytes(_jwt.Secret),
-            Encoding.UTF8.GetBytes(string.Create(CultureInfo.InvariantCulture, $"{customerId}:{password}")));
+        var subject = staffId is { } sid
+            ? string.Create(CultureInfo.InvariantCulture, $"staff:{sid}:{password}")
+            : string.Create(CultureInfo.InvariantCulture, $"{customerId}:{password}");
+        var mac = HMACSHA256.HashData(Encoding.UTF8.GetBytes(_jwt.Secret), Encoding.UTF8.GetBytes(subject));
         return Base64UrlEncoder.Encode(mac[..16]);
     }
 

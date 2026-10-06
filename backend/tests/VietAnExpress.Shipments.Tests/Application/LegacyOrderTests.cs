@@ -172,7 +172,7 @@ public class LegacyOrderFactoryTests
         Assert.Equal(new PrintPackage(2, 40, 30, 21, 5), pkg);
 
         var item = LegacyOrderLinesReader.ToPrint(new LegacyInvoiceLine { DescriptionEn = "Dress", DescriptionVi = "Đầm", Quantity = 3, UnitPrice = 12.5m });
-        Assert.Equal(("Dress (Đầm)", "PCS", 37.5m), (item.Description, item.Unit, item.Amount));
+        Assert.Equal(("Dress", "Đầm", "Dress / Đầm", "PCS", 37.5m), (item.Description, item.DescriptionVi, item.Name(), item.Unit, item.Amount));
     }
 }
 

@@ -1,0 +1,227 @@
+using System.Text.Json;
+using Microsoft.IdentityModel.JsonWebTokens;
+using VietAnExpress.Identity.Application;
+using VietAnExpress.Identity.Application.Commands;
+using VietAnExpress.Identity.Domain;
+using VietAnExpress.Identity.Infrastructure;
+using VietAnExpress.SharedKernel.Authorization;
+using Xunit;
+
+namespace VietAnExpress.Identity.Tests;
+
+public class StaffAccountTests
+{
+    private const string StaffPassword = "NhanVien123";
+
+    private static CancellationToken Ct => TestContext.Current.CancellationToken;
+
+    private static async Task<long> CreateStaffAsync(IdentityFixture f, string userName = "kho.hn", params string[] permissions)
+    {
+        var created = await f.Staff.Handle(new CreateStaffCommand(userName, StaffPassword, "Nguyễn Văn Kho", null, null,
+            permissions.Length > 0 ? permissions : ["shipments.view"]), Ct);
+        Assert.True(created.IsSuccess, created.Error.Message);
+        return created.Value.Id;
+    }
+
+    [Fact]
+    public async Task Admin_tao_tai_khoan_con_nhan_vien_dang_nhap_chi_co_quyen_duoc_cap()
+    {
+        await using var f = new IdentityFixture();
+        var staffId = await CreateStaffAsync(f, "kho.hn", "shipments.view");
+
+        var login = await f.Login.Handle(new LoginCommand("kho.hn", StaffPassword, false), Ct);
+
+        Assert.True(login.IsSuccess);
+        var user = login.Value.User;
+        Assert.Equal(("staff", false, "Nguyễn Văn Kho", "SaigonbayHN"), (user.AccountType, user.IsAdmin, user.FullName, user.CustomerCode));
+        Assert.Equal(["shipments.view"], user.Permissions);
+
+        var jwt = new JsonWebToken(login.Value.AccessToken);
+        Assert.Equal(IdentityFixture.CustomerId.ToString(), jwt.GetClaim(VaClaimTypes.CustomerId).Value); // thấy dữ liệu của khách cha
+        Assert.Equal(staffId.ToString(), jwt.GetClaim(VaClaimTypes.StaffId).Value);
+        Assert.DoesNotContain(jwt.Claims, c => c.Type == VaClaimTypes.Permission && c.Value == "account.staff");
+        Assert.NotNull(f.Db.StaffAccounts.Single().LastLoginAt);
+    }
+
+    [Fact]
+    public async Task Mat_khau_tai_khoan_con_luu_dang_bam()
+    {
+        await using var f = new IdentityFixture();
+        await CreateStaffAsync(f);
+
+        var stored = f.Db.StaffAccounts.Single().PasswordHash;
+        Assert.DoesNotContain(StaffPassword, stored);
+        Assert.True(StaffPasswordHasher.Verify(stored, StaffPassword));
+        Assert.False(StaffPasswordHasher.Verify(stored, "sai-mat-khau"));
+    }
+
+    [Theory]
+    [InlineData("account.staff")]
+    [InlineData("account.mytracking")]
+    [InlineData("internal.only")]
+    [InlineData("khong.ton.tai")]
+    public async Task Khong_cap_duoc_quyen_admin_hoac_quyen_la_cho_tai_khoan_con(string permission)
+    {
+        await using var f = new IdentityFixture();
+        var result = await f.Staff.Handle(new CreateStaffCommand("kho.hn", StaffPassword, "Kho", null, null, [permission]), Ct);
+        Assert.Equal(IdentityErrors.UnknownPermission, result.Error);
+    }
+
+    [Theory]
+    [InlineData("kho.hn")]
+    [InlineData(IdentityFixture.UserName)] // trùng tài khoản chính ở dbo.TCustomer
+    public async Task Ten_dang_nhap_khong_duoc_trung(string userName)
+    {
+        await using var f = new IdentityFixture();
+        await CreateStaffAsync(f, "kho.hn");
+
+        var result = await f.Staff.Handle(new CreateStaffCommand(userName, StaffPassword, "Trùng", null, null, []), Ct);
+        Assert.Equal(IdentityErrors.UserNameTaken, result.Error);
+    }
+
+    [Fact]
+    public async Task Tai_khoan_con_khong_quan_ly_duoc_nhan_vien()
+    {
+        await using var f = new IdentityFixture();
+        var staffId = await CreateStaffAsync(f);
+        f.SignInAs(staffId);
+
+        Assert.Equal(IdentityErrors.AdminOnly, (await f.Staff.Handle(new ListStaffQuery(), Ct)).Error);
+        Assert.Equal(IdentityErrors.AdminOnly, (await f.Staff.Handle(new CreateStaffCommand("x.y", StaffPassword, "X", null, null, []), Ct)).Error);
+        Assert.Equal(IdentityErrors.AdminOnly, (await f.Staff.Handle(new DeleteStaffCommand(staffId), Ct)).Error);
+    }
+
+    [Fact]
+    public async Task Admin_khong_sua_duoc_nhan_vien_cua_khach_khac()
+    {
+        await using var f = new IdentityFixture();
+        f.Db.StaffAccounts.Add(new StaffAccount(999, "khach.khac", StaffPasswordHasher.Hash(StaffPassword), "Khác", null, null, [], DateTime.Now));
+        await f.Db.SaveChangesAsync(Ct);
+        var otherId = f.Db.StaffAccounts.Single().Id;
+
+        Assert.Empty((await f.Staff.Handle(new ListStaffQuery(), Ct)).Value);
+        Assert.Equal(IdentityErrors.StaffNotFound, (await f.Staff.Handle(new DeleteStaffCommand(otherId), Ct)).Error);
+    }
+
+    [Fact]
+    public async Task Khoa_tai_khoan_thi_khong_dang_nhap_va_khong_lam_moi_phien_duoc()
+    {
+        await using var f = new IdentityFixture();
+        var staffId = await CreateStaffAsync(f);
+        var session = (await f.Login.Handle(new LoginCommand("kho.hn", StaffPassword, true), Ct)).Value;
+
+        await f.Staff.Handle(new UpdateStaffCommand(staffId, "Kho", null, null, ["shipments.view"], Active: false), Ct);
+
+        Assert.Equal(IdentityErrors.StaffDisabled, (await f.Login.Handle(new LoginCommand("kho.hn", StaffPassword, false), Ct)).Error);
+        Assert.Equal(IdentityErrors.SessionExpired, (await f.Refresh.Handle(new RefreshSessionCommand(session.RefreshToken), Ct)).Error);
+    }
+
+    [Fact]
+    public async Task Doi_quyen_ap_dung_khi_lam_moi_phien()
+    {
+        await using var f = new IdentityFixture();
+        var staffId = await CreateStaffAsync(f, "kho.hn", "shipments.view");
+        var session = (await f.Login.Handle(new LoginCommand("kho.hn", StaffPassword, false), Ct)).Value;
+
+        await f.Staff.Handle(new UpdateStaffCommand(staffId, "Kho", null, null, ["shipments.view", "shipments.create"], Active: true), Ct);
+
+        var refreshed = await f.Refresh.Handle(new RefreshSessionCommand(session.RefreshToken), Ct);
+        Assert.Equal(["shipments.create", "shipments.view"], refreshed.Value.User.Permissions);
+    }
+
+    [Fact]
+    public async Task Admin_dat_lai_mat_khau_thi_phien_cu_cua_nhan_vien_het_hieu_luc()
+    {
+        await using var f = new IdentityFixture();
+        var staffId = await CreateStaffAsync(f);
+        var session = (await f.Login.Handle(new LoginCommand("kho.hn", StaffPassword, false), Ct)).Value;
+
+        Assert.True((await f.Staff.Handle(new ResetStaffPasswordCommand(staffId, "MatKhauMoi9"), Ct)).IsSuccess);
+
+        Assert.Equal(IdentityErrors.SessionExpired, (await f.Refresh.Handle(new RefreshSessionCommand(session.RefreshToken), Ct)).Error);
+        Assert.True((await f.Login.Handle(new LoginCommand("kho.hn", "MatKhauMoi9", false), Ct)).IsSuccess);
+    }
+
+    [Fact]
+    public async Task Nhan_vien_tu_doi_mat_khau_va_xem_ho_so_cua_minh()
+    {
+        await using var f = new IdentityFixture();
+        var staffId = await CreateStaffAsync(f);
+        f.SignInAs(staffId);
+
+        var changed = await f.ChangePassword.Handle(new ChangePasswordCommand(StaffPassword, "MatKhauMoi9", null), Ct);
+        Assert.True(changed.IsSuccess);
+        Assert.Equal(IdentityFixture.Password, f.StoredPassword()); // không đụng mật khẩu tài khoản chính
+
+        var me = await f.Me.Handle(new GetSessionQuery(), Ct);
+        Assert.Equal(("kho.hn", "staff"), (me.Value.UserName, me.Value.AccountType));
+    }
+}
+
+public class MyTrackingTests
+{
+    private static CancellationToken Ct => TestContext.Current.CancellationToken;
+
+    private static JsonElement Config(string title) => JsonDocument.Parse($$"""{"title":"{{title}}","images":[]}""").RootElement.Clone();
+
+    [Fact]
+    public async Task Chua_cau_hinh_thi_goi_y_duong_dan_theo_ma_khach()
+    {
+        await using var f = new IdentityFixture();
+        var page = await f.MyTracking.Handle(new GetMyTrackingQuery(), Ct);
+        Assert.Equal(("saigonbayhn", false), (page.Value.Slug, page.Value.Published));
+        Assert.Null(page.Value.Config);
+    }
+
+    [Fact]
+    public async Task Luu_va_xuat_ban_thi_trang_cong_khai_xem_duoc()
+    {
+        await using var f = new IdentityFixture();
+
+        var draft = await f.MyTracking.Handle(new SaveMyTrackingCommand("SGB-Express", false, Config("Ban nhap")), Ct);
+        Assert.Equal("sgb-express", draft.Value.Slug);
+        Assert.Equal(IdentityErrors.MyTrackingNotFound, (await f.MyTracking.Handle(new GetPublicMyTrackingQuery("sgb-express"), Ct)).Error);
+
+        await f.MyTracking.Handle(new SaveMyTrackingCommand("sgb-express", true, Config("Xuat ban")), Ct);
+        var page = await f.MyTracking.Handle(new GetPublicMyTrackingQuery("sgb-express"), Ct);
+        Assert.Equal("Xuat ban", page.Value.Config.GetProperty("title").GetString());
+    }
+
+    [Fact]
+    public async Task Duong_dan_da_co_khach_khac_dung_thi_tu_choi()
+    {
+        await using var f = new IdentityFixture();
+        f.Db.MyTrackingPages.Add(new MyTrackingPage(999, "sgb", "{}", true, DateTime.Now));
+        await f.Db.SaveChangesAsync(Ct);
+
+        Assert.Equal(IdentityErrors.SlugTaken, (await f.MyTracking.Handle(new SaveMyTrackingCommand("sgb", true, Config("x")), Ct)).Error);
+    }
+
+    [Fact]
+    public async Task Tai_khoan_con_khong_cau_hinh_duoc_MyTracking()
+    {
+        await using var f = new IdentityFixture();
+        f.SignInAs(5);
+        Assert.Equal(IdentityErrors.AdminOnly, (await f.MyTracking.Handle(new GetMyTrackingQuery(), Ct)).Error);
+        Assert.Equal(IdentityErrors.AdminOnly, (await f.MyTracking.Handle(new SaveMyTrackingCommand("abc", true, Config("x")), Ct)).Error);
+    }
+
+    [Fact]
+    public async Task Cau_hinh_khong_phai_object_bi_tu_choi()
+    {
+        await using var f = new IdentityFixture();
+        var array = JsonDocument.Parse("[]").RootElement.Clone();
+        Assert.Equal(IdentityErrors.InvalidTrackingConfig, (await f.MyTracking.Handle(new SaveMyTrackingCommand("abc", true, array), Ct)).Error);
+    }
+
+    [Theory]
+    [InlineData("SaigonbayHN", "saigonbayhn")]
+    [InlineData("SGB EXPRESS / HN", "sgb-express-hn")]
+    [InlineData("A1", "shop-a1")]
+    public void Goi_y_duong_dan_hop_le(string code, string expected)
+    {
+        var slug = MyTrackingPage.SuggestSlug(code);
+        Assert.Equal(expected, slug);
+        Assert.True(MyTrackingPage.IsValidSlug(slug));
+    }
+}

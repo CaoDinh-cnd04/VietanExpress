@@ -145,7 +145,8 @@ internal sealed class ImportOrdersHandler(
                 var order = LegacyOrderFactory.FromPayload(row.Payload, customer, number, today);
                 db.LegacyOrders.Add(order);
                 saved.Add((order, row.Payload));
-                var draft = new OrderDraft(customer.LegacyCustomerId, Summary(row, order, branch), JsonSerializer.Serialize(row.Payload, Json));
+                var draft = new OrderDraft(customer.LegacyCustomerId, Summary(row, order, branch), JsonSerializer.Serialize(row.Payload, Json),
+                    access.CreatorStaffId);
                 draft.MarkPrinted(number);
                 drafts.Add(draft);
             }
@@ -154,6 +155,7 @@ internal sealed class ImportOrdersHandler(
 
             // Có MaVanDon.ID rồi mới ghi chi tiết kiện (MaVanDon_PCS_DIM) và dòng hàng (MaVanDon_ChiTietHang).
             await LegacyOrderLinesWriter.AddAsync(db, saved, ct);
+            OrderAccess.RecordCreators(db, saved.Select(s => s.Item1), access.CreatorStaffId, VietnamTime.ToVietnam(clock.GetUtcNow()).DateTime);
 
             // Xoá mềm ngay để không hiện trong "Đơn nháp & chưa in" — chỉ giữ để in chứng từ.
             db.OrderDrafts.RemoveRange(drafts);

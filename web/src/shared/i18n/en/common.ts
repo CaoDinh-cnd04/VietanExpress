@@ -3,7 +3,8 @@ export const common: Record<string, string> = {
   // Khung portal
   'Portal khách hàng': 'Customer portal',
   'Menu chính': 'Main menu',
-  'Ẩn/hiện menu': 'Toggle menu',
+  'Thu gọn menu': 'Collapse navigation',
+  'Mở rộng menu': 'Expand navigation',
   'Ngôn ngữ': 'Language',
   'Chuyển giao diện sáng': 'Switch to light theme',
   'Chuyển giao diện tối': 'Switch to dark theme',
@@ -30,6 +31,7 @@ export const common: Record<string, string> = {
   'Giá & gợi ý dịch vụ': 'Rates & service finder',
   'E-commerce': 'E-commerce',
   'Hỗ trợ': 'Support',
+  'Bán hàng': 'Sales',
   'Quản lý sự cố': 'Issue management',
   'Thông báo': 'Notifications',
   'Trợ giúp & Góp ý': 'Help & feedback',

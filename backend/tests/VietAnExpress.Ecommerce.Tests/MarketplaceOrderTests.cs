@@ -34,6 +34,34 @@ public class MarketplaceOrderTests
     }
 
     [Fact]
+    public void Xac_nhan_roi_tra_ve_va_dong_bo_khong_ghi_de_don_da_xac_nhan()
+    {
+        var o = MarketplaceOrder.Import(1, null, "shopify", Imported(), Now);
+        Assert.True(o.Confirm(Now));
+        Assert.False(o.Confirm(Now));
+        Assert.False(o.UpdateFrom(Imported("#1-moi"), Now));
+        Assert.True(o.Unconfirm(Now));
+        Assert.Null(o.ConfirmedAt);
+        Assert.True(o.UpdateFrom(Imported("#1-moi"), Now));
+    }
+
+    [Fact]
+    public void Don_da_gui_khong_xoa_duoc()
+    {
+        var o = MarketplaceOrder.Import(1, null, "shopify", Imported(), Now);
+        o.Confirm(Now);
+        Assert.False(o.Delete(Now));
+        Assert.Null(o.DeletedAt);
+    }
+
+    [Fact]
+    public void Don_nhap_tay_vao_thang_don_hang_cua_toi()
+    {
+        var o = MarketplaceOrder.CreateManual(1, "manual", Imported(), new ManualShipping(null, null, null, null), Now);
+        Assert.Equal(Now, o.ConfirmedAt);
+    }
+
+    [Fact]
     public void Don_da_sua_khong_bi_dong_bo_ghi_de()
     {
         var o = MarketplaceOrder.Import(1, null, "shopify", Imported(), Now);

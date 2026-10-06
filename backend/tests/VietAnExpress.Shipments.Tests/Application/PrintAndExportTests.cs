@@ -121,14 +121,80 @@ public class OrderDocumentRendererTests
     }
 
     [Fact]
-    public void Nhan_A6_in_moi_kien_mot_nhan()
+    public void Nhan_A6_in_3_lien_va_moi_kien_mot_shipping_mark()
     {
-        var html = Render(PrintDocs.LabelA6, new OrderPrintModel(Order(pieces: 3), []));
+        var html = System.Net.WebUtility.HtmlDecode(Render(PrintDocs.LabelA6, new OrderPrintModel(Order(pieces: 3), [])));
 
-        Assert.Contains("1/3", html);
-        Assert.Contains("3/3", html);
-        Assert.Equal(3, html.Split("class=\"page a6\"").Length - 1);
+        Assert.Equal(3, html.Split("class=\"page a6\"").Length - 1);      // liên 1, 2, 3
+        Assert.Equal(3, html.Split("class=\"page a6 mark\"").Length - 1); // 1 shipping mark / kiện
+        Assert.Contains("Liên 1: người gửi lưu", html);
+        Assert.Contains("Liên 3: lưu bưu cục Phát", html);
+        Assert.Contains("Quét QR để tracking", html);
+        Assert.Contains("1 / 3", html);
+        Assert.Contains("3 / 3", html);
+        Assert.Contains("90000001/3", html);
+        Assert.Contains("DHL-Singapore", html);
         Assert.Contains("size: 100mm 150mm", html);
+    }
+
+    [Theory]
+    [InlineData("4.52", "5.0")]
+    [InlineData("5.0", "5.0")]
+    [InlineData("5.01", "5.5")]
+    [InlineData("0.1", "0.5")]
+    public void Can_quy_doi_tren_nhan_A6_lam_tron_len_0_5_kg(string kg, string expected) =>
+        Assert.Equal(expected, LabelA6.RoundUpHalf(decimal.Parse(kg, System.Globalization.CultureInfo.InvariantCulture))
+            .ToString("0.0", System.Globalization.CultureInfo.InvariantCulture));
+
+    [Fact]
+    public void Dong_kich_thuoc_A6_theo_mau_he_thong_cu()
+    {
+        Assert.Equal("7.0 | 1*(31*27*27)=<b>5.0</b>", LabelA6.DimensionLine(new PrintPackage(1, 31, 27, 27, 7)));
+        Assert.Equal("CT-Taiwan", LabelA6.RouteLabel("Chuyên tuyến|Taiwan"));
+        Assert.Equal("DHL", LabelA6.RouteLabel("DHL"));
+    }
+
+    [Fact]
+    public void Invoice_in_ten_Anh_Viet_nha_san_xuat_va_xuat_xu()
+    {
+        var items = new[] { new PrintItem("Dried Mango", 2, "Bag", 5, "0804", "Vietnam", "Xoài sấy dẻo", "Vinamit") };
+        var html = System.Net.WebUtility.HtmlDecode(Render(PrintDocs.Invoice, new OrderPrintModel(Order(), items)));
+
+        Assert.Contains("Dried Mango/ Xoài sấy dẻo", html);
+        Assert.Contains("Vinamit - Country of origin: Vietnam", html);
+        Assert.Contains("SHIPPER", html);
+        Assert.Contains("CONSIGNEE", html);
+        Assert.Contains("Full Description of Goods", html);
+    }
+
+    [Fact]
+    public void Invoice_theo_mau_he_thong_cu_in_3_ban_kem_ngay_va_cam_ket()
+    {
+        var items = new[] { new PrintItem("Cinnamon Sticks", 1, "Bag", 2.9m, "0906190000", "Vietnam", "Quế") };
+        var html = System.Net.WebUtility.HtmlDecode(Render(PrintDocs.Invoice, new OrderPrintModel(Order(), items)));
+
+        Assert.Equal(CommercialInvoice.Copies, html.Split("class=\"page a4 invoice\"").Length - 1);
+        Assert.Contains("Sep 29, 2026", html);
+        Assert.Contains("Total Value (in USD)", html);
+        Assert.Contains("2.90 USD", html);
+        Assert.Contains("Reason for Export: <b>GIFT</b>", html);
+        Assert.Contains("<b>SCS CO., LTD</b>", html); // I (name) … certify
+        Assert.Contains("Signature/Title/Stamp", html);
+    }
+
+    [Fact]
+    public void CVCK_theo_mau_he_thong_cu()
+    {
+        var items = new[] { new PrintItem("Dried Mango", 2, "Bag", 5, null, "Vietnam", "Xoài sấy dẻo") };
+        var html = System.Net.WebUtility.HtmlDecode(Render(PrintDocs.Cvck, new OrderPrintModel(Order(), items)));
+
+        Assert.Contains("CÔNG VĂN CAM KẾT NỘI DUNG HÀNG XUẤT", html);
+        Assert.Contains("TP.HCM Ngày 29 tháng 9 năm 2026", html);
+        Assert.Contains("Chi cục Hải Quan cửa khẩu Tân Sơn Nhất", html);
+        Assert.Contains("Dried Mango / Xoài sấy dẻo", html);
+        Assert.Contains("2.00 Bag", html);
+        Assert.Contains("Grosweight</i>: 24.00", html);
+        Assert.Contains("United Kingdom", html);
     }
 
     [Fact]

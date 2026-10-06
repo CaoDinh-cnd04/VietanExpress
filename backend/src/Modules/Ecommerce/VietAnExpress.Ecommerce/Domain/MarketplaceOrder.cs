@@ -62,6 +62,8 @@ internal sealed class MarketplaceOrder
     public DateTime? EditedAt { get; private set; }
     /// <summary>Khách đã xóa (ẩn) — giữ dòng để đồng bộ / nhập lại từ sàn không tạo lại đơn này.</summary>
     public DateTime? DeletedAt { get; private set; }
+    /// <summary>Khách đã xác nhận gửi → nằm ở tab "Đơn hàng của tôi" (vẫn ở dbo.DonTMDT, không ghi dbo.MaVanDon).</summary>
+    public DateTime? ConfirmedAt { get; private set; }
     public DateTime CreateDate { get; private set; }
     public DateTime? ModifyDate { get; private set; }
 
@@ -84,6 +86,8 @@ internal sealed class MarketplaceOrder
         var order = new MarketplaceOrder
         {
             CustomerId = customerId, Source = source, CreateDate = now,
+            // Khách tự nhập = đã muốn gửi → vào thẳng "Đơn hàng của tôi".
+            ConfirmedAt = now,
             Service = shipping.Service, Hub = shipping.Hub, Branch = shipping.Branch, CustomsJson = shipping.CustomsJson
         };
         order.Apply(o);
@@ -93,16 +97,34 @@ internal sealed class MarketplaceOrder
     /// <summary>Sàn đổi thông tin đơn: chỉ cập nhật khi chưa cấp bill (bill đã in thì giữ nguyên dữ liệu đã khai).</summary>
     public bool UpdateFrom(ImportedOrder o, DateTime now)
     {
-        if (Bill is not null || EditedAt is not null || DeletedAt is not null) return false;
+        if (Bill is not null || EditedAt is not null || DeletedAt is not null || ConfirmedAt is not null) return false;
         Apply(o);
         ModifyDate = now;
         return true;
     }
 
-    /// <summary>Khách xóa đơn chưa có bill (xóa mềm). Đã có bill thì không xóa được.</summary>
+    /// <summary>Xác nhận gửi (đơn đã đủ trường bắt buộc — kiểm ở Application). Đồng bộ lại từ sàn không ghi đè đơn đã xác nhận.</summary>
+    public bool Confirm(DateTime now)
+    {
+        if (ConfirmedAt is not null || DeletedAt is not null) return false;
+        ConfirmedAt = now;
+        ModifyDate = now;
+        return true;
+    }
+
+    /// <summary>Trả đơn đã xác nhận (chưa có bill) về tab Đơn hàng.</summary>
+    public bool Unconfirm(DateTime now)
+    {
+        if (ConfirmedAt is null || Bill is not null || DeletedAt is not null) return false;
+        ConfirmedAt = null;
+        ModifyDate = now;
+        return true;
+    }
+
+    /// <summary>Khách xóa đơn (xóa mềm). Đơn đã xác nhận gửi hoặc đã có bill thì không xóa được nữa.</summary>
     public bool Delete(DateTime now)
     {
-        if (Bill is not null || DeletedAt is not null) return false;
+        if (Bill is not null || ConfirmedAt is not null || DeletedAt is not null) return false;
         DeletedAt = now;
         ModifyDate = now;
         return true;
@@ -117,6 +139,7 @@ internal sealed class MarketplaceOrder
         if (DeletedAt is null || Bill is not null) return false;
         DeletedAt = null;
         EditedAt = null;
+        ConfirmedAt = null;
         Apply(o);
         ModifyDate = now;
         return true;

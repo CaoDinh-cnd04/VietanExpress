@@ -115,6 +115,7 @@ public class OrderEditRulesTests
         var order = MarketplaceOrder.Import(1, null, "shopify", new ImportedOrder("9", "#9",
             new MarketplaceRecipient("山田", null, null, null, "中央3-1", null, "京田辺市", null, "610-0313", "JP", "Japan"),
             1, null, "USD", 10, "[{\"name\":\"Tee\",\"sku\":\"\",\"qty\":1,\"fobPrice\":1,\"sellingPrice\":1}]", null, null), DateTime.Now);
-        Assert.Equal(["Địa chỉ chưa viết bằng chữ Latin", "Thiếu số điện thoại người nhận", "Chưa có cân nặng", "Thiếu mã HS"], OrderData.Issues(order));
+        // Cân nặng, mã HS, chữ Latin không còn bắt buộc — chỉ thiếu SĐT.
+        Assert.Equal(["Thiếu số điện thoại người nhận"], OrderData.Issues(order));
     }
 }

@@ -157,7 +157,12 @@
   color: var(--color-danger);
 }
 
-/* Thu gọn trên desktop: chỉ còn icon */
+/* Tên ngắn dưới icon — chỉ hiện khi thu gọn */
+.short {
+  display: none;
+}
+
+/* Thu gọn trên desktop: thanh điều hướng gọn — icon trong "viên thuốc" + tên ngắn, xếp từ trên xuống */
 .collapsed .brand {
   justify-content: center;
   padding: 0;
@@ -169,15 +174,79 @@
   display: none;
 }
 
-.collapsed .item {
-  justify-content: center;
+.collapsed .nav {
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-4) 0;
+}
+
+.collapsed .item,
+.collapsed .item:hover {
   position: relative;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  width: 64px;
+  padding: 4px 0 6px;
+  background: none;
+}
+
+/* Viên thuốc sau icon: nhạt khi rê chuột, xanh nhạt khi đang ở nhóm đó */
+.collapsed .icon {
+  box-sizing: content-box;
+  width: 22px;
+  height: 22px;
+  padding: 5px 16px;
+  border-radius: 999px;
+  color: var(--color-text-muted);
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.collapsed .item:hover .icon {
+  background: var(--color-brand-softer);
+  color: var(--color-text);
+}
+
+.collapsed .groupActive .icon,
+.collapsed .groupActive:hover .icon {
+  background: var(--color-brand-soft);
+  color: var(--color-brand-strong);
+}
+
+.collapsed .short {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.25;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.collapsed .item:hover .short {
+  color: var(--color-text);
+}
+
+.collapsed .groupActive .short {
+  color: var(--color-brand-strong);
+  font-weight: 600;
+}
+
+.collapsed .item:focus-visible {
+  outline: none;
+}
+
+.collapsed .item:focus-visible .icon {
+  box-shadow: var(--focus-ring);
 }
 
 .collapsed .badge {
   position: absolute;
-  top: 2px;
-  right: 4px;
+  top: 0;
+  right: 6px;
   min-width: 16px;
   height: 16px;
   font-size: 9.5px;

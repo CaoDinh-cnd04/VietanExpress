@@ -119,3 +119,34 @@
   .brandInfo { text-align: left; }
   .actions > button:last-child { margin-left: 0; }
 }
+/* Trang công khai /t/{slug}: cùng bố cục với preview nhưng toàn màn hình, chữ cỡ thường. */
+.standalone { min-height: calc(100vh - 56px); padding: 32px 32px 32px 64px; border-radius: 0; font-size: var(--text-lg); }
+.standalone .trackingShell { max-width: 1180px; margin: 0 auto; padding: 24px; border-radius: 10px; }
+.standalone .brandHeader strong { font-size: var(--text-xl); }
+.standalone .logo, .standalone .neutralLogo { height: 110px; }
+.standalone .trackingSearch input, .standalone .trackingSearch button { height: var(--control-h); font-size: var(--text-lg); }
+.standalone .trackingSearch button { padding-inline: 20px; cursor: pointer; }
+.standalone .blackBar { padding: 12px; font-size: var(--text-lg); }
+.standalone .promotionTitle { font-size: var(--text-lg); }
+.standalone .adCaption strong, .standalone .adButton { font-size: var(--text-sm); }
+.standalone .trackingColumns { grid-template-columns: minmax(0, 1fr) minmax(220px, 320px); gap: 24px; }
+.standalone .floatingContacts { position: fixed; top: 40%; }
+.standalone .trackingPlaceholder span { font-size: var(--text-sm); }
+@media (max-width: 760px) {
+  .standalone { padding: 12px 12px 12px 44px; }
+  .standalone .trackingShell { padding: 14px; }
+  .standalone .trackingColumns { grid-template-columns: 1fr; }
+  .standalone .brandHeader { grid-template-columns: 1fr; }
+  .standalone .brandInfo { text-align: left; }
+}
+.publish { display: flex; flex-direction: column; gap: 12px; padding: 20px; }
+.publishHead { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+.publishHead h2 { margin: 0; font-size: var(--text-lg); font-weight: 600; }
+.slugRow { display: grid; grid-template-columns: minmax(0, 360px) minmax(0, 1fr); align-items: start; gap: 12px; }
+.linkBox { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-height: var(--control-h); margin-top: 22px; padding: 4px 4px 4px 12px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-surface-muted); }
+.linkBox code { flex: 1; min-width: 0; overflow-wrap: anywhere; font-family: var(--font-mono); font-size: 12.5px; }
+@media (max-width: 760px) {
+  .slugRow { grid-template-columns: 1fr; }
+  .linkBox { margin-top: 0; }
+}
+.openLink { padding: 0 8px; font-weight: 600; color: var(--color-brand); }

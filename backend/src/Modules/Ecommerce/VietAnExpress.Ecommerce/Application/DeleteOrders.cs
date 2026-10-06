@@ -6,7 +6,7 @@ using VietAnExpress.SharedKernel.Results;
 
 namespace VietAnExpress.Ecommerce.Application;
 
-/// <summary>Xóa (ẩn) nhiều đơn E-commerce chưa có bill. Đơn đã có bill được giữ lại và báo trong câu kết quả.</summary>
+/// <summary>Xóa (ẩn) nhiều đơn E-commerce chưa gửi. Đơn đã xác nhận gửi / đã có bill được giữ lại và báo trong câu kết quả.</summary>
 internal sealed record DeleteEcomOrdersCommand(IReadOnlyList<string>? Ids) : IRequest<Result<DeleteOrdersResult>>;
 
 /// <summary>Frontend đọc thẳng <c>message</c>, <c>deletedCount</c>.</summary>
@@ -31,10 +31,10 @@ internal sealed class DeleteEcomOrdersHandler(EcommerceDbContext db, ICurrentUse
         var deleted = orders.Count(o => o.Delete(now));
         await db.SaveChangesAsync(ct);
 
-        var billed = orders.Count - deleted;
-        var message = billed == 0
+        var kept = orders.Count - deleted;
+        var message = kept == 0
             ? $"Đã xóa {deleted} đơn"
-            : $"Đã xóa {deleted} đơn; giữ lại {billed} đơn đã có bill (không xóa được)";
+            : $"Đã xóa {deleted} đơn; giữ lại {kept} đơn đã gửi (không xóa được)";
         return new DeleteOrdersResult(message, deleted);
     }
 }

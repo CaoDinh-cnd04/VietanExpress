@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ApiError, getErrorMessage, http, isNotImplemented } from '@/shared/api/http';
 import { useToast } from '@/shared/ui';
+import { can } from './lib/permissions';
 import type { LoginRequest, Session, SessionUser } from './types';
 
 export const sessionKey = ['session'] as const;
@@ -51,4 +52,10 @@ export function useLogout() {
       qc.setQueryData(sessionKey, session);
     }
   });
+}
+
+/** Kiểm tra quyền của phiên hiện tại: `const allowed = useCan(); allowed(PERMISSIONS.shipmentsCreate)`. */
+export function useCan() {
+  const session = useSession();
+  return (permission?: string) => can(session.data, permission);
 }

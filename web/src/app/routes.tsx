@@ -1,6 +1,6 @@
-import { lazy, type ComponentType, type LazyExoticComponent } from 'react';
+import { lazy, Suspense, type ComponentType, type LazyExoticComponent } from 'react';
 import { createBrowserRouter, Navigate, type RouteObject } from 'react-router-dom';
-import { RequireAuth } from '@/features/auth';
+import { PERMISSIONS, RequireAuth, RequirePermission } from '@/features/auth';
 import LandingPage from '@/features/landing/pages/LandingPage';
 import TrackingPage from '@/features/landing/pages/TrackingPage';
 import { AppShell } from './layout/AppShell';
@@ -13,14 +13,17 @@ export interface RouteHandle {
 
 // Mỗi trang tách chunk riêng, chỉ tải khi mở.
 const CreateOrderPage = lazy(() => import('@/features/create-order/pages/CreateOrderPage'));
+const PublicMyTrackingPage = lazy(() => import('@/features/mytracking/pages/PublicMyTrackingPage'));
 const pages = {
   myTracking: lazy(() => import('@/features/mytracking/pages/MyTrackingPage')),
+  staff: lazy(() => import('@/features/staff/pages/StaffPage')),
   orderImport: lazy(() => import('@/features/order-import/pages/OrderImportPage')),
   orders: lazy(() => import('@/features/orders/pages/OrdersPage')),
   drafts: lazy(() => import('@/features/drafts/pages/DraftsPage')),
   pickups: lazy(() => import('@/features/pickups/pages/PickupsPage')),
   pricing: lazy(() => import('@/features/pricing/pages/PricingPage')),
   ecommerce: lazy(() => import('@/features/ecommerce/pages/EcommercePage')),
+  ecomOrders: lazy(() => import('@/features/ecommerce/pages/EcomOrdersPage')),
   troubles: lazy(() => import('@/features/troubles/pages/TroublesPage')),
   notifications: lazy(() => import('@/features/notifications/pages/NotificationsPage')),
   support: lazy(() => import('@/features/support/pages/SupportPage')),
@@ -28,12 +31,19 @@ const pages = {
   password: lazy(() => import('@/features/account/pages/ChangePasswordPage'))
 } satisfies Record<string, LazyExoticComponent<ComponentType>>;
 
-/** Khai báo 1 trang: đường dẫn + tiêu đề breadcrumb. Thêm trang mới: thêm 1 dòng ở đây và 1 dòng ở nav.config.ts. */
-const page = (path: string, title: string, Page: ComponentType): RouteObject => ({
+/**
+ * Khai báo 1 trang: đường dẫn + tiêu đề breadcrumb (+ quyền cần có, giống nav.config.ts).
+ * Thêm trang mới: thêm 1 dòng ở đây và 1 dòng ở nav.config.ts.
+ */
+const page = (path: string, title: string, Page: ComponentType, permission?: string): RouteObject => ({
   path,
-  element: <Page />,
+  element: permission ? <RequirePermission permission={permission}><Page /></RequirePermission> : <Page />,
   handle: { title } satisfies RouteHandle
 });
+
+const create = (mode: 'wizard' | 'quick') => (
+  <RequirePermission permission={PERMISSIONS.shipmentsCreate}><CreateOrderPage mode={mode} /></RequirePermission>
+);
 
 const routes: RouteObject[] = [
   // Trang ngoài (không cần đăng nhập) — tải ngay, không lazy.
@@ -41,6 +51,8 @@ const routes: RouteObject[] = [
   { path: '/login', element: <LandingPage /> },
   // Kết quả tra cứu công khai: /tracking/MA1,MA2 (?awb= chọn mã đang xem).
   { path: '/tracking/:bills?', element: <TrackingPage /> },
+  // Trang MyTracking công khai của khách: /t/{đường dẫn} (?bills= mã đang tra).
+  { path: '/t/:slug', element: <Suspense fallback={null}><PublicMyTrackingPage /></Suspense> },
   // Portal: phải đăng nhập, chưa có phiên thì chuyển về /login?next=...
   {
     element: (
@@ -51,19 +63,21 @@ const routes: RouteObject[] = [
     children: [
       // Bỏ trang chủ riêng: link cũ /home chuyển sang Đơn hàng của tôi
       { path: 'home', element: <Navigate to="/orders" replace /> },
-      { path: 'orders/new', element: <CreateOrderPage mode="wizard" />, handle: { title: 'Tạo đơn hàng' } satisfies RouteHandle },
-      { path: 'orders/new/quick', element: <CreateOrderPage mode="quick" />, handle: { title: 'Tạo đơn 1 trang' } satisfies RouteHandle },
-      page('orders/import', 'Tạo đơn từ Excel', pages.orderImport),
-      page('orders', 'Đơn hàng của tôi', pages.orders),
-      page('drafts', 'Đơn nháp & chưa in', pages.drafts),
+      { path: 'orders/new', element: create('wizard'), handle: { title: 'Tạo đơn hàng' } satisfies RouteHandle },
+      { path: 'orders/new/quick', element: create('quick'), handle: { title: 'Tạo đơn 1 trang' } satisfies RouteHandle },
+      page('orders/import', 'Tạo đơn từ Excel', pages.orderImport, PERMISSIONS.shipmentsCreate),
+      page('orders', 'Đơn hàng của tôi', pages.orders, PERMISSIONS.shipmentsView),
+      page('drafts', 'Đơn nháp & chưa in', pages.drafts, PERMISSIONS.shipmentsView),
       page('pickups', 'Đặt lịch Pickup', pages.pickups),
       page('pricing', 'Giá & gợi ý dịch vụ', pages.pricing),
-      page('ecommerce', 'E-commerce', pages.ecommerce),
+      page('ecommerce', 'E-commerce', pages.ecommerce, PERMISSIONS.ecommerceView),
+      page('ecommerce/orders', 'Đơn hàng E-com', pages.ecomOrders, PERMISSIONS.ecommerceView),
       page('troubles', 'Quản lý sự cố', pages.troubles),
       page('notifications', 'Thông báo', pages.notifications),
       page('help', 'Trợ giúp & Góp ý', pages.support),
       page('account/api-tracking', 'API Tracking', pages.apiTracking),
-      page('account/mytracking', 'MyTracking cá nhân', pages.myTracking),
+      page('account/mytracking', 'MyTracking cá nhân', pages.myTracking, PERMISSIONS.myTracking),
+      page('account/staff', 'Tài khoản nhân viên', pages.staff, PERMISSIONS.manageStaff),
       page('account/password', 'Đổi mật khẩu', pages.password),
       { path: '*', element: <NotFoundPage />, handle: { title: 'Không tìm thấy trang' } satisfies RouteHandle }
     ]

@@ -14,7 +14,7 @@ internal sealed record ManualProductInput(string? Name, string? Sku, int Qty, de
 
 /// <summary>Khớp <c>NewManualEcomOrder</c> của frontend (API_CONTRACT.md §5).</summary>
 internal sealed record ManualOrderInput(
-    string? Ref, string? Source, string? Branch, string? Cnee, string? Ct, string? CountryCode,
+    string? Ref, string? Source, string? Branch, string? Cnee, string? Phone, string? Email, string? Ct, string? CountryCode,
     string? Postal, string? City, string? State, string? Address, string? Service, string? Hub, decimal Kg,
     IReadOnlyList<ManualProductInput>? Products, Dictionary<string, string?>? Customs);
 
@@ -42,6 +42,7 @@ internal static class ManualOrderRules
         if (string.IsNullOrWhiteSpace(i.Cnee)) return Invalid("Nhập tên người nhận");
         if (string.IsNullOrWhiteSpace(i.Ct)) return Invalid("Nhập nước đến");
         if (string.IsNullOrWhiteSpace(i.Address)) return Invalid("Nhập địa chỉ người nhận");
+        if (string.IsNullOrWhiteSpace(i.Phone)) return Invalid("Nhập số điện thoại người nhận");
         if (i.Kg < 0) return Invalid("Cân nặng không hợp lệ");
 
         var products = (i.Products ?? []).ToList();
@@ -53,12 +54,14 @@ internal static class ManualOrderRules
             string.IsNullOrWhiteSpace(p.HsCode) ? null : p.HsCode.Trim())).ToList();
         var customs = i.Customs?.Where(kv => !string.IsNullOrWhiteSpace(kv.Value)).ToDictionary(kv => kv.Key, kv => kv.Value!.Trim());
 
+        var countryCode = i.CountryCode?.Trim().ToUpperInvariant() is { Length: 2 } code ? code : null;
         var recipient = new MarketplaceRecipient(
-            Cut(i.Cnee, MarketplaceOrder.NameMaxLength), null, null, null,
+            Cut(i.Cnee, MarketplaceOrder.NameMaxLength), null,
+            Cut(OrderData.NormalizePhone(i.Phone, countryCode), MarketplaceOrder.PhoneMaxLength), Cut(i.Email, MarketplaceOrder.EmailMaxLength),
             Cut(i.Address, MarketplaceOrder.AddressMaxLength), null,
             Cut(i.City, MarketplaceOrder.CityMaxLength), Cut(i.State, MarketplaceOrder.CityMaxLength),
             Cut(i.Postal, MarketplaceOrder.PostalMaxLength),
-            i.CountryCode?.Trim().ToUpperInvariant() is { Length: 2 } cc ? cc : null,
+            countryCode,
             Cut(i.Ct, MarketplaceOrder.CountryNameMaxLength));
 
         var order = new ImportedOrder(

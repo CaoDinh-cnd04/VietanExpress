@@ -77,9 +77,9 @@ internal sealed class PrintOrdersHandler(
             IReadOnlyList<PrintItem> items = payload.Invoice.Items
                 .Where(i => !string.IsNullOrWhiteSpace(i.DescEn))
                 .Select(i => new PrintItem(
-                    string.IsNullOrWhiteSpace(i.DescVi) ? i.DescEn : $"{i.DescEn} ({i.DescVi})",
-                    Num(i.Qty), string.IsNullOrWhiteSpace(i.Unit) ? "PCS" : i.Unit, Num(i.Price),
-                    i.Hs, string.IsNullOrWhiteSpace(i.Origin) ? null : i.Origin))
+                    i.DescEn, Num(i.Qty), string.IsNullOrWhiteSpace(i.Unit) ? "PCS" : i.Unit, Num(i.Price),
+                    i.Hs, string.IsNullOrWhiteSpace(i.Origin) ? null : i.Origin,
+                    string.IsNullOrWhiteSpace(i.DescVi) ? null : i.DescVi, string.IsNullOrWhiteSpace(i.Manufacturer) ? null : i.Manufacturer))
                 .ToList();
             IReadOnlyList<PrintPackage> packages = payload.Packages
                 .Select(k => new PrintPackage((int)Num(k.Qty), Num(k.Length), Num(k.Width), Num(k.Height), Num(k.Weight)))

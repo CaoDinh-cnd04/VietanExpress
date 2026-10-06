@@ -63,6 +63,8 @@ src/
 | notifications | Thông báo (+ popup quan trọng) | `/notifications` |
 | support | Trợ giúp & Góp ý | `/help` |
 | account | API Tracking, Đổi mật khẩu | `/account/api-tracking`, `/account/password` |
+| mytracking | MyTracking cá nhân (admin), trang tra cứu công khai | `/account/mytracking`, `/t/:slug` |
+| staff | Tài khoản nhân viên (tài khoản con, phân quyền — chỉ admin) | `/account/staff` |
 
 ## Quy ước code
 

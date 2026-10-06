@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using VietAnExpress.Identity.Api;
+using VietAnExpress.Identity.Contracts;
 using VietAnExpress.Identity.Application;
 using VietAnExpress.Identity.Infrastructure;
 using VietAnExpress.SharedKernel.Authorization;
@@ -17,7 +18,7 @@ namespace VietAnExpress.Identity;
 
 /// <summary>
 /// Điểm vào DUY NHẤT (public) của module Identity: đăng nhập khách hàng bằng tài khoản ở dbo.TCustomer
-/// và xác thực JWT cho toàn hệ thống.
+/// (admin) hoặc tài khoản con của nhân viên, xác thực JWT cho toàn hệ thống, và trang MyTracking của khách.
 /// </summary>
 public static class IdentityModule
 {
@@ -32,10 +33,12 @@ public static class IdentityModule
                 "Jwt:Secret phải dài tối thiểu 32 byte. Dev: dotnet user-secrets set \"Jwt:Secret\" \"...\"")
             .ValidateOnStart();
 
-        // Tài khoản khách: dbo.TCustomer (Login_UserName / Login_Password) — không có bảng riêng của portal.
-        services.AddLegacyDbContext<IdentityDbContext>(configuration, "identity");
+        // Tài khoản chính: dbo.TCustomer (Login_UserName / Login_Password, không migration);
+        // tài khoản con + MyTracking: bảng mới dbo.TaiKhoanNhanVien, dbo.MyTrackingCauHinh (migration).
+        services.AddModuleDbContext<IdentityDbContext>(configuration, IdentityDbContext.Schema);
         services.AddSingleton<ITokenService, JwtTokenService>();
         services.AddScoped<SessionService>();
+        services.AddSingleton<IPermissionProvider, IdentityPermissionProvider>();
         services.AddValidatorsFromAssembly(Assembly, includeInternalTypes: true);
 
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer();
@@ -83,4 +86,13 @@ public static class IdentityModule
         return http.Response.WriteAsJsonAsync(
             ProblemDetailsMapper.Create(http, status, code, message), (System.Text.Json.JsonSerializerOptions?)null, "application/problem+json");
     }
+}
+
+internal sealed class IdentityPermissionProvider : IPermissionProvider
+{
+    public IEnumerable<PermissionDefinition> GetPermissions() =>
+    [
+        new(IdentityPermissions.ManageStaff, "Quản lý tài khoản nhân viên", SystemRoles.Customer),
+        new(IdentityPermissions.MyTracking, "Cấu hình trang MyTracking", SystemRoles.Customer)
+    ];
 }

@@ -41,6 +41,10 @@ export interface EcomOrder {
   issues?: string[];
   /** Chưa có bill → sửa được */
   editable?: boolean;
+  /** Đã xác nhận gửi → nằm ở trang "Đơn hàng E-com" */
+  confirmed?: boolean;
+  /** "dd/MM/yyyy HH:mm" */
+  confirmedAt?: string | null;
 }
 
 /** PUT /ecom/orders/:id — khách sửa đơn trước khi tạo bill. */
@@ -68,24 +72,12 @@ export interface EcomReceiver {
   country?: string | null;
 }
 
-/** Khai báo hải quan nâng cao (US/EU) cho đơn nhập tay. */
-export interface EcomCustoms {
-  declaredValue?: string;
-  goodsType?: string;
-  receiverId?: string;
-  ioss?: string;
-  eori?: string;
-  vat?: string;
-  salesLink?: string;
-  paymentRef?: string;
-  manufacturer?: string;
-}
-
 export interface NewManualEcomOrder {
   ref: string;
   source: EcomSource;
-  branch: string;
   cnee: string;
+  phone: string;
+  email?: string;
   /** Tên nước tiếng Anh, như /geo/countries */
   ct: string;
   /** Mã ISO 2 ký tự — trống khi danh sách nước từ API lỗi */
@@ -94,12 +86,11 @@ export interface NewManualEcomOrder {
   city: string;
   state: string;
   address: string;
-  service: string;
-  hub: string;
+  /** Để trống nếu Việt An cân */
   kg: number;
-  products: EcomProduct[];
-  customs?: EcomCustoms;
+  products: Array<{ name: string; sku: string; qty: number; fobPrice: number; sellingPrice: number }>;
 }
+
 
 export interface CsvImportResult {
   message: string;

@@ -3,11 +3,11 @@ import { Button, Modal } from '@/shared/ui';
 import { useDeleteEcomOrders } from '../api';
 import type { EcomOrder } from '../types';
 
-/** Xác nhận xóa đơn E-commerce. Chỉ gửi đơn chưa có bill; đơn đã có bill được báo là giữ lại. */
+/** Xác nhận xóa đơn E-commerce. Chỉ gửi đơn chưa gửi; đơn đã xác nhận gửi / có bill được báo là giữ lại. */
 export function DeleteOrdersModal({ orders, onClose, onDeleted }: { orders: ReadonlyArray<EcomOrder>; onClose: () => void; onDeleted: () => void }) {
   const { t } = useI18n();
   const remove = useDeleteEcomOrders();
-  const deletable = orders.filter(o => !o.bill);
+  const deletable = orders.filter(o => !o.bill && !o.confirmed);
   const billed = orders.length - deletable.length;
   const single = deletable.length === 1 ? deletable[0] : undefined;
 
@@ -35,7 +35,7 @@ export function DeleteOrdersModal({ orders, onClose, onDeleted }: { orders: Read
           : t('Xóa {n} đơn khỏi danh sách?', { n: deletable.length })}{' '}
         {t('Đơn Shopify đã xóa không tự về lại khi đồng bộ; muốn lấy lại thì nhập lại file export có đơn đó.')}
       </p>
-      {billed > 0 && <p>{t('{n} đơn đã có bill sẽ được giữ lại (không xóa được).', { n: billed })}</p>}
+      {billed > 0 && <p>{t('{n} đơn đã gửi sẽ được giữ lại (không xóa được).', { n: billed })}</p>}
     </Modal>
   );
 }

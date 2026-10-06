@@ -34,7 +34,7 @@ Backend mới (SQL Server) chỉ cần làm đúng các hợp đồng này là f
 | DELETE | `/orders/:bill` | Có sẵn | Hủy đơn (chỉ đơn "Chưa đi") |
 | GET | `/orders/:bill/photos` | **Mới** | Ảnh kiện chụp tại kho |
 | GET | `/orders/:bill/events` | **Mới** | Hành trình đơn |
-| GET | `/orders/print?bills=A,B&doc=` | Có sẵn | Trang **HTML** in chứng từ cho 1 hoặc nhiều đơn (≤ 100), tự mở hộp thoại in. `doc`: `bill-a4` \| `invoice` \| `cvck` \| `label-a6` (1 nhãn mỗi kiện, khổ 100×150 mm) |
+| GET | `/orders/print?bills=A,B&doc=` | Có sẵn | Trang **HTML** in chứng từ cho 1 hoặc nhiều đơn (≤ 100), tự mở hộp thoại in. `doc`: `bill-a4` \| `invoice` \| `cvck` \| `label-a6`. Mẫu theo hệ thống cũ: `invoice` (A4 dọc, 3 bản / đơn: SHIPPER, CONSIGNEE, Air waybill No. / Date / No. of pkgs / Weight / Dimensions, bảng hàng tên Anh/ Việt + nhà sản xuất - xuất xứ, HS, số lượng, đơn giá, thành tiền, Reason for Export và lời cam kết), `cvck` (công văn cam kết nội dung hàng xuất), `label-a6` (khổ 100×150 mm: 3 liên + 1 shipping mark mỗi kiện; cân quy đổi trên nhãn làm tròn lên 0,5 kg) |
 | GET | `/orders/export` | Có sẵn | Bảng kê gửi hàng **.xlsx** (cùng tham số lọc như `GET /orders`, tối đa 10.000 dòng); tên file ở header `Content-Disposition` |
 
 ### GET `/orders` — query
@@ -200,21 +200,23 @@ Gợi ý bảng SQL: `Services`, `ServiceZones`, `ServiceCountryZones`, `Service
 
 | Method | Path | Trạng thái | Mô tả |
 |---|---|---|---|
-| GET | `/ecom/orders?src=&q=` | Có sẵn | Đơn E-commerce (`dbo.DonTMDT`), lọc theo nguồn & từ khóa (mã đơn, người nhận, bill); mới nhất trước, tối đa 500 |
-| POST | `/ecom/manual` | Có sẵn | Lưu 1 đơn nhập tay vào `dbo.DonTMDT` (body `NewManualEcomOrder` dưới; `source` ∈ manual, shopify, tiktok, shopee, lazada, amazon, ebay, etsy, woocommerce) → `{ data: EcomOrder, message }`. Chưa cấp bill — bill tạo ở bước sau. Trùng mã đơn cùng nguồn → 409 |
+| GET | `/ecom/orders?scope=&src=&q=` | Có sẵn | Đơn E-commerce (`dbo.DonTMDT`, không liên quan `MaVanDon`). `scope`: `inbox` = tab Đơn hàng của trang E-commerce (chưa xác nhận), `mine` = trang **Đơn hàng E-com** `/ecommerce/orders` trên menu Dịch vụ & Bán hàng (đã xác nhận gửi), trống = tất cả. Lọc theo nguồn & từ khóa; mới nhất trước, tối đa 500 |
+| POST | `/ecom/manual` | Có sẵn | Lưu 1 đơn nhập tay vào `dbo.DonTMDT`, **vào thẳng trang Đơn hàng E-com** (đã xác nhận). Body `NewManualEcomOrder` dưới; `source` ∈ manual, shopify, tiktok, shopee, lazada, amazon, ebay, etsy, woocommerce → `{ data: EcomOrder, message }`. Trùng mã đơn cùng nguồn → 409 |
 | POST | `/ecom/import-csv` | Có sẵn (file Shopify) | `{ "csv": "<nội dung file>" }` → `{ message, importedCount, errors: [{ row, message }] }`. Hiện nhận file **Export orders** của Shopify (79 cột, gộp dòng theo `Name`, bỏ đơn đã giao / hủy, chống trùng theo `Id` = mã đơn API, chuẩn hóa mã bưu chính / SĐT / tên nước). Mẫu 70 cột của Việt An → 400 "đang hoàn thiện" |
-| POST | `/ecom/orders/delete` | Có sẵn | `{ ids: string[] }` (≤ 500) → `{ message, deletedCount }`. Xóa mềm đơn chưa có bill (cột `Ngay_Xoa`); đơn đã có bill được giữ lại. Đơn sàn đã xóa không bị đồng bộ tạo lại; nhập lại file export có đơn đó thì khôi phục |
+| POST | `/ecom/orders/confirm` | Có sẵn | `{ ids }` → `{ message, count }`. Xác nhận gửi → sang trang Đơn hàng E-com (cột `Ngay_Xac_Nhan`). Đơn thiếu trường bắt buộc (tên, địa chỉ + nước, SĐT, sản phẩm) bị bỏ qua và nêu trong `message`. Đồng bộ lại không ghi đè đơn đã xác nhận |
+| POST | `/ecom/orders/unconfirm` | Có sẵn | `{ ids }` → `{ message, count }`. Trả đơn đã xác nhận (chưa có bill) về tab Đơn hàng của trang E-commerce |
+| POST | `/ecom/orders/delete` | Có sẵn | `{ ids: string[] }` (≤ 500) → `{ message, deletedCount }`. Xóa mềm đơn chưa gửi (cột `Ngay_Xoa`); đơn đã xác nhận gửi hoặc đã có bill không xóa được và được giữ lại. Đơn sàn đã xóa không bị đồng bộ tạo lại; nhập lại file export có đơn đó thì khôi phục |
 | PUT | `/ecom/orders/:id` | Có sẵn | Sửa đơn chưa có bill: `{ receiver: { name, company, phone, email, address1, address2, city, state, postal, countryCode }, kg, products: [{ name, sku, qty, fobPrice, sellingPrice, hsCode }], service, hub, branch, note }` → `{ data: EcomOrder, message }`. Đã sửa thì đồng bộ / nhập lại từ sàn không ghi đè. Đã có bill → 422 |
 | POST | `/ecom/webhook/:platform` | Có sẵn | Sàn đẩy đơn vào (không do frontend gọi) |
-| POST | `/ecom/labels` | **Mới** | In nhãn hàng loạt `{ ids: string[], format: "A6"\|"A4"\|"ZPL" }` → `{ message, url? }` (url = file PDF/ZPL) |
+| ~~POST~~ | ~~`/ecom/labels`~~ | Không dùng | In nhãn dán kiện A6, phiếu đóng gói A4, bảng kê giao hàng A4 tạo ngay trên trình duyệt từ dữ liệu `GET /ecom/orders` (`features/ecommerce/lib/print-docs.ts`, mã vạch Code 128 theo mã đơn shop) — backend không cần endpoint in |
 | GET | `/ecom/settings` | **Mới** | `EcomSettings` |
 | PUT | `/ecom/settings` | **Mới** | Cập nhật một phần `EcomSettings` → trả bản đầy đủ |
 | POST | `/ecom/settings/api-keys/regenerate` | **Mới** | `{ env: "production"\|"sandbox" }` → `EcomSettings` |
 | POST | `/ecom/settings/webhook/test` | **Mới** | Gửi sự kiện thử tới URL webhook |
 
-`NewManualEcomOrder`: `{ ref, source, branch, cnee, ct, countryCode?, postal, city, state, address, service, hub, kg, products: [{ name, sku, qty, fobPrice, sellingPrice, hsCode }], customs: { declaredValue, goodsType, receiverId, ioss, eori, vat, salesLink, paymentRef, manufacturer } }`.
+`NewManualEcomOrder`: `{ ref, source, cnee, phone, email?, ct, countryCode?, postal, city, state, address, kg, products: [{ name, sku, qty, fobPrice, sellingPrice }] }` — chỉ các trường đơn sàn nào cũng có (bắt buộc: ref, cnee, phone, ct, address, ≥ 1 sản phẩm); `kg` = 0 nếu Việt An cân. Dịch vụ / hub / chi nhánh / mã HS / khai hải quan do Việt An bổ sung khi nhận hàng.
 `ct` là tên nước tiếng Anh lấy từ `GET /geo/countries`, `countryCode` là mã ISO 2 ký tự (trống khi danh sách nước tạm lỗi). Form tự điền `city`, `state` từ `GET /geo/postal` (GeoNames); khách vẫn sửa được.
-`EcomOrder` (GET /ecom/orders, POST /ecom/manual): `{ id, src, ref, bill, cnee, ct, items, kg, st, note?, products?: [{ name, sku, qty, fobPrice, sellingPrice, hsCode? }], createdAt: "dd/MM/yyyy HH:mm", value?, currency?, receiver?: { name, company, phone, email, address1, address2, city, state, postal, countryCode, country }, service?, hub?, branch?, issues: string[] (việc cần bổ sung trước khi tạo bill: thiếu cân nặng, địa chỉ chưa Latin, thiếu mã HS…), editable }`.
+`EcomOrder` (GET /ecom/orders, POST /ecom/manual): `{ id, src, ref, bill, cnee, ct, items, kg, st, note?, products?: [{ name, sku, qty, fobPrice, sellingPrice, hsCode? }], createdAt: "dd/MM/yyyy HH:mm", value?, currency?, receiver?: { name, company, phone, email, address1, address2, city, state, postal, countryCode, country }, service?, hub?, branch?, issues: string[] (trường bắt buộc còn thiếu trước khi xác nhận gửi: tên, địa chỉ / nước, SĐT, sản phẩm — cân nặng, mã HS, chữ Latin không bắt buộc), editable, confirmed, confirmedAt }`.
 `EcomSettings`: `{ apiKeys: [{ env, key }], webhookUrl, webhookEvents: ("created"|"picked_up"|"departed"|"delivered"|"exception")[] }`. Trên giao diện, phần API key / webhook nằm trong mục thu gọn "Dành cho lập trình viên" ở tab Kết nối.
 
 ### 5.1 Kết nối sàn qua OAuth (Shopify, TikTok Shop) — tab `?tab=connect`
@@ -258,19 +260,58 @@ Token sàn (access/refresh) **chỉ lưu ở backend** (mã hóa), không bao gi
 
 ## 7. Tài khoản & hỗ trợ
 
-MyTracking cá nhân (`/account/mytracking`) hiện là trang cấu hình / xem trước: tiêu đề, mô tả,
+### 7.1 Tài khoản chính (admin) và tài khoản con của nhân viên
+
+- **Tài khoản chính** = login ở `dbo.TCustomer` (`accountType: "customer"`, `isAdmin: true`): nhận mọi quyền của khách,
+  gồm 2 quyền chỉ admin có: `account.staff` (quản lý nhân viên) và `account.mytracking` (cấu hình MyTracking).
+- **Tài khoản con** (`accountType: "staff"`, `isAdmin: false`) lưu ở bảng tạm `dbo.TaiKhoanNhanVien` (mật khẩu băm PBKDF2):
+  đăng nhập cùng `POST /auth/login` (thử `dbo.TCustomer` trước, không khớp thì thử tài khoản con), JWT có thêm claim `staff_id`,
+  `customer_id` là khách cha, nhân viên chỉ có các quyền admin đã chọn.
+- **Phạm vi đơn của nhân viên:** chỉ thấy vận đơn và đơn nháp **do mình tạo** (danh sách, chi tiết, hành trình, in, xuất Excel,
+  thư viện mặt hàng). Người tạo vận đơn lưu ở bảng phụ `dbo.VanDonNguoiTao` (`MaVanDon_ID → StaffID`, không đổi `dbo.MaVanDon`),
+  nháp lưu `shipments.OrderDrafts.CreatedByStaffId`; in từ nháp thì vận đơn thuộc người tạo nháp (admin in hộ vẫn là đơn của nhân viên).
+  Quyền `shipments.view-all` ("Xem toàn bộ đơn của công ty", admin tick cho từng người) → thấy mọi đơn của công ty.
+  Tài khoản chính luôn thấy tất cả. Đơn e-commerce (`/ecom/orders`) không giới hạn theo người tạo.
+  Tên đăng nhập duy nhất toàn hệ thống (không trùng tài khoản con khác hay `Login_UserName` của khách nào).
+  Khóa / đặt lại mật khẩu / xóa → refresh token cũ bị từ chối (nhân viên phải đăng nhập lại khi access token hết hạn).
+  Đổi quyền áp dụng ở lần làm mới phiên tiếp theo. Tài khoản bị khóa đăng nhập trả 401 `ACCOUNT_DISABLED`.
+- Frontend ẩn menu / chặn trang theo `SessionUser.permissions` (`features/auth/lib/permissions.ts`); backend vẫn kiểm tra `[HasPermission]`.
+
+| Method | Path | Trạng thái | Mô tả |
+|---|---|---|---|
+| GET | `/account/staff` | Có sẵn | Quyền `account.staff`. `{ data: StaffAccount[] }` của khách đang đăng nhập |
+| GET | `/account/staff/permissions` | Có sẵn | `{ data: [{ code, description }] }` — quyền admin cấp được cho nhân viên (mọi quyền của khách trừ `account.*`) |
+| POST | `/account/staff` | Có sẵn | `{ userName, password, fullName, email?, phone?, permissions: string[] }` → `{ data: StaffAccount, message }`. `userName` 3–50 ký tự `[A-Za-z0-9._@-]`; mật khẩu ≥ 8 ký tự có chữ và số. Trùng tên → 409 `USERNAME_TAKEN`; quyền không cấp được → 400 `UNKNOWN_PERMISSION`; tối đa 100 tài khoản / khách |
+| PUT | `/account/staff/:id` | Có sẵn | `{ fullName, email?, phone?, permissions, active }` → `{ data: StaffAccount, message }` — `active: false` = khóa |
+| POST | `/account/staff/:id/reset-password` | Có sẵn | `{ newPassword }` → `{ message }` |
+| DELETE | `/account/staff/:id` | Có sẵn | `{ message }` — đơn nhân viên đã tạo vẫn thuộc khách cha |
+
+`StaffAccount`: `{ id, userName, fullName, email?, phone?, permissions: string[], active, createdAt, lastLoginAt? }` (giờ Việt Nam, không offset).
+Tài khoản con gọi các endpoint trên → 403. Nhân viên tự đổi mật khẩu bằng `POST /auth/change-password` như tài khoản chính.
+
+### 7.2 MyTracking cá nhân
+
+Trang `/account/mytracking` (chỉ admin) cấu hình trang tra cứu mang thương hiệu của khách: tiêu đề, mô tả,
 tối đa 5 ảnh quảng cáo có link đích, tiêu đề ảnh (120 ký tự) và chữ nút (40 ký tự) tùy chọn,
-cùng 1 hình nền. Cấu hình lưu localStorage riêng theo
-`customerCode` với key `mytracking-draft:{customerCode}`; chưa lưu trên server hay xuất bản link riêng.
-Preview hiển thị vùng chờ kết quả tra cứu, không gọi API tracking. Có logo, thông tin thương hiệu và các
+cùng 1 hình nền. Cấu hình lưu trên server (`dbo.MyTrackingCauHinh`, 1 dòng / khách, JSON ≤ 2 MB) cùng **đường dẫn**
+`slug` và trạng thái **xuất bản**. Đã xuất bản thì ai có link `/t/{slug}` cũng xem được và tra cứu vận đơn
+(`POST /public/tracking`); `?bills=MA1,MA2` mở sẵn kết quả. Nếu `GET /account/mytracking` trả 404/501 (backend cũ),
+frontend quay về lưu localStorage theo `customerCode` (key `mytracking-draft:{customerCode}`) như bản thử nghiệm.
+
+| Method | Path | Trạng thái | Mô tả |
+|---|---|---|---|
+| GET | `/account/mytracking` | Có sẵn | Quyền `account.mytracking`. `{ data: { slug, published, config, updatedAt? } }` — chưa cấu hình: `config: null`, `slug` gợi ý theo mã khách |
+| PUT | `/account/mytracking` | Có sẵn | `{ slug, published, config }` → như GET + `message`. `slug` 3–60 ký tự `^[a-z0-9]+(-[a-z0-9]+)*$`; đã có khách khác dùng → 409 `SLUG_TAKEN`; `config` phải là object, ≤ 2 MB |
+| GET | `/public/mytracking/:slug` | Có sẵn | Không cần đăng nhập. `{ data: { slug, config } }` khi đã xuất bản; chưa xuất bản / không có → 404 |
+
+`config` theo `myTrackingSchema` (`features/mytracking/schema.ts`); backend lưu nguyên JSON, frontend kiểm tra lại bằng `parseConfig` khi đọc
+(link chỉ nhận http/https, ảnh http/https hoặc data URL PNG/JPEG/WebP).
+Preview trong trang cấu hình hiển thị vùng chờ kết quả tra cứu, không gọi API tracking. Có logo, thông tin thương hiệu và các
 link mạng xã hội, chuyển Desktop / Mobile và cập nhật trực tiếp từ form. Ảnh JPG/JPEG/PNG/WebP
-tối đa 200 KB được nén bằng canvas xuống tối đa 200 KB trước khi lưu base64. Khi localStorage
-bị chặn hoặc đầy, cấu hình vẫn giữ trong bộ nhớ phiên và hiển thị cảnh báo.
+tối đa 200 KB được nén bằng canvas xuống tối đa 200 KB trước khi lưu base64.
 Ảnh từ URL được kiểm tra tải/giải mã trước khi thêm (timeout 15 giây), giữ link gốc;
 không tải về lưu hoặc nén. Giới hạn 200 KB sau nén áp dụng cho ảnh tải từ máy.
-`ConfigRepository` tách lưu trữ khỏi component; hiện dùng `LocalStorageConfigRepository`.
-`ApiConfigRepository` chỉ là adapter nhận transport từ bên ngoài, chưa được kết nối API.
-Phân quyền khách admin / khách user sẽ được bổ sung sau.
+`ConfigRepository` tách lưu trữ khỏi component: `ApiConfigRepository` (server) và `LocalStorageConfigRepository` (dự phòng).
 
 Form chia khối theo mẫu HTML: thương hiệu, nội dung chính, quảng cáo, nền trang và liên hệ.
 Ảnh có thể đổi thứ tự bằng kéo thả hoặc nút lên/xuống. Tiêu đề và chữ nút hiển thị bên dưới ảnh;
@@ -280,16 +321,18 @@ nút hiện khi có chữ trên nút, nhưng bị vô hiệu hóa nếu chưa c�
 chuyển thành link zalo.me/wa.me; số bắt đầu bằng 0 được hiểu là số Việt Nam (+84).
 Liên hệ để trống thì không hiện nút trong preview. Cấu hình ảnh cũ không có tiêu đề/chữ nút vẫn đọc được.
 
+### 7.3 Đăng nhập & hỗ trợ
+
 | Method | Path | Trạng thái | Mô tả |
 |---|---|---|---|
 | POST | `/auth/change-password` | **Mới** | `{ currentPassword, newPassword }` — sai mật khẩu hiện tại trả 400 + `message`. Quy tắc: ≥ 8 ký tự, có chữ và số. Ghi vào `dbo.TCustomer.Login_Password` (dạng như hệ thống cũ); các thiết bị khác phải đăng nhập lại |
 | POST | `/support/feedback` | **Mới** | `multipart/form-data`: `category, subject, message, contact, attachment?` (≤ 10MB) |
-| POST | `/auth/login` | **Mới** | `{ username, password, remember }` — `username` là tên đăng nhập của khách (`dbo.TCustomer.Login_UserName`), mật khẩu so với `Login_Password`. Đúng: đặt cookie phiên (httpOnly; `remember: false` → cookie hết khi đóng trình duyệt) và trả `{ data: SessionUser }`. Sai: 401 + `message` |
+| POST | `/auth/login` | **Mới** | `{ username, password, remember }` — `username` là tên đăng nhập của khách (`dbo.TCustomer.Login_UserName`), mật khẩu so với `Login_Password`; không khớp thì thử tài khoản con của nhân viên (§7.1). Đúng: đặt cookie phiên (httpOnly; `remember: false` → cookie hết khi đóng trình duyệt) và trả `{ data: SessionUser }`. Sai: 401 + `message` |
 | POST | `/auth/refresh` | Có sẵn | Đổi refresh token (cookie) lấy phiên mới — frontend tự gọi 1 lần khi gặp 401 |
 | POST | `/auth/logout` | **Mới** | Xóa cookie phiên |
 | GET | `/me` | **Mới** | `{ data: SessionUser }` (`customerCode, companyName, contactName, email, phone, address, taxCode` từ `dbo.TCustomer` — form Tạo đơn điền sẵn các ô người gửi còn trống, khách vẫn sửa được) — chưa đăng nhập / hết phiên trả **401**. Trang ngoài (`/`, `/login`) và lớp chặn portal dựa vào endpoint này |
 
-`SessionUser`: `{ customerCode, companyName, contactName?, email?, phone?, address?, taxCode?, avatarUrl?, defaultBranch? }`.
+`SessionUser`: `{ customerCode, companyName, contactName?, email?, phone?, address?, taxCode?, avatarUrl?, defaultBranch?, userName, fullName, accountType: "customer"|"staff", isAdmin, roles, permissions }` — tài khoản con: `userName` / `fullName` của nhân viên, hồ sơ công ty của khách cha.
 
 Người gửi trong payload đơn (`shipper`) có thêm `originalShipper` — tên shipper gốc khi khách là đơn vị forwarder gửi hộ, ghi vào `dbo.MaVanDon.Ten_Khach_Cua_FWD` khi in & cấp bill (tối đa 150 ký tự, không bắt buộc).
 

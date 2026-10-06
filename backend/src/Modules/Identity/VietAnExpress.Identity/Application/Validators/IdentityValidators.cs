@@ -1,5 +1,6 @@
 using FluentValidation;
 using VietAnExpress.Identity.Application.Commands;
+using VietAnExpress.Identity.Domain;
 
 namespace VietAnExpress.Identity.Application.Validators;
 
@@ -35,4 +36,52 @@ internal sealed class ChangePasswordCommandValidator : AbstractValidator<ChangeP
         RuleFor(x => x.NewPassword).StrongPassword()
             .NotEqual(x => x.CurrentPassword).WithMessage("Mật khẩu mới phải khác mật khẩu hiện tại");
     }
+}
+
+internal sealed class CreateStaffCommandValidator : AbstractValidator<CreateStaffCommand>
+{
+    public CreateStaffCommandValidator()
+    {
+        RuleFor(x => x.UserName).NotEmpty().WithMessage("Nhập tên đăng nhập")
+            .Must(v => v.Trim().Length is >= StaffAccount.UserNameMinLength and <= StaffAccount.UserNameMaxLength)
+            .WithMessage($"Tên đăng nhập từ {StaffAccount.UserNameMinLength} đến {StaffAccount.UserNameMaxLength} ký tự")
+            .Must(v => System.Text.RegularExpressions.Regex.IsMatch(v.Trim(), StaffAccount.UserNamePattern))
+            .WithMessage("Tên đăng nhập chỉ gồm chữ không dấu, số và . _ - @");
+        RuleFor(x => x.Password).StrongPassword();
+        this.StaffProfileRules(x => x.FullName, x => x.Email, x => x.Phone, x => x.Permissions);
+    }
+}
+
+internal sealed class UpdateStaffCommandValidator : AbstractValidator<UpdateStaffCommand>
+{
+    public UpdateStaffCommandValidator() => this.StaffProfileRules(x => x.FullName, x => x.Email, x => x.Phone, x => x.Permissions);
+}
+
+internal sealed class ResetStaffPasswordCommandValidator : AbstractValidator<ResetStaffPasswordCommand>
+{
+    public ResetStaffPasswordCommandValidator() => RuleFor(x => x.NewPassword).StrongPassword();
+}
+
+internal static class StaffRules
+{
+    public static void StaffProfileRules<T>(this AbstractValidator<T> v,
+        System.Linq.Expressions.Expression<Func<T, string>> fullName,
+        System.Linq.Expressions.Expression<Func<T, string?>> email,
+        System.Linq.Expressions.Expression<Func<T, string?>> phone,
+        System.Linq.Expressions.Expression<Func<T, IReadOnlyList<string>>> permissions)
+    {
+        v.RuleFor(fullName).NotEmpty().WithMessage("Nhập họ tên nhân viên").MaximumLength(StaffAccount.FullNameMaxLength);
+        v.RuleFor(email).MaximumLength(StaffAccount.EmailMaxLength)
+            .Must(e => string.IsNullOrWhiteSpace(e) || System.Text.RegularExpressions.Regex.IsMatch(e.Trim(), @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
+            .WithMessage("Email không hợp lệ");
+        v.RuleFor(phone).MaximumLength(StaffAccount.PhoneMaxLength);
+        v.RuleFor(permissions).NotNull();
+    }
+}
+
+internal sealed class SaveMyTrackingCommandValidator : AbstractValidator<SaveMyTrackingCommand>
+{
+    public SaveMyTrackingCommandValidator() =>
+        RuleFor(x => x.Slug).Must(s => MyTrackingPage.IsValidSlug(s.Trim().ToLowerInvariant()))
+            .WithMessage($"Đường dẫn từ {MyTrackingPage.SlugMinLength} đến {MyTrackingPage.SlugMaxLength} ký tự, chỉ gồm chữ thường không dấu, số và dấu gạch ngang");
 }

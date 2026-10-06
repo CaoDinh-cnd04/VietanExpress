@@ -67,8 +67,8 @@ internal sealed class StoresController(PortalHosts portalHosts, IConfiguration c
     [HttpGet("orders")]
     [HasPermission(EcommercePermissions.View)]
     [ProducesResponseType<ApiResponse<IReadOnlyList<EcomOrderDto>>>(StatusCodes.Status200OK)]
-    public async Task<IActionResult> Orders([FromQuery] string? src, [FromQuery] string? q, CancellationToken ct) =>
-        OkData(await Sender.Send(new GetEcomOrdersQuery(src, q), ct));
+    public async Task<IActionResult> Orders([FromQuery] string? src, [FromQuery] string? q, [FromQuery] string? scope, CancellationToken ct) =>
+        OkData(await Sender.Send(new GetEcomOrdersQuery(src, q, scope), ct));
 
     /// <summary>Khách nhập tay 1 đơn (1–5 sản phẩm) vào danh sách đơn E-commerce.</summary>
     [HttpPost("manual")]
@@ -98,11 +98,29 @@ internal sealed class StoresController(PortalHosts portalHosts, IConfiguration c
     public async Task<IActionResult> UpdateOrder(long id, EcomOrderEditInput body, CancellationToken ct) =>
         FromResult(await Sender.Send(new UpdateEcomOrderCommand(id, body), ct), "Đã lưu thay đổi");
 
+    /// <summary>Xác nhận gửi → đơn chuyển sang "Đơn hàng của tôi" (đơn thiếu tên / địa chỉ / SĐT / sản phẩm bị bỏ qua).</summary>
+    [HttpPost("orders/confirm")]
+    [HasPermission(EcommercePermissions.Connect)]
+    [ProducesResponseType<ConfirmOrdersResult>(StatusCodes.Status200OK)]
+    public Task<IActionResult> Confirm(OrderIdsRequest body, CancellationToken ct) => SendConfirm(body, true, ct);
+
+    /// <summary>Trả đơn đã xác nhận (chưa có bill) về tab Đơn hàng.</summary>
+    [HttpPost("orders/unconfirm")]
+    [HasPermission(EcommercePermissions.Connect)]
+    [ProducesResponseType<ConfirmOrdersResult>(StatusCodes.Status200OK)]
+    public Task<IActionResult> Unconfirm(OrderIdsRequest body, CancellationToken ct) => SendConfirm(body, false, ct);
+
+    private async Task<IActionResult> SendConfirm(OrderIdsRequest body, bool confirm, CancellationToken ct)
+    {
+        var result = await Sender.Send(new ConfirmEcomOrdersCommand(body.Ids, confirm), ct);
+        return result.IsSuccess ? Ok(result.Value) : Problem(result.Error);
+    }
+
     /// <summary>Xóa (ẩn) đơn chưa có bill — 1 hoặc nhiều đơn. Đơn Shopify đã xóa không bị đồng bộ / nhập file tạo lại.</summary>
     [HttpPost("orders/delete")]
     [HasPermission(EcommercePermissions.Connect)]
     [ProducesResponseType<DeleteOrdersResult>(StatusCodes.Status200OK)]
-    public async Task<IActionResult> DeleteOrders(DeleteOrdersRequest body, CancellationToken ct)
+    public async Task<IActionResult> DeleteOrders(OrderIdsRequest body, CancellationToken ct)
     {
         var result = await Sender.Send(new DeleteEcomOrdersCommand(body.Ids), ct);
         return result.IsSuccess ? Ok(result.Value) : Problem(result.Error);
@@ -132,7 +150,7 @@ internal sealed class StoresController(PortalHosts portalHosts, IConfiguration c
 
 internal sealed record ImportCsvRequest(string? Csv);
 
-internal sealed record DeleteOrdersRequest(IReadOnlyList<string>? Ids);
+internal sealed record OrderIdsRequest(IReadOnlyList<string>? Ids);
 
 internal sealed record StartConnectionRequest(string? Platform, string? ShopDomain, string? Region);
 

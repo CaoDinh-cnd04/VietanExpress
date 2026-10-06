@@ -71,6 +71,7 @@ internal sealed class ShipmentsPermissionProvider : IPermissionProvider
         new(ShipmentsPermissions.View, "Xem vận đơn", Customer),
         new(ShipmentsPermissions.Create, "Tạo đơn nháp", Customer),
         new(ShipmentsPermissions.Update, "Sửa đơn nháp", Customer),
-        new(ShipmentsPermissions.IssueBill, "In & cấp mã vận đơn", Customer)
+        new(ShipmentsPermissions.IssueBill, "In & cấp mã vận đơn", Customer),
+        new(ShipmentsPermissions.ViewAll, "Xem toàn bộ đơn của công ty", Customer)
     ];
 }

@@ -36,9 +36,21 @@ describe('ConfigRepository', () => {
     const broken = new LocalStorageConfigRepository(() => ({ getItem: () => '{bad', setItem: () => undefined }));
     expect((await broken.load('A')).config).toEqual(emptyConfig());
   });
-  it('adapter API chỉ gọi transport được truyền vào khi sử dụng', async () => {
-    const calls: string[] = [];
-    const repo = new ApiConfigRepository({ load: async user => { calls.push(user); return emptyConfig(); }, save: async user => { calls.push(user); } });
-    expect(calls).toEqual([]); await repo.load('A'); await repo.save('A', emptyConfig()); expect(calls).toEqual(['A', 'A']);
+  it('adapter API đọc / ghi cấu hình kèm đường dẫn và trạng thái xuất bản', async () => {
+    const saved: unknown[] = [];
+    const repo = new ApiConfigRepository({
+      load: async () => ({ slug: 'sgb', published: false, config: null }),
+      save: async body => { saved.push(body); return { slug: body.slug, published: body.published, config: body.config, updatedAt: '2026-10-06T08:00:00' }; }
+    });
+    const loaded = await repo.load();
+    expect(loaded.config).toEqual(emptyConfig());
+    expect(loaded.publication).toEqual({ slug: 'sgb', published: false, updatedAt: undefined });
+    const result = await repo.save('A', { ...emptyConfig(), title: 'Shop' }, { slug: 'sgb-hn', published: true });
+    expect(result.publication).toMatchObject({ slug: 'sgb-hn', published: true });
+    expect(saved).toEqual([{ slug: 'sgb-hn', published: true, config: { ...emptyConfig(), title: 'Shop' } }]);
+  });
+  it('adapter API đọc cấu hình đã lưu, bỏ dữ liệu sai', async () => {
+    const repo = new ApiConfigRepository({ load: async () => ({ slug: 'sgb', published: true, config: { title: 'Đã lưu', images: 'sai' } }), save: async () => { throw new Error('không gọi'); } });
+    expect((await repo.load()).config.title).toBe('Đã lưu');
   });
 });

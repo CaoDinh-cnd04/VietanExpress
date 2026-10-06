@@ -1,4 +1,4 @@
-import { Suspense, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { useLocalStorage } from '@/shared/lib/useLocalStorage';
 import { cx } from '@/shared/lib/cx';
@@ -26,12 +26,24 @@ export function AppShell() {
     else setCollapsed(c => !c);
   };
 
+  // Ctrl+B (⌘+B trên Mac): thu gọn / mở rộng menu — bỏ qua khi đang gõ trong vùng soạn thảo định dạng.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey || e.key.toLowerCase() !== 'b') return;
+      if ((e.target as HTMLElement | null)?.isContentEditable) return;
+      e.preventDefault();
+      toggleMenu();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  });
+
   return (
     <div className={cx(styles.shell, collapsed && styles.collapsed)}>
       <Sidebar collapsed={collapsed} mobileOpen={mobileOpen} onNavigate={() => setMobileOpen(false)} onExpand={() => setCollapsed(false)} />
       {mobileOpen && <div className={styles.scrim} onClick={() => setMobileOpen(false)} />}
       <div className={styles.main}>
-        <Topbar onMenu={toggleMenu} onStartTour={tour.start} />
+        <Topbar onMenu={toggleMenu} menuCollapsed={collapsed} onStartTour={tour.start} />
         <main className={styles.content}>
           <Suspense fallback={<p className={styles.loading}>{t('Đang tải…')}</p>}>
             <Outlet />

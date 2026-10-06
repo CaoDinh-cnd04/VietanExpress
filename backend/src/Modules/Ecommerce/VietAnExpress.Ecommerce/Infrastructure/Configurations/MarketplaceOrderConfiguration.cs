@@ -50,6 +50,7 @@ internal sealed class MarketplaceOrderConfiguration : IEntityTypeConfiguration<M
         b.Property(x => x.CustomsJson).HasColumnName("Hai_Quan");
         b.Property(x => x.EditedAt).HasColumnName("Ngay_Sua").HasColumnType("datetime");
         b.Property(x => x.DeletedAt).HasColumnName("Ngay_Xoa").HasColumnType("datetime");
+        b.Property(x => x.ConfirmedAt).HasColumnName("Ngay_Xac_Nhan").HasColumnType("datetime");
         b.Property(x => x.TrackingPushedAt).HasColumnName("Ngay_Day_Tracking").HasColumnType("datetime");
         b.Property(x => x.CreateDate).HasColumnType("datetime").HasDefaultValueSql("GETDATE()");
         b.Property(x => x.ModifyDate).HasColumnType("datetime");

@@ -8,12 +8,19 @@ public static class VaClaimTypes
     public const string Role = "role";
     public const string Permission = "permission";
     public const string CustomerId = "customer_id";
+    /// <summary>Có khi người đăng nhập là tài khoản con (nhân viên) của khách — dbo.TaiKhoanNhanVien.ID.</summary>
+    public const string StaffId = "staff_id";
 }
 
-/// <summary>Vai trò. Portal chỉ có khách hàng; controller luôn kiểm tra theo permission, không theo vai trò.</summary>
+/// <summary>
+/// Vai trò. Controller luôn kiểm tra theo permission, không theo vai trò.
+/// Tài khoản chính của khách (dbo.TCustomer) là admin: nhận mọi quyền có vai trò <see cref="Customer"/>;
+/// tài khoản con (nhân viên) chỉ nhận các quyền admin đã chọn.
+/// </summary>
 public static class SystemRoles
 {
     public const string Customer = "customer";
+    public const string CustomerStaff = "customer_staff";
 }
 
 /// <summary>1 quyền và các vai trò được cấp quyền này (khai báo trong code, không lưu DB).</summary>

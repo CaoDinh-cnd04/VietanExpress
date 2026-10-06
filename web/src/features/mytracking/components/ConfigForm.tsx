@@ -2,6 +2,7 @@
 import { useFieldArray, type UseFormReturn } from 'react-hook-form';
 import { useI18n } from '@/shared/i18n';
 import { Button, Icon, TextAreaField, TextField } from '@/shared/ui';
+import type { StorageMode } from '../hooks/useMyTrackingConfig';
 import { MAX_AD_IMAGES, type MyTrackingConfig } from '../schema';
 import { ConfigImage } from './ConfigImage';
 import { ImagePicker } from './ImagePicker';
@@ -12,9 +13,13 @@ interface Props {
   onSave: FormEventHandler<HTMLFormElement>;
   onRestore: () => void;
   disabled: boolean;
+  /** `server`: lưu + xuất bản trên server; `local`: chỉ lưu bản thử nghiệm trên trình duyệt. */
+  mode: StorageMode;
+  published: boolean;
+  onPublish: (published: boolean) => void;
 }
 
-export function ConfigForm({ form, onSave, onRestore, disabled }: Props) {
+export function ConfigForm({ form, onSave, onRestore, disabled, mode, published, onPublish }: Props) {
   const { t } = useI18n();
   const { register, control, setValue, getValues, formState: { errors, isDirty } } = form;
   const { fields, append, remove, move } = useFieldArray({ control, name: 'images', keyName: 'fieldKey' });
@@ -100,12 +105,18 @@ export function ConfigForm({ form, onSave, onRestore, disabled }: Props) {
         </div>
         <div className={styles.socialForm}>{(['facebook', 'instagram', 'x'] as const).map(key => <TextField key={key} label={{ facebook: 'Facebook', instagram: 'Instagram', x: 'X' }[key]} placeholder="https://" error={errors.brand?.[key]?.message} {...register(`brand.${key}`)} />)}</div>
       </section>
-      <div className={styles.actions}>
+      {mode === 'local' ? <div className={styles.actions}>
         <Button type="submit" variant="primary">{t('Lưu bản thử nghiệm')}</Button>
         <Button onClick={onRestore}>{t('Khôi phục mặc định')}</Button>
         <span className={styles.saveStatus} role="status">{t(isDirty ? 'Có thay đổi chưa lưu' : 'Không có thay đổi chưa lưu')}</span>
         <Button disabled>{t('Xuất bản (sắp ra mắt)')}</Button>
-      </div>
+      </div> : <div className={styles.actions}>
+        <Button type="submit" variant={published ? 'primary' : undefined}>{t('Lưu')}</Button>
+        {!published && <Button variant="primary" onClick={() => onPublish(true)}>{t('Lưu & xuất bản')}</Button>}
+        <Button onClick={onRestore}>{t('Khôi phục mặc định')}</Button>
+        <span className={styles.saveStatus} role="status">{t(isDirty ? 'Có thay đổi chưa lưu' : 'Không có thay đổi chưa lưu')}</span>
+        {published && <Button variant="danger" onClick={() => onPublish(false)}>{t('Ngừng xuất bản')}</Button>}
+      </div>}
     </fieldset>
   </form>;
 }

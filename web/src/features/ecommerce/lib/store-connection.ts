@@ -31,6 +31,9 @@ export function readOAuthResult(params: URLSearchParams): { ok: true; platform: 
 export const ECOM_TABS = ['orders', 'add', 'connect'] as const;
 export type EcomTab = (typeof ECOM_TABS)[number];
 
+/** Trang "Đơn hàng E-com" (đơn đã xác nhận gửi) — mục riêng trên menu Dịch vụ & Bán hàng. */
+export const ECOM_ORDERS_PATH = '/ecommerce/orders';
+
 /** Tab cũ (overview, push, stores, conn) vẫn mở đúng chỗ sau khi gộp còn 3 tab. */
 const LEGACY_TABS: Record<string, EcomTab> = { overview: 'orders', push: 'add', stores: 'connect', conn: 'connect' };
 

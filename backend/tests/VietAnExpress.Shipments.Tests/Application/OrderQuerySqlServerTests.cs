@@ -21,11 +21,11 @@ public class OrderQuerySqlServerTests(SqlServerQueryFixture fixture) : IClassFix
     private static readonly DateTime Today = new(2026, 10, 3);
     private static readonly TimeProvider Clock = new FixedClock();
 
-    private static OrderAccess Access(long? customerId = 42)
+    private static OrderAccess Access(ShipmentsDbContext db, long? customerId = 42)
     {
         var user = new Mock<ICurrentUser>();
         user.SetupGet(u => u.CustomerId).Returns(customerId);
-        return new OrderAccess(user.Object, Mock.Of<ICustomersApi>());
+        return new OrderAccess(user.Object, Mock.Of<ICustomersApi>(), db);
     }
 
     private static GetOrdersQuery Query(string? status = null, int page = 1, int size = 3) =>
@@ -62,7 +62,7 @@ public class OrderQuerySqlServerTests(SqlServerQueryFixture fixture) : IClassFix
         Assert.Equal(9, commands.Reads.Count);
         commands.Reads.Clear();
 
-        var response = await new GetOrdersHandler(db, Access(), Clock).Handle(q, TestContext.Current.CancellationToken);
+        var response = await new GetOrdersHandler(db, Access(db), Clock).Handle(q, TestContext.Current.CancellationToken);
         Assert.Equal(2, commands.Reads.Count);
         Assert.Equal(expectedTotal, response.Total);
         Assert.Equal((int)Math.Ceiling(expectedTotal / 3d), response.TotalPages);
@@ -90,7 +90,7 @@ public class OrderQuerySqlServerTests(SqlServerQueryFixture fixture) : IClassFix
         var expectedTotal = await filtered.CountAsync(TestContext.Current.CancellationToken);
         var expectedIds = await OrderListFilter.Sort(filtered, q.SortBy, q.SortDir).Skip(2).Take(2).Select(o => o.Id).ToListAsync(TestContext.Current.CancellationToken);
         commands.Reads.Clear();
-        var response = await new GetOrdersHandler(db, Access(), Clock).Handle(q, TestContext.Current.CancellationToken);
+        var response = await new GetOrdersHandler(db, Access(db), Clock).Handle(q, TestContext.Current.CancellationToken);
         Assert.Equal(expectedTotal, response.Total);
         Assert.Equal(expectedAll, response.Summary.StatusCounts["all"]);
         Assert.Equal(expectedIds, response.Items.Select(o => o.Seq));
@@ -105,7 +105,7 @@ public class OrderQuerySqlServerTests(SqlServerQueryFixture fixture) : IClassFix
     {
         var commands = new ReadCounter();
         await using var db = fixture.CreateDb(commands);
-        var response = await new GetOrdersHandler(db, Access(customerId), Clock).Handle(Query(page: page, size: 100), TestContext.Current.CancellationToken);
+        var response = await new GetOrdersHandler(db, Access(db, customerId), Clock).Handle(Query(page: page, size: 100), TestContext.Current.CancellationToken);
         Assert.Empty(response.Items);
         Assert.Single(commands.Reads);
         if (customerId != 42)
@@ -126,7 +126,7 @@ public class OrderQuerySqlServerTests(SqlServerQueryFixture fixture) : IClassFix
             .OrderByDescending(l => l.OrderId).ThenBy(l => l.Id).ToListAsync(TestContext.Current.CancellationToken);
         var expected = ProductLibrary.Recent(lines.Select(l => new CustomerInvoiceLine(l, orders[l.OrderId!.Value])), 2);
         commands.Reads.Clear();
-        var actual = await new GetRecentInvoicesHandler(db, Access()).Handle(new GetRecentInvoicesQuery(2), TestContext.Current.CancellationToken);
+        var actual = await new GetRecentInvoicesHandler(db, Access(db)).Handle(new GetRecentInvoicesQuery(2), TestContext.Current.CancellationToken);
         Assert.Equal(JsonSerializer.Serialize(expected), JsonSerializer.Serialize(actual));
         Assert.Equal(2, commands.Reads.Count);
         Assert.DoesNotContain("[SenderEmail]", commands.Reads[0]);
@@ -159,7 +159,7 @@ public class OrderQuerySqlServerTests(SqlServerQueryFixture fixture) : IClassFix
     public async Task Unknown_carrier_bill_does_not_match_an_order_with_a_null_order_number()
     {
         await using var db = fixture.CreateDb(new ReadCounter());
-        var result = await new GetOrderHandlers(db, Access(), Clock)
+        var result = await new GetOrderHandlers(db, Access(db), Clock)
             .Handle(new GetOrderEventsQuery("NONEXISTENT-CARRIER-BILL"), TestContext.Current.CancellationToken);
         Assert.True(result.IsFailure);
         Assert.Equal("ORDER_NOT_FOUND", result.Error.Code);
@@ -172,7 +172,7 @@ public class OrderQuerySqlServerTests(SqlServerQueryFixture fixture) : IClassFix
         await using var db = fixture.CreateDb(commands);
         var full = await db.LegacyOrders.AsNoTracking().Where(o => o.CustomerId == 42).OrderBy(o => o.Id).FirstAsync(TestContext.Current.CancellationToken);
         commands.Reads.Clear();
-        var handler = new GetOrderHandlers(db, Access(), Clock);
+        var handler = new GetOrderHandlers(db, Access(db), Clock);
         var result = await handler.Handle(new GetOrderEventsQuery(full.BillConnect!), TestContext.Current.CancellationToken);
         Assert.True(result.IsSuccess);
         Assert.Equal(JsonSerializer.Serialize(LegacyOrderView.Events(full, hideSigner: false)), JsonSerializer.Serialize(result.Value));

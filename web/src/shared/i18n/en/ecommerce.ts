@@ -161,7 +161,6 @@ export const ecommerce: Record<string, string> = {
 
   // Thêm đơn
   'Thêm 1 đơn': 'Add an order',
-  '· 1–5 sản phẩm, lưu vào tab Đơn hàng': '· 1–5 products, saved to the Orders tab',
   'Bán trên': 'Sold on',
   'Lưu đơn': 'Save order',
   'Đơn trên {shops} tự về tab Đơn hàng khi đồng bộ — ở đây chỉ thêm đơn bán ngoài shop đã kết nối.': 'Orders from {shops} arrive in the Orders tab when you sync — only add orders sold outside connected stores here.',
@@ -171,7 +170,6 @@ export const ecommerce: Record<string, string> = {
   // Nhập file Shopify, sửa đơn, việc cần bổ sung
   'Cần bổ sung': 'Needs info',
   '(+{n} việc)': '(+{n} more)',
-  'Cần bổ sung trước khi tạo bill': 'Complete before creating the bill',
   'Sửa đơn': 'Edit order',
   'Lưu thay đổi': 'Save changes',
   'Địa chỉ (dòng 2)': 'Address (line 2)',
@@ -196,12 +194,8 @@ export const ecommerce: Record<string, string> = {
   // Việc cần bổ sung (backend gửi)
   'Thiếu tên người nhận': 'Missing recipient name',
   'Thiếu địa chỉ / nước đến': 'Missing address / destination country',
-  'Địa chỉ chưa viết bằng chữ Latin': 'Address is not in Latin script',
   'Thiếu số điện thoại người nhận': 'Missing recipient phone',
-  'Chưa có cân nặng': 'No weight yet',
   'Chưa có sản phẩm': 'No products yet',
-  'Thiếu mã HS': 'Missing HS code',
-  'Tên hàng chưa viết bằng chữ Latin': 'Product name is not in Latin script',
 
   // Xóa đơn
   'Xóa đơn': 'Delete order',
@@ -209,6 +203,43 @@ export const ecommerce: Record<string, string> = {
   'Xóa đơn {ref} khỏi danh sách?': 'Delete order {ref} from the list?',
   'Xóa {n} đơn khỏi danh sách?': 'Delete {n} orders from the list?',
   'Đơn Shopify đã xóa không tự về lại khi đồng bộ; muốn lấy lại thì nhập lại file export có đơn đó.': 'Deleted Shopify orders do not come back on sync; to restore one, import an export file that contains it again.',
-  '{n} đơn đã có bill sẽ được giữ lại (không xóa được).': '{n} orders with a bill will be kept (cannot be deleted).',
+  '{n} đơn đã gửi sẽ được giữ lại (không xóa được).': '{n} sent orders will be kept (cannot be deleted).',
   'Đang xóa…': 'Deleting…',
+
+  // Đơn hàng của tôi (đơn đã xác nhận gửi)
+  'Sẵn sàng gửi': 'Ready to ship',
+  'Đã xác nhận gửi': 'Confirmed for shipping',
+  'Xác nhận gửi': 'Confirm shipping',
+  'Trả về Đơn hàng': 'Move back to Orders',
+  'Cần bổ sung trước khi xác nhận gửi': 'Complete before confirming shipping',
+  'Chưa có đơn đã xác nhận gửi': 'No confirmed orders yet',
+  'Chọn đơn ở tab Đơn hàng rồi bấm Xác nhận gửi, hoặc thêm đơn tay — đơn nhập tay vào thẳng đây.': 'Select orders in the Orders tab and click Confirm shipping, or add an order manually — manual orders go straight here.',
+  'Đến tab Đơn hàng': 'Go to Orders',
+  '· 1–5 sản phẩm, lưu vào Đơn hàng E-com': '· 1–5 products, saved to E-com orders',
+  'Nhập số điện thoại': 'Enter phone number',
+
+  // In (nhãn A6, phiếu đóng gói, bảng kê) và ngăn chi tiết
+  'Nhãn dán kiện (A6)': 'Parcel label (A6)',
+  'Phiếu đóng gói (A4)': 'Packing list (A4)',
+  'Bảng kê giao hàng (A4)': 'Handover manifest (A4)',
+  'Phiếu đóng gói': 'Packing list',
+  'Bảng kê giao hàng': 'Handover manifest',
+  'In lúc {time}': 'Printed {time}',
+  'Đã kiểm': 'Checked',
+  'Người đóng gói': 'Packed by',
+  'Người kiểm tra': 'Checked by',
+  'Mã đơn': 'Order no.',
+  'Bên giao': 'Shipper',
+  'Bên giao (khách hàng)': 'Handed over by (customer)',
+  'Bên nhận (Việt An Express)': 'Received by (Viet An Express)',
+  'Tổng {n} đơn': 'Total {n} orders',
+  'Mới về': 'New',
+  'Tiến trình đơn': 'Order progress',
+  'Việt An cân': 'Weighed by Viet An',
+  'Thông tin khác': 'Other details',
+  'Xác nhận gửi lúc': 'Confirmed at',
+
+  // Trang Đơn hàng E-com (menu Dịch vụ & Bán hàng)
+  'Đơn hàng E-com': 'E-com orders',
+  'Đơn từ Shopify, file Excel hoặc nhập tay đã xác nhận gửi — in nhãn, phiếu đóng gói, bảng kê giao cho Việt An.': 'Orders from Shopify, Excel files or manual entry confirmed for shipping — print labels, packing lists and handover manifests for Viet An.',
 };

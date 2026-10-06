@@ -2,19 +2,22 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { getErrorMessage, http, type ListResponse } from '@/shared/api/http';
 import { fill } from '@/shared/i18n';
 import { useToast } from '@/shared/ui';
+import type { OrderScope } from './lib/order-view';
 import type { CsvImportResult, EcomOrder, EcomOrderUpdate, EcomSettings, EcomSource, NewManualEcomOrder, StartStoreConnection, StoreConnection, StoreSyncResult } from './types';
 
 export const ecomKeys = {
-  orders: (src: EcomSource | 'all', q: string) => ['ecom', 'orders', src, q] as const,
+  orders: (scope: OrderScope | 'all', src: EcomSource | 'all', q: string) => ['ecom', 'orders', scope, src, q] as const,
   allOrders: ['ecom', 'orders'] as const,
   settings: ['ecom', 'settings'] as const,
   stores: ['ecom', 'stores'] as const
 };
 
-export function useEcomOrders(src: EcomSource | 'all' = 'all', q = '') {
+/** Đơn E-commerce theo tab: inbox = Đơn hàng (chưa xác nhận), mine = trang Đơn hàng E-com. */
+export function useEcomOrders(scope: OrderScope | 'all' = 'all', src: EcomSource | 'all' = 'all', q = '') {
   return useQuery({
-    queryKey: ecomKeys.orders(src, q),
-    queryFn: () => http.get<ListResponse<EcomOrder>>('/ecom/orders', { src: src === 'all' ? undefined : src, q }).then(r => r.data),
+    queryKey: ecomKeys.orders(scope, src, q),
+    queryFn: () =>
+      http.get<ListResponse<EcomOrder>>('/ecom/orders', { scope: scope === 'all' ? undefined : scope, src: src === 'all' ? undefined : src, q }).then(r => r.data),
     placeholderData: keepPreviousData
   });
 }
@@ -46,6 +49,21 @@ export function useUpdateEcomOrder() {
   });
 }
 
+/** Xác nhận gửi (sang trang "Đơn hàng E-com") hoặc trả về tab Đơn hàng. Đơn thiếu trường bắt buộc được backend báo lại. */
+export function useConfirmEcomOrders() {
+  const qc = useQueryClient();
+  const toast = useToast();
+  return useMutation({
+    mutationFn: ({ ids, confirm }: { ids: string[]; confirm: boolean }) =>
+      http.post<{ message: string; count: number }>(confirm ? '/ecom/orders/confirm' : '/ecom/orders/unconfirm', { ids }),
+    onSuccess: res => {
+      toast.show(res.message, res.count > 0 ? 'success' : 'error');
+      void qc.invalidateQueries({ queryKey: ecomKeys.allOrders });
+    },
+    onError: e => toast.show(getErrorMessage(e), 'error')
+  });
+}
+
 /** Xóa (ẩn) đơn chưa có bill; đơn Shopify đã xóa không bị đồng bộ / nhập file tạo lại. */
 export function useDeleteEcomOrders() {
   const qc = useQueryClient();
@@ -69,18 +87,6 @@ export function useImportEcomCsv() {
   });
 }
 
-/** In nhãn hàng loạt. Endpoint mới — xem API_CONTRACT.md. */
-export function usePrintEcomLabels() {
-  const toast = useToast();
-  return useMutation({
-    mutationFn: (body: { ids: string[]; format: string }) => http.post<{ message: string; url?: string }>('/ecom/labels', body),
-    onSuccess: res => {
-      if (res.url) window.open(res.url, '_blank', 'noopener');
-      toast.show(res.message, 'success');
-    },
-    onError: e => toast.show(getErrorMessage(e, 'Chưa in được nhãn — chức năng đang được kết nối máy chủ'), 'error')
-  });
-}
 
 export function useEcomSettings() {
   return useQuery({

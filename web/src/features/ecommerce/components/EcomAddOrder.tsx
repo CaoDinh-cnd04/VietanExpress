@@ -26,7 +26,7 @@ export function EcomAddOrder() {
           {connected.length > 0
             ? t('Đơn trên {shops} tự về tab Đơn hàng khi đồng bộ — ở đây chỉ thêm đơn bán ngoài shop đã kết nối.', { shops: connected.map(s => s.shopName).join(', ') })
             : t('Bán trên Shopify? Kết nối shop để đơn tự về, không cần nhập tay.')}
-          {connected.length === 0 && <> <LinkButton to="?tab=connect" size="sm" variant="ghost"><Icon name="link" size={15} /> {t('Kết nối sàn')}</LinkButton></>}
+          {connected.length === 0 && <> <LinkButton to="/ecommerce?tab=connect" size="sm" variant="ghost"><Icon name="link" size={15} /> {t('Kết nối sàn')}</LinkButton></>}
         </p>
       </div>
       {method === 'manual' ? <ManualEcomForm /> : <CsvImport />}
@@ -79,7 +79,7 @@ function CsvImport() {
       {result && (
         <div className={styles.spaced}>
           <Notice tone={result.errors.length ? 'warning' : 'success'} title={`${fileName}: ${t(result.message)}`}>
-            <LinkButton to="?tab=orders" size="sm">{t('Xem tab Đơn hàng')}</LinkButton>
+            <LinkButton to="/ecommerce?tab=orders" size="sm">{t('Xem tab Đơn hàng')}</LinkButton>
             {result.errors.length > 0 && (
               <ul className={styles.errorList}>
                 {result.errors.map((e, i) => <li key={i}>{typeof e === 'string' ? t(e) : t('Dòng {row}: {message}', { row: e.row, message: t(e.message) })}</li>)}

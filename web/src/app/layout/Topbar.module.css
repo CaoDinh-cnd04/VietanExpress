@@ -118,3 +118,68 @@
   background: var(--color-brand);
   color: #fff;
 }
+
+/* Nút thu gọn / mở rộng sidebar: icon tròn không viền + tooltip kèm phím tắt */
+.navToggle {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--color-text-muted);
+}
+
+.navToggle:hover,
+.navToggle:focus-visible {
+  background: var(--color-brand-softer);
+  color: var(--color-text);
+}
+
+.tooltip {
+  position: absolute;
+  top: 50%;
+  left: calc(100% + 8px);
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px 6px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--color-text);
+  color: var(--color-surface);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: var(--shadow-lg);
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-4px, -50%);
+  transition: opacity 0.12s, transform 0.12s;
+}
+
+.tooltip kbd {
+  padding: 1px 6px;
+  border: 1px solid color-mix(in srgb, var(--color-surface) 35%, transparent);
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+.navToggle:hover .tooltip,
+.navToggle:focus-visible .tooltip {
+  opacity: 1;
+  transform: translate(0, -50%);
+}
+
+@media (hover: none) {
+  .tooltip {
+    display: none;
+  }
+}

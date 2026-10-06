@@ -1,86 +1,60 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useFieldArray, useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
-import { BRANCHES, CARRIERS, COUNTRIES, DEFAULT_SERVICE, defaultHub, hubOptions } from '@/shared/config/domain';
+import { COUNTRIES } from '@/shared/config/domain';
 import { findCountry, normalizePostal, shouldResetAddress, useCountries, usePostalLookup } from '@/features/create-order';
 import { useI18n } from '@/shared/i18n';
 import { useDebouncedCallback } from '@/shared/lib/useDebouncedCallback';
 import { Button, Card, FormGrid, Icon, SelectField, TextField } from '@/shared/ui';
 import { useCreateManualEcomOrder } from '../api';
-import { ECOM_SOURCES, GOODS_TYPES, MAX_PRODUCTS } from '../constants';
+import { ECOM_SOURCES, MAX_PRODUCTS } from '../constants';
+import { ECOM_ORDERS_PATH } from '../lib/store-connection';
 import type { EcomSource } from '../types';
 import styles from './ecommerce.module.css';
 
-const num = (msg: string) => z.string().refine(v => v.trim() !== '' && Number(v) >= 0, msg);
 const product = z.object({
   name: z.string().trim().min(1, 'Nhập tên hàng'),
   sku: z.string(),
   qty: z.string().refine(v => Number(v) >= 1, 'SL ≥ 1'),
-  fobPrice: num('Nhập giá FOB'),
-  sellingPrice: num('Nhập giá bán'),
-  hsCode: z.string()
+  price: z.string().refine(v => v.trim() !== '' && Number(v) >= 0, 'Nhập giá')
 });
 
+/** Chỉ các trường đơn sàn nào cũng có — dịch vụ, hub, mã HS, khai hải quan do Việt An bổ sung khi nhận hàng. */
 const schema = z.object({
   ref: z.string().trim().min(1, 'Nhập mã đơn của shop'),
   source: z.string(),
-  branch: z.string().min(1),
   cnee: z.string().trim().min(1, 'Nhập tên người nhận'),
+  phone: z.string().trim().min(1, 'Nhập số điện thoại'),
+  email: z.string(),
   ct: z.string().trim().min(1, 'Nhập nước đến'),
   postal: z.string(),
   city: z.string(),
   state: z.string(),
   address: z.string().trim().min(1, 'Nhập địa chỉ'),
-  service: z.string().min(1, 'Chọn dịch vụ'),
-  hub: z.string().min(1, 'Chọn hub'),
   kg: z.string(),
-  products: z.array(product).min(1).max(MAX_PRODUCTS),
-  customs: z.object({
-    declaredValue: z.string(),
-    goodsType: z.string(),
-    receiverId: z.string(),
-    ioss: z.string(),
-    eori: z.string(),
-    vat: z.string(),
-    salesLink: z.string(),
-    paymentRef: z.string(),
-    manufacturer: z.string()
-  })
+  products: z.array(product).min(1).max(MAX_PRODUCTS)
 });
 type FormValues = z.infer<typeof schema>;
 
-const emptyProduct = (): FormValues['products'][number] => ({ name: '', sku: '', qty: '1', fobPrice: '', sellingPrice: '', hsCode: '' });
+const emptyProduct = (): FormValues['products'][number] => ({ name: '', sku: '', qty: '1', price: '' });
 const defaults = (): FormValues => ({
-  ref: '',
-  source: 'manual',
-  branch: 'TP.HCM',
-  cnee: '',
-  ct: '',
-  postal: '',
-  city: '',
-  state: '',
-  address: '',
-  service: DEFAULT_SERVICE.carrier,
-  hub: DEFAULT_SERVICE.hub,
-  kg: '',
-  products: [emptyProduct()],
-  customs: { declaredValue: '', goodsType: GOODS_TYPES[0], receiverId: '', ioss: '', eori: '', vat: '', salesLink: '', paymentRef: '', manufacturer: '' }
+  ref: '', source: 'manual', cnee: '', phone: '', email: '', ct: '', postal: '', city: '', state: '', address: '', kg: '',
+  products: [emptyProduct()]
 });
 
 /** Nguồn chọn được khi nhập tay: tự nhập, hoặc đơn bán trên 1 sàn chưa kết nối (không có API / Excel — đó là cách nhập khác). */
 const MANUAL_SOURCES: ReadonlyArray<EcomSource> = ['manual', 'shopify', 'tiktok', 'shopee', 'lazada', 'amazon', 'ebay', 'etsy', 'woocommerce'];
 const SOURCE_OPTIONS = MANUAL_SOURCES.map(k => ({ value: k, label: ECOM_SOURCES[k].label }));
 
-/** Thêm 1 đơn bán ngoài sàn đã kết nối: 1–5 sản phẩm, khai hải quan nâng cao tùy chọn. Lưu xong chuyển sang tab Đơn hàng. */
+/** Thêm 1 đơn bán ngoài sàn đã kết nối (1–5 sản phẩm). Lưu xong vào thẳng trang "Đơn hàng E-com". */
 export function ManualEcomForm() {
   const { t } = useI18n();
-  const [, setParams] = useSearchParams();
+  const navigate = useNavigate();
   const create = useCreateManualEcomOrder();
   const { control, register, handleSubmit, reset, setValue, setError, clearErrors, formState } = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: defaults() });
   const { fields, append, remove } = useFieldArray({ control, name: 'products' });
-  const service = useWatch({ control, name: 'service' });
   const e = formState.errors;
 
   // ---------- Nước đến: danh sách từ GET /geo/countries; mã bưu chính → thành phố, bang qua GeoNames ----------
@@ -134,33 +108,40 @@ export function ManualEcomForm() {
     }
     create.mutate(
       {
-        ...v,
+        ref: v.ref,
+        source: v.source as EcomSource,
+        cnee: v.cnee,
+        phone: v.phone,
+        email: v.email.trim() || undefined,
         ct: picked.name,
         countryCode: picked.code.length === 2 ? picked.code : undefined,
-        source: v.source as EcomSource,
+        postal: v.postal,
+        city: v.city,
+        state: v.state,
+        address: v.address,
         kg: Number(v.kg) || 0,
-        products: v.products.map(p => ({ ...p, qty: Number(p.qty), fobPrice: Number(p.fobPrice), sellingPrice: Number(p.sellingPrice) }))
+        // Đơn sàn chỉ có giá bán — khai giá FOB bằng giá bán.
+        products: v.products.map(p => ({ name: p.name, sku: p.sku, qty: Number(p.qty), fobPrice: Number(p.price), sellingPrice: Number(p.price) }))
       },
       {
         onSuccess: () => {
           reset(defaults());
           lastCountry.current = undefined;
           setPostalQuery(null);
-          setParams({ tab: 'orders' }, { replace: true });
+          navigate(ECOM_ORDERS_PATH);
         }
       }
     );
   });
 
   return (
-    <Card title="Thêm 1 đơn" subtitle="· 1–5 sản phẩm, lưu vào tab Đơn hàng">
+    <Card title="Thêm 1 đơn" subtitle="· 1–5 sản phẩm, lưu vào Đơn hàng E-com">
       <form onSubmit={ev => void submit(ev)} noValidate className={styles.formSections}>
         <section>
           <h3 className={styles.subTitle}>{t('Đơn hàng')}</h3>
-          <FormGrid columns={3}>
+          <FormGrid columns={2}>
             <TextField label="Mã đơn của shop (REF)" required error={e.ref?.message} {...register('ref')} />
             <SelectField label="Bán trên" options={SOURCE_OPTIONS} {...register('source')} />
-            <SelectField label="Chi nhánh gửi" options={BRANCHES} {...register('branch')} />
           </FormGrid>
         </section>
 
@@ -168,6 +149,8 @@ export function ManualEcomForm() {
           <h3 className={styles.subTitle}>{t('Người nhận')}</h3>
           <FormGrid columns={3}>
             <TextField label="Tên người nhận" required error={e.cnee?.message} {...register('cnee')} />
+            <TextField label="Điện thoại" type="tel" required hint="Kèm mã nước, vd +81…; số nội địa sẽ tự thêm mã nước" error={e.phone?.message} {...register('phone')} />
+            <TextField label="Email" type="email" {...register('email')} />
             <TextField
               label="Nước đến"
               required
@@ -186,33 +169,16 @@ export function ManualEcomForm() {
         </section>
 
         <section>
-          <h3 className={styles.subTitle}>{t('Vận chuyển')}</h3>
-          <FormGrid columns={3}>
-            <SelectField
-              label="Dịch vụ"
-              required
-              options={CARRIERS}
-              error={e.service?.message}
-              {...register('service', { onChange: ev => setValue('hub', defaultHub(ev.target.value as string)) })}
-            />
-            <SelectField label="Hub" required options={hubOptions(service)} error={e.hub?.message} {...register('hub')} />
-            <TextField label="Cân nặng" type="number" min={0} step="any" suffix="kg" hint="Để trống nếu Việt An cân" {...register('kg')} />
-          </FormGrid>
-        </section>
-
-        <section>
           <h3 className={styles.subTitle}>{t('Sản phẩm ({n}/{max})', { n: fields.length, max: MAX_PRODUCTS })}</h3>
           <div className={styles.productList}>
             {fields.map((f, i) => {
               const pe = e.products?.[i];
               return (
-                <div key={f.id} className={styles.productRow}>
-                  <TextField label="Tên hàng (EN)" required error={pe?.name?.message} {...register(`products.${i}.name`)} />
+                <div key={f.id} className={styles.manualProductRow}>
+                  <TextField label="Tên hàng" required error={pe?.name?.message} {...register(`products.${i}.name`)} />
                   <TextField label="SKU" {...register(`products.${i}.sku`)} />
                   <TextField label="SL" type="number" min={1} error={pe?.qty?.message} {...register(`products.${i}.qty`)} />
-                  <TextField label="Giá FOB" type="number" min={0} step="any" error={pe?.fobPrice?.message} {...register(`products.${i}.fobPrice`)} />
-                  <TextField label="Giá bán" type="number" min={0} step="any" error={pe?.sellingPrice?.message} {...register(`products.${i}.sellingPrice`)} />
-                  <TextField label="Mã HS" {...register(`products.${i}.hsCode`)} />
+                  <TextField label="Giá bán" type="number" min={0} step="any" error={pe?.price?.message} {...register(`products.${i}.price`)} />
                   <Button iconOnly variant="ghost" aria-label={t('Xóa sản phẩm {n}', { n: i + 1 })} disabled={fields.length <= 1} onClick={() => remove(i)}>
                     <Icon name="close" size={15} />
                   </Button>
@@ -223,26 +189,18 @@ export function ManualEcomForm() {
           <Button size="sm" disabled={fields.length >= MAX_PRODUCTS} onClick={() => append(emptyProduct())}>
             <Icon name="plus" size={15} /> {t('Thêm sản phẩm')}
           </Button>
+          <div className={styles.spaced}>
+            <FormGrid columns={3}>
+              <TextField label="Cân nặng" type="number" min={0} step="any" suffix="kg" hint="Để trống nếu Việt An cân" {...register('kg')} />
+            </FormGrid>
+          </div>
         </section>
-
-        <details className={styles.details}>
-          <summary>{t('Khai báo hải quan nâng cao (tùy chọn — cho hàng đi US / EU)')}</summary>
-          <FormGrid columns={3}>
-            <TextField label="Tổng giá trị khai (declared value)" {...register('customs.declaredValue')} />
-            <SelectField label="Loại hàng" options={GOODS_TYPES} {...register('customs.goodsType')} />
-            <TextField label="CMND / ID người nhận" {...register('customs.receiverId')} />
-            <TextField label="IOSS (EU)" {...register('customs.ioss')} />
-            <TextField label="EORI (EU)" {...register('customs.eori')} />
-            <TextField label="VAT number" {...register('customs.vat')} />
-            <TextField label="Link sản phẩm / gian hàng" {...register('customs.salesLink')} />
-            <TextField label="Mã giao dịch thanh toán" {...register('customs.paymentRef')} />
-            <TextField label="Nhà sản xuất: tên · nước · địa chỉ" {...register('customs.manufacturer')} />
-          </FormGrid>
-        </details>
 
         <div className={styles.formActions}>
           <Button onClick={() => reset(defaults())}>{t('Làm mới')}</Button>
-          <Button variant="primary" type="submit" disabled={create.isPending}><Icon name="check" size={15} /> {t(create.isPending ? 'Đang lưu…' : 'Lưu đơn')}</Button>
+          <Button variant="primary" type="submit" disabled={create.isPending}>
+            <Icon name="check" size={15} /> {t(create.isPending ? 'Đang lưu…' : 'Lưu đơn')}
+          </Button>
         </div>
       </form>
     </Card>

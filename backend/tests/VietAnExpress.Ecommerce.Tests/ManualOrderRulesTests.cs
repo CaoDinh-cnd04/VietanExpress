@@ -8,7 +8,7 @@ public class ManualOrderRulesTests
     private static readonly DateTime Now = new(2026, 10, 5, 9, 0, 0);
 
     private static ManualOrderInput Input(string? source = "manual", IReadOnlyList<ManualProductInput>? products = null, decimal kg = 1.2345m) => new(
-        " SHOP-001 ", source, "TP.HCM", "Jane Doe", "Australia", "au", "2000", "Sydney", "NSW", "1 Main St", "DHL", "SGN", kg,
+        " SHOP-001 ", source, null, "Jane Doe", "0400 000 000", null, "Australia", "au", "2000", "Sydney", "NSW", "1 Main St", "DHL", "SGN", kg,
         products ?? [new("T-shirt", "TS-1", 2, 5, 12.5m, "6109"), new("Hat", null, 1, 3, 7, " ")],
         new() { ["ioss"] = "IM123", ["eori"] = " " });
 
@@ -21,6 +21,7 @@ public class ManualOrderRulesTests
         Assert.Equal("manual", source);
         Assert.Equal("SHOP-001", order.OrderName);
         Assert.Equal("AU", order.Recipient.CountryCode);
+        Assert.Equal("+61400000000", order.Recipient.Phone);
         Assert.Equal(3, order.ItemCount);
         Assert.Equal(1.235m, order.WeightKg);
         Assert.Equal(32m, order.TotalAmount);

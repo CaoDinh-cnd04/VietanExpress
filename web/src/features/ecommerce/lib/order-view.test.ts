@@ -2,32 +2,36 @@ import { describe, expect, it } from 'vitest';
 import type { EcomOrder } from '../types';
 import { countByView, displayStatus, filterByView, formatMoney, receiverLines } from './order-view';
 
-const order = (id: string, st: EcomOrder['st'], bill = ''): EcomOrder => ({ id, src: 'shopify', ref: id, bill, cnee: 'A', ct: 'US', items: 1, kg: 1, st, createdAt: '05/10/2026 09:00' });
-const orders = [{ ...order('1', 'created'), issues: ['Chưa có cân nặng'] }, order('2', 'exception'), order('3', 'created', 'VA1'), order('4', 'delivered', 'VA2'), order('5', 'weighing')];
+const order = (id: string, st: EcomOrder['st'], bill = '', extra: Partial<EcomOrder> = {}): EcomOrder =>
+  ({ id, src: 'shopify', ref: id, bill, cnee: 'A', ct: 'US', items: 1, kg: 1, st, createdAt: '05/10/2026 09:00', ...extra });
+
+const inbox = [order('1', 'created', '', { issues: ['Thiếu số điện thoại người nhận'] }), order('2', 'created')];
+const mine = [order('3', 'created', '', { confirmed: true }), order('4', 'exception', '', { confirmed: true }), order('5', 'delivered', 'VA2', { confirmed: true })];
 
 describe('filterByView / countByView', () => {
-  it('lọc theo việc cần làm', () => {
-    expect(filterByView(orders, 'all')).toHaveLength(5);
-    expect(filterByView(orders, 'needsInfo').map(o => o.id)).toEqual(['1']);
-    expect(filterByView(orders, 'pending').map(o => o.id)).toEqual(['1', '5']);
-    expect(filterByView(orders, 'billed').map(o => o.id)).toEqual(['3', '4']);
-    expect(filterByView(orders, 'exception').map(o => o.id)).toEqual(['2']);
+  it('tab Đơn hàng: cần bổ sung / sẵn sàng gửi', () => {
+    expect(filterByView(inbox, 'needsInfo').map(o => o.id)).toEqual(['1']);
+    expect(filterByView(inbox, 'ready').map(o => o.id)).toEqual(['2']);
+    expect(countByView(inbox, 'inbox')).toEqual({ all: 2, needsInfo: 1, ready: 1 });
   });
 
-  it('đếm từng nhóm', () => {
-    expect(countByView(orders)).toEqual({ all: 5, needsInfo: 1, pending: 2, billed: 2, exception: 1 });
-    expect(countByView([])).toEqual({ all: 0, needsInfo: 0, pending: 0, billed: 0, exception: 0 });
+  it('trang Đơn hàng E-com: chờ tạo bill / đã có bill / lỗi', () => {
+    expect(filterByView(mine, 'waiting').map(o => o.id)).toEqual(['3']);
+    expect(filterByView(mine, 'billed').map(o => o.id)).toEqual(['5']);
+    expect(filterByView(mine, 'exception').map(o => o.id)).toEqual(['4']);
+    expect(countByView([], 'mine')).toEqual({ all: 0, waiting: 0, billed: 0, exception: 0 });
   });
 });
 
 describe('displayStatus', () => {
-  it('đơn chưa có bill hiện "Chờ tạo bill"', () => {
-    expect(displayStatus({ st: 'created', bill: '' }).label).toBe('Chờ tạo bill');
-    expect(displayStatus({ st: 'weighing', bill: '' }).label).toBe('Chờ tạo bill');
+  it('đơn mới về: cần bổ sung hoặc sẵn sàng gửi', () => {
+    expect(displayStatus({ st: 'created', bill: '', issues: ['Chưa có sản phẩm'] }).label).toBe('Cần bổ sung');
+    expect(displayStatus({ st: 'created', bill: '' }).label).toBe('Sẵn sàng gửi');
   });
 
-  it('đơn đã có bill / lỗi giữ nhãn trạng thái', () => {
-    expect(displayStatus({ st: 'created', bill: 'VA1' }).label).toBe('Đã tạo');
+  it('đơn đã xác nhận / có bill / lỗi', () => {
+    expect(displayStatus({ st: 'created', bill: '', confirmed: true }).label).toBe('Đã xác nhận gửi');
+    expect(displayStatus({ st: 'created', bill: 'VA1', confirmed: true }).label).toBe('Đã tạo');
     expect(displayStatus({ st: 'exception', bill: '' }).tone).toBe('danger');
   });
 });

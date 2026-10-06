@@ -37,6 +37,7 @@ describe('readOAuthResult', () => {
 describe('resolveEcomTab', () => {
   it('giữ tab hợp lệ, đổi tab cũ sang tab mới, mặc định là đơn hàng', () => {
     expect(resolveEcomTab('add')).toBe('add');
+    expect(resolveEcomTab('mine')).toBe('orders'); // trang chuyển hướng ?tab=mine sang /ecommerce/orders
     expect(resolveEcomTab('conn')).toBe('connect');
     expect(resolveEcomTab('stores')).toBe('connect');
     expect(resolveEcomTab('push')).toBe('add');

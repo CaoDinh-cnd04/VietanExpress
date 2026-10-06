@@ -43,6 +43,10 @@ namespace VietAnExpress.Ecommerce.Infrastructure.Migrations
                         .HasColumnType("nvarchar(50)")
                         .HasColumnName("Chi_Nhanh");
 
+                    b.Property<DateTime?>("ConfirmedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("Ngay_Xac_Nhan");
+
                     b.Property<DateTime>("CreateDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime")

@@ -5,37 +5,42 @@ import { downloadTextFile, toCsv } from '@/shared/lib/files';
 import { formatNumber } from '@/shared/lib/format';
 import { useDebouncedCallback } from '@/shared/lib/useDebouncedCallback';
 import { Button, Card, DataTable, EmptyState, Icon, LinkButton, StatusPill, type Column } from '@/shared/ui';
-import { useEcomOrders, usePrintEcomLabels, useStoreConnections, useSyncStore } from '../api';
-import { ECOM_SOURCES, LABEL_FORMATS, STORE_PLATFORMS } from '../constants';
-import { ORDER_VIEWS, countByView, displayStatus, filterByView, formatMoney, type OrderView } from '../lib/order-view';
+import { useConfirmEcomOrders, useEcomOrders, useStoreConnections, useSyncStore } from '../api';
+import { ECOM_SOURCES, STORE_PLATFORMS } from '../constants';
+import { ORDER_VIEWS, countByView, displayStatus, filterByView, formatMoney, type OrderScope, type OrderView } from '../lib/order-view';
 import { formatSyncTime, needsReauthorize } from '../lib/store-connection';
 import type { EcomOrder, EcomSource, StoreConnection } from '../types';
 import { DeleteOrdersModal } from './DeleteOrdersModal';
 import { EcomOrderDrawer } from './EcomOrderDrawer';
+import { PrintMenu } from './PrintMenu';
 import styles from './ecommerce.module.css';
 
-/** Tab "Đơn hàng": shop đã kết nối + đồng bộ, lọc theo việc cần làm, tìm kiếm, chọn nhiều để in nhãn / xuất Excel, bấm dòng xem chi tiết. */
-export function EcomOrderList() {
+/**
+ * Danh sách đơn E-commerce cho 2 tab:
+ * - inbox ("Đơn hàng"): đơn mới về từ sàn / file — đồng bộ shop, bổ sung thông tin, chọn đơn "Xác nhận gửi".
+ * - mine (trang "Đơn hàng E-com"): đơn đã xác nhận gửi (vẫn ở dbo.DonTMDT, không ghi MaVanDon) — in nhãn, trả về tab Đơn hàng.
+ * Chung: lọc theo việc cần làm, tìm kiếm, xuất Excel, xóa, bấm dòng xem / sửa chi tiết.
+ */
+export function EcomOrderList({ scope }: { scope: OrderScope }) {
   const { t } = useI18n();
   const [view, setView] = useState<OrderView>('all');
   const [src, setSrc] = useState<EcomSource | 'all'>('all');
   const [q, setQ] = useState('');
   const [search, setSearch] = useState('');
-  const [format, setFormat] = useState<string>(LABEL_FORMATS[0]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [openedId, setOpenedId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<EcomOrder[]>([]);
   const debouncedSearch = useDebouncedCallback(setQ, 300);
-  const all = useEcomOrders();
-  const { data: fetched = [], isFetching } = useEcomOrders(src, q);
+  const all = useEcomOrders(scope);
+  const { data: fetched = [], isFetching } = useEcomOrders(scope, src, q);
+  const confirm = useConfirmEcomOrders();
   const stores = useStoreConnections();
-  const print = usePrintEcomLabels();
 
   const allOrders = all.data ?? [];
   // Đọc từ danh sách mới nhất → sửa xong ngăn chi tiết hiện ngay dữ liệu mới.
   const opened = allOrders.find(o => o.id === openedId) ?? fetched.find(o => o.id === openedId) ?? null;
   const connected = stores.data ?? [];
-  const counts = countByView(fetched);
+  const counts = countByView(fetched, scope);
   const rows = filterByView(fetched, view);
   const sources = [...new Set(allOrders.map(o => o.src))];
 
@@ -47,6 +52,8 @@ export function EcomOrderList() {
     return next;
   });
   const allChecked = rows.length > 0 && rows.every(r => selected.has(r.id));
+  /** Đơn đã chọn theo thứ tự đang hiển thị (để in / bảng kê đúng thứ tự). */
+  const selectedOrders = fetched.filter(o => selected.has(o.id));
 
   const exportCsv = () =>
     downloadTextFile(
@@ -123,20 +130,20 @@ export function EcomOrderList() {
 
   return (
     <div className="page-stack">
-      {connected.length > 0 && <StoreSyncBar stores={connected} />}
+      {scope === 'inbox' && connected.length > 0 && <StoreSyncBar stores={connected} />}
 
       <Card>
         <div className={styles.listHead}>
           <div className={styles.views} role="group" aria-label={t('Lọc nhanh')}>
-            {ORDER_VIEWS.map(v => (
+            {ORDER_VIEWS[scope].map(v => (
               <button
                 key={v.key}
                 type="button"
-                className={cx(styles.view, view === v.key && styles.viewActive, v.key === 'exception' && counts.exception > 0 && styles.viewAlert)}
+                className={cx(styles.view, view === v.key && styles.viewActive, (v.key === 'exception' || v.key === 'needsInfo') && (counts[v.key] ?? 0) > 0 && styles.viewAlert)}
                 aria-pressed={view === v.key}
                 onClick={() => { setView(v.key); clearSelection(); }}
               >
-                {t(v.label)} <span className={styles.viewCount}>{counts[v.key]}</span>
+                {t(v.label)} <span className={styles.viewCount}>{counts[v.key] ?? 0}</span>
               </button>
             ))}
           </div>
@@ -163,25 +170,48 @@ export function EcomOrderList() {
         {selected.size > 0 && (
           <div className={styles.selectionBar}>
             <strong>{t('Đã chọn {n} đơn', { n: selected.size })}</strong>
-            <select className={styles.inlineSelect} aria-label={t('Khổ nhãn')} value={format} onChange={e => setFormat(e.target.value)}>
-              {LABEL_FORMATS.map(f => <option key={f} value={f}>{t('Khổ {f}', { f })}</option>)}
-            </select>
-            <Button variant="primary" size="sm" disabled={print.isPending} onClick={() => print.mutate({ ids: [...selected], format })}>
-              <Icon name="printer" size={15} /> {t('In nhãn')}
-            </Button>
-            <Button size="sm" onClick={() => setDeleting(fetched.filter(o => selected.has(o.id)))}>
-              <Icon name="trash" size={15} /> {t('Xóa')}
-            </Button>
+            {scope === 'inbox' ? (
+              <>
+                <Button variant="primary" size="sm" disabled={confirm.isPending} onClick={() => confirm.mutate({ ids: [...selected], confirm: true }, { onSuccess: clearSelection })}>
+                  <Icon name="send" size={15} /> {t('Xác nhận gửi')}
+                </Button>
+                <PrintMenu orders={selectedOrders} />
+              </>
+            ) : (
+              <>
+                <PrintMenu orders={selectedOrders} variant="primary" />
+                <Button size="sm" disabled={confirm.isPending} onClick={() => confirm.mutate({ ids: [...selected], confirm: false }, { onSuccess: clearSelection })}>
+                  {t('Trả về Đơn hàng')}
+                </Button>
+              </>
+            )}
+            {/* Đơn đã gửi (trang Đơn hàng E-com) không xóa được. */}
+            {scope === 'inbox' && (
+              <Button size="sm" onClick={() => setDeleting(selectedOrders)}>
+                <Icon name="trash" size={15} /> {t('Xóa')}
+              </Button>
+            )}
             <Button size="sm" variant="ghost" onClick={clearSelection}>{t('Bỏ chọn')}</Button>
           </div>
         )}
 
         {!all.isLoading && !allOrders.length ? (
-          connected.length > 0 ? (
+          scope === 'mine' ? (
+            <EmptyState
+              title="Chưa có đơn đã xác nhận gửi"
+              description="Chọn đơn ở tab Đơn hàng rồi bấm Xác nhận gửi, hoặc thêm đơn tay — đơn nhập tay vào thẳng đây."
+              action={
+                <div className={styles.emptyActions}>
+                  <LinkButton to="/ecommerce?tab=orders" size="sm">{t('Đến tab Đơn hàng')}</LinkButton>
+                  <LinkButton to="/ecommerce?tab=add" size="sm" variant="primary"><Icon name="plus" size={15} /> {t('Thêm đơn')}</LinkButton>
+                </div>
+              }
+            />
+          ) : connected.length > 0 ? (
             <EmptyState
               title="Chưa có đơn cần giao"
               description="Đơn chưa giao trên shop đã kết nối sẽ về đây khi đồng bộ. Đơn bán ngoài sàn thì thêm tay hoặc từ file."
-              action={<LinkButton to="?tab=add" size="sm"><Icon name="plus" size={15} /> {t('Thêm đơn')}</LinkButton>}
+              action={<LinkButton to="/ecommerce?tab=add" size="sm"><Icon name="plus" size={15} /> {t('Thêm đơn')}</LinkButton>}
             />
           ) : (
             <EmptyState
@@ -189,8 +219,8 @@ export function EcomOrderList() {
               description="Kết nối Shopify để đơn tự về, hoặc thêm đơn tay / từ file Excel."
               action={
                 <div className={styles.emptyActions}>
-                  <LinkButton to="?tab=add" size="sm">{t('Thêm đơn')}</LinkButton>
-                  <LinkButton to="?tab=connect" size="sm" variant="primary"><Icon name="link" size={15} /> {t('Kết nối sàn')}</LinkButton>
+                  <LinkButton to="/ecommerce?tab=add" size="sm">{t('Thêm đơn')}</LinkButton>
+                  <LinkButton to="/ecommerce?tab=connect" size="sm" variant="primary"><Icon name="link" size={15} /> {t('Kết nối sàn')}</LinkButton>
                 </div>
               }
             />
@@ -214,7 +244,13 @@ export function EcomOrderList() {
         )}
       </Card>
 
-      <EcomOrderDrawer order={opened} onClose={() => setOpenedId(null)} onDelete={o => setDeleting([o])} />
+      <EcomOrderDrawer
+        order={opened}
+        onClose={() => setOpenedId(null)}
+        onDelete={o => setDeleting([o])}
+        onConfirm={(o, yes) => confirm.mutate({ ids: [o.id], confirm: yes }, { onSuccess: res => { if (res.count > 0) setOpenedId(null); } })}
+        confirming={confirm.isPending}
+      />
       <DeleteOrdersModal
         orders={deleting}
         onClose={() => setDeleting([])}
@@ -246,7 +282,7 @@ function StoreSyncBar({ stores }: { stores: ReadonlyArray<StoreConnection> }) {
               </span>
             </div>
             {needsReauthorize(s) ? (
-              <LinkButton to="?tab=connect" size="sm" variant="primary">{t('Ủy quyền lại')}</LinkButton>
+              <LinkButton to="/ecommerce?tab=connect" size="sm" variant="primary">{t('Ủy quyền lại')}</LinkButton>
             ) : (
               <Button size="sm" disabled={sync.isPending} onClick={() => sync.mutate(s.id)}>
                 <Icon name="refresh" size={15} /> {t(sync.isPending && sync.variables === s.id ? 'Đang đồng bộ…' : 'Đồng bộ')}

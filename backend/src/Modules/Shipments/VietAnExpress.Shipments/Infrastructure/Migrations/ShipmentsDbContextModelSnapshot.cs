@@ -129,6 +129,33 @@ namespace VietAnExpress.Shipments.Infrastructure.Migrations
                     b.ToTable("NhomHangHoa", "dbo");
                 });
 
+            modelBuilder.Entity("VietAnExpress.Shipments.Domain.OrderCreator", b =>
+                {
+                    b.Property<long>("OrderId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("MaVanDon_ID");
+
+                    b.Property<DateTime>("CreateDate")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasDefaultValueSql("GETDATE()");
+
+                    b.Property<long>("CustomerId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("CustomerID");
+
+                    b.Property<long>("StaffId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("StaffID");
+
+                    b.HasKey("OrderId");
+
+                    b.HasIndex("StaffId", "OrderId")
+                        .HasDatabaseName("IX_VanDonNguoiTao_StaffID");
+
+                    b.ToTable("VanDonNguoiTao", "dbo");
+                });
+
             modelBuilder.Entity("VietAnExpress.Shipments.Domain.OrderDraft", b =>
                 {
                     b.Property<Guid>("Id")
@@ -162,6 +189,9 @@ namespace VietAnExpress.Shipments.Infrastructure.Migrations
 
                     b.Property<Guid?>("CreatedBy")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<long?>("CreatedByStaffId")
+                        .HasColumnType("bigint");
 
                     b.Property<long>("CustomerId")
                         .HasColumnType("bigint");

@@ -4,6 +4,7 @@ using Moq;
 using VietAnExpress.Customers.Contracts;
 using VietAnExpress.Identity.Application;
 using VietAnExpress.Identity.Application.Commands;
+using VietAnExpress.Identity.Contracts;
 using VietAnExpress.Identity.Infrastructure;
 using VietAnExpress.SharedKernel.Application;
 using VietAnExpress.SharedKernel.Authorization;
@@ -38,9 +39,14 @@ internal sealed class IdentityFixture : IAsyncDisposable
     }
 
     public SessionService Sessions => new(Tokens, Customers.Object, [new FakePermissions()]);
-    public LoginHandler Login => new(Db, Sessions);
+    public LoginHandler Login => new(Db, Sessions, Clock);
     public RefreshSessionHandler Refresh => new(Db, Tokens, Sessions);
-    public ChangePasswordHandler ChangePassword => new(Db, Tokens, Sessions, CurrentUser.Object);
+    public ChangePasswordHandler ChangePassword => new(Db, Tokens, Sessions, CurrentUser.Object, Clock);
+    public StaffHandlers Staff => new(Db, Sessions, CurrentUser.Object, Clock);
+    public MyTrackingHandlers MyTracking => new(Db, Customers.Object, CurrentUser.Object, Clock);
+
+    /// <summary>Giả lập request của tài khoản con (null = tài khoản chính / admin).</summary>
+    public void SignInAs(long? staffId) => CurrentUser.SetupGet(u => u.StaffId).Returns(staffId);
     public GetSessionHandler Me => new(Db, Sessions, CurrentUser.Object);
 
     public string StoredPassword() => Db.Logins.AsNoTracking().Single(l => l.CustomerId == CustomerId).Password!;
@@ -53,6 +59,8 @@ internal sealed class IdentityFixture : IAsyncDisposable
         [
             new("shipments.view", "Xem", SystemRoles.Customer),
             new("shipments.create", "Tạo", SystemRoles.Customer),
+            new(IdentityPermissions.ManageStaff, "Quản lý nhân viên", SystemRoles.Customer),
+            new(IdentityPermissions.MyTracking, "MyTracking", SystemRoles.Customer),
             new("internal.only", "Không cấp cho khách")
         ];
     }
@@ -78,7 +86,8 @@ public class AuthHandlerTests
         Assert.True(result.IsSuccess);
         var s = result.Value;
         Assert.Equal(("SaigonbayHN", "SGB EXPRESS HN", "Đức Anh"), (s.User.CustomerCode, s.User.CompanyName, s.User.ContactName));
-        Assert.Equal(["shipments.create", "shipments.view"], s.User.Permissions);
+        Assert.Equal(["account.mytracking", "account.staff", "shipments.create", "shipments.view"], s.User.Permissions);
+        Assert.True(s.User.IsAdmin);
         Assert.True(s.IsPersistent);
 
         var jwt = new JsonWebToken(s.AccessToken);

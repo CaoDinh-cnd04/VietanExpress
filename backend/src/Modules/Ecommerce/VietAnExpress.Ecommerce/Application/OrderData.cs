@@ -53,7 +53,10 @@ internal static class OrderData
     public static bool IsLatin(string? text) =>
         string.IsNullOrEmpty(text) || text.All(c => c < 0x0250 || char.IsWhiteSpace(c) || c is '‘' or '’' or '“' or '”' or '–' or '—' or '№');
 
-    /// <summary>Việc cần bổ sung trước khi tạo bill (câu tiếng Việt, hiện ở danh sách và ngăn chi tiết).</summary>
+    /// <summary>
+    /// Trường bắt buộc còn thiếu trước khi xác nhận gửi — chỉ những gì sàn nào cũng có (người nhận, địa chỉ, SĐT, sản phẩm).
+    /// Cân nặng, mã HS, chữ Latin không bắt buộc: Việt An cân / khai hải quan khi nhận hàng (người dùng đã chọn).
+    /// </summary>
     public static IReadOnlyList<string> Issues(MarketplaceOrder o)
     {
         if (o.Bill is not null) return [];
@@ -61,13 +64,8 @@ internal static class OrderData
         var issues = new List<string>();
         if (string.IsNullOrWhiteSpace(r.Name)) issues.Add("Thiếu tên người nhận");
         if (string.IsNullOrWhiteSpace(r.Address1) || string.IsNullOrWhiteSpace(r.CountryCode)) issues.Add("Thiếu địa chỉ / nước đến");
-        else if (!new[] { r.Name, r.Company, r.Address1, r.Address2, r.City, r.Province }.All(IsLatin)) issues.Add("Địa chỉ chưa viết bằng chữ Latin");
         if (string.IsNullOrWhiteSpace(r.Phone)) issues.Add("Thiếu số điện thoại người nhận");
-        if (o.WeightKg is not > 0) issues.Add("Chưa có cân nặng");
-        var products = Products(o);
-        if (products.Count == 0) issues.Add("Chưa có sản phẩm");
-        else if (products.Any(p => string.IsNullOrWhiteSpace(p.HsCode))) issues.Add("Thiếu mã HS");
-        if (products.Any(p => !IsLatin(p.Name))) issues.Add("Tên hàng chưa viết bằng chữ Latin");
+        if (Products(o).Count == 0) issues.Add("Chưa có sản phẩm");
         return issues;
     }
 

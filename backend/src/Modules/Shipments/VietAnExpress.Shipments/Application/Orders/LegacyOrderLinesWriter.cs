@@ -51,6 +51,8 @@ internal static class LegacyOrderLinesReader
         return result;
     }
 
+    private static string? Blank(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
     /// <summary>Cột TrongLuong là tổng cân của dòng → cân 1 kiện = TrongLuong / SoLuong.</summary>
     public static PrintPackage ToPrint(LegacyPackageLine p) =>
         new(p.Quantity, p.LengthCm, p.WidthCm, p.HeightCm,
@@ -60,8 +62,7 @@ internal static class LegacyOrderLinesReader
     {
         var en = i.DescriptionEn?.Trim() ?? "";
         var vi = i.DescriptionVi?.Trim() ?? "";
-        var description = en.Length == 0 ? vi : vi.Length == 0 ? en : $"{en} ({vi})";
-        return new PrintItem(description, i.Quantity ?? 0, string.IsNullOrWhiteSpace(i.Unit) ? "PCS" : i.Unit.Trim(), i.UnitPrice ?? 0,
-            string.IsNullOrWhiteSpace(i.HsCode) ? null : i.HsCode.Trim(), string.IsNullOrWhiteSpace(i.Origin) ? null : i.Origin.Trim());
+        return new PrintItem(en.Length == 0 ? vi : en, i.Quantity ?? 0, string.IsNullOrWhiteSpace(i.Unit) ? "PCS" : i.Unit.Trim(), i.UnitPrice ?? 0,
+            Blank(i.HsCode), Blank(i.Origin), en.Length == 0 ? null : Blank(vi), Blank(i.Manufacturer));
     }
 }

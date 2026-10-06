@@ -50,8 +50,12 @@ internal sealed record DraftInput(
 internal static class DraftScope
 {
     /// <summary>Khách chỉ thấy nháp của mình.</summary>
-    public static IQueryable<OrderDraft> VisibleTo(this IQueryable<OrderDraft> query, ICurrentUser user) =>
-        user.CustomerId is { } customerId ? query.Where(d => d.CustomerId == customerId) : query.Where(_ => false);
+    public static IQueryable<OrderDraft> VisibleTo(this IQueryable<OrderDraft> query, ICurrentUser user)
+    {
+        if (user.CustomerId is not { } customerId) return query.Where(_ => false);
+        query = query.Where(d => d.CustomerId == customerId);
+        return user.OwnOrdersOnly() && user.StaffId is { } staffId ? query.Where(d => d.CreatedByStaffId == staffId) : query;
+    }
 
     public static DraftDto ToDto(OrderDraft d) => new(
         d.Id.ToString(), d.Status, d.Consignee, d.Country, d.ServiceName, d.Branch, d.Reference, d.PiecesText, d.Content,
@@ -92,7 +96,7 @@ internal sealed class DraftHandlers(ShipmentsDbContext db, ICurrentUser user) :
         else
         {
             if (user.CustomerId is not { } customerId) return OrderErrors.CustomerRequired;
-            draft = new OrderDraft(customerId, cmd.Draft.ToSummary(), cmd.Draft.PayloadJson);
+            draft = new OrderDraft(customerId, cmd.Draft.ToSummary(), cmd.Draft.PayloadJson, user.StaffId);
             db.OrderDrafts.Add(draft);
         }
         await db.SaveChangesAsync(ct);
@@ -151,6 +155,9 @@ internal sealed class PrintDraftHandler(
             db.OrderDrafts.Remove(draft); // xoá mềm — vẫn giữ form để mở lại / nhân bản
             await db.SaveChangesAsync(ct);
             await LegacyOrderLinesWriter.AddAsync(db, [(order, payload)], ct);
+            // Đơn thuộc người tạo nháp (vd nhân viên tạo, admin in hộ thì vẫn là đơn của nhân viên đó).
+            OrderAccess.RecordCreators(db, [order], draft.CreatedByStaffId, VietnamTime.ToVietnam(clock.GetUtcNow()).DateTime);
+            await db.SaveChangesAsync(ct);
             await tx.CommitAsync(ct);
         });
         var bill = number.ToString(CultureInfo.InvariantCulture);

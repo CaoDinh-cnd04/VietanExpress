@@ -1,4 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom';
+import { useCan } from '@/features/auth';
 import { useI18n } from '@/shared/i18n';
 import { cx } from '@/shared/lib/cx';
 import { useLocalStorage } from '@/shared/lib/useLocalStorage';
@@ -18,6 +19,7 @@ export function Sidebar({ collapsed, mobileOpen, onNavigate, onExpand }: Sidebar
   const { pathname } = useLocation();
   const { t } = useI18n();
   const badges = useNavBadges();
+  const allowed = useCan();
   const [openGroups, setOpenGroups] = useLocalStorage<Record<string, boolean>>('va.nav.groups', { create: true, orders: true });
 
   const isActive = (to: string) => pathname === to;
@@ -36,6 +38,7 @@ export function Sidebar({ collapsed, mobileOpen, onNavigate, onExpand }: Sidebar
       <nav className={styles.nav}>
         {NAV.map(entry => {
           if (entry.kind === 'link') {
+            if (!allowed(entry.permission)) return null;
             return (
               <NavLink key={entry.to} to={entry.to} end onClick={onNavigate} className={({ isActive: a }) => cx(styles.item, styles.top, a && styles.active)} title={t(entry.label)} data-tour={`nav-${entry.to.slice(1)}`}>
                 <Icon name={entry.icon} className={styles.icon} />
@@ -44,9 +47,11 @@ export function Sidebar({ collapsed, mobileOpen, onNavigate, onExpand }: Sidebar
             );
           }
 
-          const hasActive = entry.children.some(c => isActive(c.to));
+          const children = entry.children.filter(c => allowed(c.permission));
+          if (children.length === 0) return null;
+          const hasActive = children.some(c => isActive(c.to));
           const open = openGroups[entry.id] || hasActive;
-          const groupCount = entry.children.reduce((sum, c) => sum + count(c.badge), 0);
+          const groupCount = children.reduce((sum, c) => sum + count(c.badge), 0);
           return (
             <div key={entry.id} className={styles.group} data-tour={`nav-${entry.id}`}>
               <button
@@ -63,12 +68,13 @@ export function Sidebar({ collapsed, mobileOpen, onNavigate, onExpand }: Sidebar
               >
                 <Icon name={entry.icon} className={styles.icon} />
                 <span className={styles.label}>{t(entry.label)}</span>
+                <span className={styles.short} aria-hidden="true">{t(entry.short)}</span>
                 {!open && groupCount > 0 && <span className={styles.badge}>{groupCount}</span>}
                 <Icon name={open ? 'chevronDown' : 'chevronRight'} size={14} className={styles.chevron} />
               </button>
               {open && !collapsed && (
                 <div className={styles.children}>
-                  {entry.children.map(child => (
+                  {children.map(child => (
                     <ChildLink key={child.to} item={child} count={count(child.badge)} onNavigate={onNavigate} />
                   ))}
                 </div>

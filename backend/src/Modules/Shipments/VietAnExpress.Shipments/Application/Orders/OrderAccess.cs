@@ -1,6 +1,9 @@
 using VietAnExpress.Customers.Contracts;
 using VietAnExpress.SharedKernel.Application;
 using VietAnExpress.SharedKernel.Results;
+using VietAnExpress.Shipments.Contracts;
+using VietAnExpress.Shipments.Domain;
+using VietAnExpress.Shipments.Infrastructure;
 using VietAnExpress.Shipments.Infrastructure.Legacy;
 
 namespace VietAnExpress.Shipments.Application.Orders;
@@ -19,19 +22,43 @@ internal static class OrderErrors
         "Vui lòng đăng nhập bằng tài khoản khách hàng để tạo đơn");
 }
 
-/// <summary>Phạm vi đơn: khách chỉ thấy / ghi đơn có CustomerID = mã khách của mình (dbo.TCustomer.CustomerID).</summary>
-internal sealed class OrderAccess(ICurrentUser user, ICustomersApi customers)
+/// <summary>
+/// Phạm vi đơn trong dbo.MaVanDon: <paramref name="CustomerId"/> của khách; <paramref name="StaffId"/> có giá trị thì
+/// chỉ lấy đơn tài khoản con đó tạo (dbo.VanDonNguoiTao).
+/// </summary>
+internal sealed record OrderScope(long CustomerId, long? StaffId);
+
+/// <summary>
+/// Phạm vi đơn: khách chỉ thấy / ghi đơn có CustomerID = mã khách của mình (dbo.TCustomer.CustomerID).
+/// Tài khoản con không có quyền <see cref="ShipmentsPermissions.ViewAll"/> chỉ thấy đơn và nháp mình tạo.
+/// </summary>
+internal sealed class OrderAccess(ICurrentUser user, ICustomersApi customers, ShipmentsDbContext db)
 {
     /// <summary>Chưa đăng nhập bằng tài khoản khách → không thấy đơn nào (Id không tồn tại).</summary>
     private const long NoCustomer = -1;
 
     public bool IsCustomer => user.CustomerId is not null;
 
-    /// <summary>Mã khách để lọc đơn trong dbo.MaVanDon.</summary>
-    public Task<long?> ScopeAsync(CancellationToken ct) => Task.FromResult<long?>(user.CustomerId ?? NoCustomer);
+    /// <summary>Tài khoản con đang đăng nhập (ghi vào nháp / dbo.VanDonNguoiTao khi tạo đơn); null = tài khoản chính.</summary>
+    public long? CreatorStaffId => user.StaffId;
 
-    public IQueryable<LegacyOrder> Apply(IQueryable<LegacyOrder> query, long? scope) =>
-        scope is { } customerId ? query.Where(o => o.CustomerId == customerId) : query;
+    public Task<OrderScope> ScopeAsync(CancellationToken ct) =>
+        Task.FromResult(new OrderScope(user.CustomerId ?? NoCustomer, user.OwnOrdersOnly() ? user.StaffId : null));
+
+    public IQueryable<LegacyOrder> Apply(IQueryable<LegacyOrder> query, OrderScope scope)
+    {
+        query = query.Where(o => o.CustomerId == scope.CustomerId);
+        return scope.StaffId is { } staffId
+            ? query.Where(o => db.OrderCreators.Any(c => c.OrderId == o.Id && c.StaffId == staffId))
+            : query;
+    }
+
+    /// <summary>Ghi người tạo cho các vận đơn vừa lưu (đã có MaVanDon.ID) — chỉ khi người tạo là tài khoản con.</summary>
+    public static void RecordCreators(ShipmentsDbContext db, IEnumerable<LegacyOrder> orders, long? staffId, DateTime now)
+    {
+        if (staffId is not { } sid) return;
+        db.OrderCreators.AddRange(orders.Select(o => new OrderCreator(o.Id, o.CustomerId ?? 0, sid, now)));
+    }
 
     /// <summary>Khách ghi đơn vào dbo.MaVanDon — kèm tên công ty, người liên hệ để điền người gửi.</summary>
     public async Task<Result<LegacyCustomerRef>> WriterAsync(CancellationToken ct)
@@ -41,4 +68,11 @@ internal sealed class OrderAccess(ICurrentUser user, ICustomersApi customers)
         if (customer is null) return Result.Failure<LegacyCustomerRef>(OrderErrors.CustomerNotFound);
         return new LegacyCustomerRef(customer.Id, customer.CompanyName, customer.ContactName, customer.Phone, customer.Email);
     }
+}
+
+internal static class OrderScopeRules
+{
+    /// <summary>Tài khoản con không được cấp quyền xem toàn bộ đơn của công ty → chỉ thấy đơn / nháp mình tạo.</summary>
+    public static bool OwnOrdersOnly(this ICurrentUser user) =>
+        user.StaffId is not null && !user.HasPermission(ShipmentsPermissions.ViewAll);
 }

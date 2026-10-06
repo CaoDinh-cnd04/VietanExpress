@@ -10,6 +10,7 @@ import { pricing } from './pricing';
 import { support } from './support';
 import { start } from './start';
 import { mytracking } from './mytracking';
+import { staff } from './staff';
 
 /**
  * Từ điển tiếng Anh: khoá = câu tiếng Việt gốc trong code, giá trị = bản tiếng Anh.
@@ -23,6 +24,7 @@ export const EN: Readonly<Record<string, string>> = {
   ...orders,
   ...account,
   ...mytracking,
+  ...staff,
   ...support,
   ...pricing,
   ...ecommerce,

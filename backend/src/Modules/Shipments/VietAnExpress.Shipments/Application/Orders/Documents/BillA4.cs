@@ -313,17 +313,17 @@ internal static class BillA4
     private static string Value(LegacyOrder o) =>
         o.GoodsValue is null ? "" : $"{(o.GoodsValue ?? 0).ToString("0.00", CultureInfo.InvariantCulture)} {o.Currency?.Trim()}".Trim();
 
-    private static string TrackingUrl(CompanyInfo c, string bill) =>
+    internal static string TrackingUrl(CompanyInfo c, string bill) =>
         $"{c.PortalUrl.TrimEnd('/')}/tracking/{Uri.EscapeDataString(bill)}";
 
-    private static string Qr(string text)
+    internal static string Qr(string text)
     {
         using var data = QRCodeGenerator.GenerateQrCode(text, QRCodeGenerator.ECCLevel.M);
         return new SvgQRCode(data).GetGraphic(4, "#000000", "#ffffff", false, SvgQRCode.SizingMode.ViewBoxAttribute);
     }
 
     /// <summary>Logo nhúng trong assembly → data URI, để trang in không phụ thuộc đường dẫn web.</summary>
-    private static readonly Lazy<string> LogoDataUri = new(() =>
+    internal static readonly Lazy<string> LogoDataUri = new(() =>
     {
         using var s = typeof(BillA4).Assembly.GetManifestResourceStream("VietAnExpress.Shipments.logo.webp");
         if (s is null) return "";

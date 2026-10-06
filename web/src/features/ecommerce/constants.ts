@@ -43,8 +43,6 @@ export const STORE_STATUS: Record<StoreConnectionStatus, { label: string; tone: 
 
 export const WEBHOOK_EVENTS: ReadonlyArray<EcomSettings['webhookEvents'][number]> = ['created', 'picked_up', 'departed', 'delivered', 'exception'];
 
-export const LABEL_FORMATS = ['A6', 'A4', 'ZPL'] as const;
-export const GOODS_TYPES = ['general', 'battery (pin)', 'liquid (lỏng)', 'sensitive'] as const;
 export const MAX_PRODUCTS = 5;
 
 /** Tên file mẫu import — cấu trúc 70 cột của Yun/EPK/Việt An. */
