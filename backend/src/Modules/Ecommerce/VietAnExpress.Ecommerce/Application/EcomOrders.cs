@@ -40,22 +40,11 @@ internal static class SyncErrors
     public static Error Failed(string detail) => Error.BusinessRule("ECOM_SYNC_FAILED", $"Không đồng bộ được đơn từ Shopify: {detail}");
 }
 
-internal sealed class EcomOrderHandlers(
-    EcommerceDbContext db,
-    ICurrentUser user,
-    TimeProvider clock,
-    TokenProtector tokens,
-    ShopifyClient client,
-    ILogger<EcomOrderHandlers> logger) :
+internal sealed class EcomOrderHandlers(EcommerceDbContext db, ICurrentUser user, StoreSyncService sync) :
     IRequestHandler<GetEcomOrdersQuery, IReadOnlyList<EcomOrderDto>>,
     IRequestHandler<SyncStoreCommand, Result<SyncResult>>
 {
     private const int MaxListed = 500;
-    private const int MaxSyncPages = 5;
-    /// <summary>Làm mới access token sớm hơn hạn một chút.</summary>
-    private static readonly TimeSpan RefreshMargin = TimeSpan.FromMinutes(5);
-
-    private DateTime Now => VietnamTime.ToVietnam(clock.GetUtcNow()).DateTime;
 
     public async Task<IReadOnlyList<EcomOrderDto>> Handle(GetEcomOrdersQuery q, CancellationToken ct)
     {
@@ -76,80 +65,14 @@ internal sealed class EcomOrderHandlers(
         if (user.CustomerId is not { } customerId) return StoreErrors.NotLoggedIn;
         var store = await db.StoreConnections.FirstOrDefaultAsync(s => s.Id == c.StoreId && s.CustomerId == customerId && s.DisconnectedAt == null, ct);
         if (store is null) return StoreErrors.NotFound;
-        if (store.ChannelCode != SalesChannelCodes.Shopify) return StoreErrors.ChannelUnavailable(store.ChannelCode);
-        if (!tokens.IsConfigured) return StoreErrors.NotConfigured;
 
-        var accessToken = await ValidAccessTokenAsync(store, ct);
-        if (accessToken is null)
-        {
-            store.MarkExpired(Now);
-            await db.SaveChangesAsync(ct);
-            return SyncErrors.NeedsReauthorize;
-        }
-
-        var (nodes, error) = await client.GetOpenOrdersAsync(store.ShopId, accessToken, MaxSyncPages, ct);
-        if (error == "unauthorized")
-        {
-            store.MarkExpired(Now);
-            await db.SaveChangesAsync(ct);
-            return SyncErrors.NeedsReauthorize;
-        }
-        if (error is not null)
-        {
-            store.MarkFailed(error, Now);
-            await db.SaveChangesAsync(ct);
-            return SyncErrors.Failed(error);
-        }
-
-        var imported = nodes.Select(ShopifyOrderMapper.Map).Where(o => o.PlatformOrderId.Length > 0).ToList();
-        var ids = imported.Select(o => o.PlatformOrderId).ToList();
-        var existing = await db.MarketplaceOrders
-            .Where(o => o.CustomerId == customerId && o.Source == SalesChannelCodes.Shopify && o.PlatformOrderId != null && ids.Contains(o.PlatformOrderId))
-            .ToDictionaryAsync(o => o.PlatformOrderId!, ct);
-
-        var now = Now;
-        var added = 0;
-        foreach (var o in imported)
-        {
-            if (existing.TryGetValue(o.PlatformOrderId, out var current)) current.UpdateFrom(o, now);
-            else
-            {
-                db.MarketplaceOrders.Add(MarketplaceOrder.Import(customerId, store.Id, SalesChannelCodes.Shopify, o, now));
-                added++;
-            }
-        }
-        store.MarkSynced(now);
-        await db.SaveChangesAsync(ct);
-
-        logger.LogInformation("Đồng bộ Shopify {Shop}: {Total} đơn mở, {Added} đơn mới", store.ShopId, imported.Count, added);
+        var result = await sync.SyncAsync(store, ct);
+        if (result.IsFailure) return result.Error;
+        var (total, added) = result.Value;
         var message = added > 0
             ? $"Đã nhận {added} đơn mới từ {store.ShopName}"
-            : imported.Count > 0 ? $"Không có đơn mới — {imported.Count} đơn chưa giao đã có trong danh sách" : "Shop chưa có đơn nào cần giao";
+            : total > 0 ? $"Không có đơn mới — {total} đơn chưa giao đã có trong danh sách" : "Shop chưa có đơn nào cần giao";
         return new SyncResult(message, added);
-    }
-
-    /// <summary>Access token còn hạn, hoặc làm mới bằng refresh token. Null = phải ủy quyền lại.</summary>
-    private async Task<string?> ValidAccessTokenAsync(StoreConnection store, CancellationToken ct)
-    {
-        if (store.AccessTokenEncrypted is not { } encrypted) return null;
-        var now = Now;
-        if (store.AccessTokenExpiresAt is not { } expires || expires - RefreshMargin > now) return tokens.Unprotect(encrypted);
-
-        if (store.RefreshTokenEncrypted is not { } refresh || store.RefreshTokenExpiresAt < now) return null;
-        var (token, error) = await client.RefreshAsync(store.ShopId, tokens.Unprotect(refresh), ct);
-        if (token is null)
-        {
-            logger.LogWarning("Không làm mới được token Shopify của {Shop}: {Error}", store.ShopId, error);
-            return null;
-        }
-        store.RefreshTokens(
-            tokens.Protect(token.AccessToken),
-            token.ExpiresIn is { } s ? now.AddSeconds(s) : null,
-            token.RefreshToken is { } r ? tokens.Protect(r) : null,
-            token.RefreshTokenExpiresIn is { } rs ? now.AddSeconds(rs) : null,
-            now);
-        await db.SaveChangesAsync(ct);
-        return token.AccessToken;
     }
 
     public static EcomOrderDto ToDto(MarketplaceOrder o) => new(

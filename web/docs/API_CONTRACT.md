@@ -238,6 +238,8 @@ Nghiên cứu chi tiết hai sàn và thiết kế backend: `docs/ECOM_INTEGRATI
 Token sàn (access/refresh) **chỉ lưu ở backend** (mã hóa), không bao giờ trả về frontend.
 `state` OAuth tự chứa và ký HMAC (mã khách, shop, domain portal, hạn 10 phút), kèm cookie nonce `vae_ecom_oauth` (SameSite=Lax, path `/api/v1/ecom/oauth`) — cookie đăng nhập là SameSite=Strict nên không đi kèm callback từ sàn. URL callback ghép từ domain portal khách đang dùng (X-Forwarded-Host của proxy Vercel, chỉ nhận domain trong `Company:PortalUrl` / `Cors:AllowedOrigins`); mỗi domain phải khai trong Allowed redirection URL(s) của app Shopify.
 Đơn nhận từ sàn xuất hiện trong `GET /ecom/orders` với `src` = `shopify` / `tiktok`; kết nối luôn **tự nhận đơn mới** và **tự đẩy mã tracking** lên sàn khi đơn được in & cấp bill (không có tùy chọn bật/tắt — muốn dừng thì ngắt kết nối).
+Đơn mới về qua webhook `POST /ecom/webhooks/shopify` (chỉ Shopify gọi, kiểm HMAC; gồm cả 3 webhook compliance bắt buộc) — chi tiết: `ECOM_INTEGRATION.md` §2 "Webhook Shopify".
+Chủ shop gỡ app → kết nối chuyển `status: "revoked"` (frontend hiện "Shop đã gỡ ứng dụng", nút ủy quyền lại).
 
 ---
 

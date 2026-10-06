@@ -47,6 +47,25 @@ Nguyên tắc: phản hồi webhook nhanh (200 ngay, xử lý nền), chống tr
 Trong Shopify Dev Dashboard → app → **Allowed redirection URL(s)** khai `{Company:PortalUrl}{CallbackPath}`, hiện là
 `https://viet-an-express.vercel.app/api/v1/ecom/oauth/shopify/callback` (Vercel proxy `/api` sang Render).
 
+### Webhook Shopify (đã làm)
+
+1 URL nhận mọi chủ đề: **`POST {Company:PortalUrl}/api/v1/ecom/webhooks/shopify`**
+(hiện `https://viet-an-express.vercel.app/api/v1/ecom/webhooks/shopify`). Khai trong cấu hình app — mẫu: `shopify.app.toml.example`
+(Shopify CLI `shopify app deploy`, hoặc Dev Dashboard → Versions → Webhooks / Compliance webhooks).
+
+| Chủ đề | Backend làm gì |
+|---|---|
+| `orders/create`, `orders/updated` | Xếp hàng, đồng bộ nền đơn mở của shop sau ~3 giây (gom webhook dồn dập). Webhook lỡ thì nút "Đồng bộ" vẫn kéo đủ |
+| `app/uninstalled` | Kết nối → `revoked`, xóa token; vẫn hiện trong danh sách để khách ủy quyền lại |
+| `customers/data_request` | Ghi log cảnh báo (shop, id người mua, mã đơn, số đơn đang lưu) — **Việt An gửi dữ liệu cho chủ shop trong 30 ngày** |
+| `customers/redact` | Xóa người nhận, ghi chú, khai báo hải quan của các đơn trong `orders_to_redact` (cả đơn nhập từ file export của shop); giữ sản phẩm / số tiền / bill |
+| `shop/redact` | (48 giờ sau khi gỡ app) xóa dữ liệu người mua của mọi đơn nhận qua kết nối shop đó, xóa token còn sót |
+
+- Chữ ký: `X-Shopify-Hmac-Sha256` = base64(HMAC-SHA256(body thô, `Shopify:ClientSecret`)). Sai / thiếu → **401** (Shopify kiểm khi duyệt app); đúng → **200** ngay.
+- Chống trùng theo `X-Shopify-Webhook-Id` (bộ nhớ 24 giờ); mọi thao tác idempotent nên nhận lại cũng không sai dữ liệu.
+- Vận đơn đã cấp (`dbo.MaVanDon`) là chứng từ vận chuyển / hải quan của Việt An, không xóa theo webhook redact.
+- Kiểm nhanh khi đã deploy: `shopify app webhook trigger --topic customers/redact --address <URL>` (Shopify CLI) hoặc nút "Send test" trong Dev Dashboard.
+
 ## 3. TikTok Shop
 
 | Mục | Ghi chú |

@@ -118,6 +118,23 @@ internal sealed class StoreConnection
         ModifyDate = now;
     }
 
+    /// <summary>
+    /// Chủ shop gỡ app trên Shopify (webhook app/uninstalled): token không còn dùng được → xóa, chuyển "revoked".
+    /// Vẫn hiện trong danh sách để khách biết và ủy quyền lại.
+    /// </summary>
+    public void MarkUninstalled(DateTime now)
+    {
+        Status = Revoked;
+        AccessTokenEncrypted = null;
+        AccessTokenExpiresAt = null;
+        RefreshTokenEncrypted = null;
+        RefreshTokenExpiresAt = null;
+        WebhookIds = null;
+        LastError = "Ứng dụng Việt An đã bị gỡ khỏi cửa hàng Shopify";
+        LastErrorAt = now;
+        ModifyDate = now;
+    }
+
     /// <summary>Khách ngắt kết nối: xóa token, ẩn khỏi danh sách (giữ dòng để đơn đã nhận vẫn truy được nguồn).</summary>
     public void Disconnect(DateTime now)
     {

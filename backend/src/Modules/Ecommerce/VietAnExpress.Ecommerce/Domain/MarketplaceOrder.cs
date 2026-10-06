@@ -145,6 +145,20 @@ internal sealed class MarketplaceOrder
         return true;
     }
 
+    /// <summary>
+    /// Xóa dữ liệu cá nhân của người mua theo yêu cầu Shopify (customers/redact, shop/redact): người nhận, ghi chú, khai báo hải quan.
+    /// Giữ sản phẩm / số tiền / bill để đối soát. Đánh dấu đã sửa để đồng bộ lại không ghi dữ liệu cũ vào nữa.
+    /// </summary>
+    public void RedactPersonalData(DateTime now)
+    {
+        // Bản sao mới: EF Core không cho nhiều đơn dùng chung 1 đối tượng owned.
+        Recipient = MarketplaceRecipient.Empty with { };
+        Note = null;
+        CustomsJson = null;
+        EditedAt ??= now;
+        ModifyDate = now;
+    }
+
     /// <summary>Khách sửa đơn trước khi tạo bill. Đã có bill thì không sửa được (dữ liệu đã khai cho hãng).</summary>
     public bool Edit(MarketplaceRecipient recipient, decimal? weightKg, string? productsJson, int itemCount, decimal? totalAmount,
         string? service, string? hub, string? branch, string? note, DateTime now)

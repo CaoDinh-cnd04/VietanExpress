@@ -30,6 +30,11 @@ public static class EcommerceModule
             c.Timeout = TimeSpan.FromSeconds(15);
             c.DefaultRequestHeaders.UserAgent.ParseAdd("VietAnExpress-Portal/1.0");
         });
+        services.AddScoped<Application.StoreSyncService>();
+        // Webhook Shopify: chống trùng theo X-Shopify-Webhook-Id, đơn mới / sửa → đồng bộ nền.
+        services.AddMemoryCache();
+        services.AddSingleton<ShopifySyncQueue>();
+        services.AddHostedService<ShopifySyncWorker>();
         services.AddSingleton<IPermissionProvider, EcommercePermissionProvider>();
         return services;
     }
