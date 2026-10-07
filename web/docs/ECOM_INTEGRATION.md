@@ -61,7 +61,8 @@ Trong Shopify Dev Dashboard → app → **Allowed redirection URL(s)** khai `{Co
 | `customers/redact` | Xóa người nhận, ghi chú, khai báo hải quan của các đơn trong `orders_to_redact` (cả đơn nhập từ file export của shop); giữ sản phẩm / số tiền / bill |
 | `shop/redact` | (48 giờ sau khi gỡ app) xóa dữ liệu người mua của mọi đơn nhận qua kết nối shop đó, xóa token còn sót |
 
-- Chữ ký: `X-Shopify-Hmac-Sha256` = base64(HMAC-SHA256(body thô, `Shopify:ClientSecret`)). Sai / thiếu → **401** (Shopify kiểm khi duyệt app); đúng → **200** ngay.
+- Chữ ký: `X-Shopify-Hmac-Sha256` = base64(HMAC-SHA256(body thô, `Shopify:ClientSecret`)). Sai / thiếu → **401** (Shopify kiểm khi duyệt app); đúng → xếp hàng (`ShopifyWebhookQueue`) và trả **200** ngay — xử lý DB chạy nền vì Shopify chỉ chờ 5 giây.
+- Render gói miễn phí ngủ sau ~15 phút không truy cập (lần gọi đầu mất 10–15 giây, quá thời gian chờ của Shopify): đặt một dịch vụ ping `https://vietanexpress.onrender.com/health` mỗi 10 phút (vd UptimeRobot, cron-job.org) hoặc dùng gói trả phí.
 - Chống trùng theo `X-Shopify-Webhook-Id` (bộ nhớ 24 giờ); mọi thao tác idempotent nên nhận lại cũng không sai dữ liệu.
 - Vận đơn đã cấp (`dbo.MaVanDon`) là chứng từ vận chuyển / hải quan của Việt An, không xóa theo webhook redact.
 - Kiểm nhanh khi đã deploy: `shopify app webhook trigger --topic customers/redact --address <URL>` (Shopify CLI) hoặc nút "Send test" trong Dev Dashboard.

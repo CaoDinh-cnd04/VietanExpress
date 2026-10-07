@@ -1,14 +1,11 @@
 using System.Security.Cryptography;
 using System.Text;
-using MediatR;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
-using Moq;
 using VietAnExpress.Ecommerce.Api;
-using VietAnExpress.Ecommerce.Application;
+using VietAnExpress.Ecommerce.Infrastructure;
 using VietAnExpress.Ecommerce.Infrastructure.Shopify;
 using Xunit;
 
@@ -25,16 +22,10 @@ public class ShopifyWebhooksControllerTests
     private static string Sign(string body) =>
         Convert.ToBase64String(HMACSHA256.HashData(Encoding.UTF8.GetBytes(Secret), Encoding.UTF8.GetBytes(body)));
 
-    private static (ShopifyWebhooksController Controller, Mock<ISender> Sender) Create(string body, string? hmac, string topic = "customers/redact")
+    private static (ShopifyWebhooksController Controller, ShopifyWebhookQueue Queue) Create(string body, string? hmac, string topic = "customers/redact")
     {
-        var sender = new Mock<ISender>();
-        sender.Setup(s => s.Send(It.IsAny<ReceiveShopifyWebhookCommand>(), It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new WebhookOutcome("redact-customer", 1));
-
-        var http = new DefaultHttpContext
-        {
-            RequestServices = new ServiceCollection().AddSingleton(sender.Object).BuildServiceProvider()
-        };
+        var queue = new ShopifyWebhookQueue();
+        var http = new DefaultHttpContext();
         http.Request.Method = "POST";
         http.Request.Body = new MemoryStream(Encoding.UTF8.GetBytes(body));
         http.Request.Headers["X-Shopify-Topic"] = topic;
@@ -43,23 +34,24 @@ public class ShopifyWebhooksControllerTests
         if (hmac is not null) http.Request.Headers["X-Shopify-Hmac-Sha256"] = hmac;
 
         var controller = new ShopifyWebhooksController(
-            Options.Create(new ShopifyOptions { ClientId = "id", ClientSecret = Secret }), NullLogger<ShopifyWebhooksController>.Instance)
+            Options.Create(new ShopifyOptions { ClientId = "id", ClientSecret = Secret }), queue, NullLogger<ShopifyWebhooksController>.Instance)
         {
             ControllerContext = new ControllerContext { HttpContext = http }
         };
-        return (controller, sender);
+        return (controller, queue);
     }
 
     [Fact]
-    public async Task Chu_ky_dung_tra_200_va_xu_ly_webhook()
+    public async Task Chu_ky_dung_tra_200_ngay_va_xep_hang_xu_ly_nen()
     {
-        var (controller, sender) = Create(Body, Sign(Body));
+        var (controller, queue) = Create(Body, Sign(Body));
 
         var result = await controller.Receive(Ct);
 
         Assert.IsType<OkResult>(result);
-        sender.Verify(s => s.Send(It.Is<ReceiveShopifyWebhookCommand>(c =>
-            c.Topic == "customers/redact" && c.Shop == "abc.myshopify.com" && Encoding.UTF8.GetString(c.Body) == Body), It.IsAny<CancellationToken>()), Times.Once);
+        Assert.True(queue.Reader.TryRead(out var c));
+        Assert.Equal(("customers/redact", "abc.myshopify.com", Body), (c.Topic, c.Shop, Encoding.UTF8.GetString(c.Body)));
+        Assert.False(queue.Reader.TryRead(out _));
     }
 
     [Theory]
@@ -68,21 +60,21 @@ public class ShopifyWebhooksControllerTests
     [InlineData("aW52YWxpZA==")]            // base64 hợp lệ nhưng sai chữ ký
     public async Task Chu_ky_sai_hoac_thieu_tra_401_va_khong_xu_ly(string? hmac)
     {
-        var (controller, sender) = Create(Body, hmac);
+        var (controller, queue) = Create(Body, hmac);
 
         var result = await controller.Receive(Ct);
 
         Assert.Equal(StatusCodes.Status401Unauthorized, Assert.IsType<UnauthorizedResult>(result).StatusCode);
-        sender.Verify(s => s.Send(It.IsAny<ReceiveShopifyWebhookCommand>(), It.IsAny<CancellationToken>()), Times.Never);
+        Assert.False(queue.Reader.TryRead(out _));
     }
 
     [Fact]
     public async Task Body_bi_sua_sau_khi_ky_tra_401()
     {
-        var (controller, sender) = Create(Body.Replace("[1]", "[2]"), Sign(Body));
+        var (controller, queue) = Create(Body.Replace("[1]", "[2]"), Sign(Body));
 
         Assert.IsType<UnauthorizedResult>(await controller.Receive(Ct));
-        sender.Verify(s => s.Send(It.IsAny<ReceiveShopifyWebhookCommand>(), It.IsAny<CancellationToken>()), Times.Never);
+        Assert.False(queue.Reader.TryRead(out _));
     }
 
     [Theory]

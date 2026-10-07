@@ -34,6 +34,8 @@ public static class EcommerceModule
         // Webhook Shopify: chống trùng theo X-Shopify-Webhook-Id, đơn mới / sửa → đồng bộ nền.
         services.AddMemoryCache();
         services.AddSingleton<ShopifySyncQueue>();
+        services.AddSingleton<ShopifyWebhookQueue>();
+        services.AddHostedService<ShopifyWebhookWorker>();
         services.AddHostedService<ShopifySyncWorker>();
         services.AddSingleton<IPermissionProvider, EcommercePermissionProvider>();
         return services;
