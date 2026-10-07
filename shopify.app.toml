@@ -3,7 +3,7 @@
 client_id = "6d6bbf47dabe7418f9ad3a8ad7bbccac"
 name = "Viet An Express"
 application_url = "https://vietan-express.vercel.app/orders"
-embedded = true
+embedded = false
 
 [webhooks]
 api_version = "2026-10"

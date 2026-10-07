@@ -14,6 +14,7 @@ export interface RouteHandle {
 // Mỗi trang tách chunk riêng, chỉ tải khi mở.
 const CreateOrderPage = lazy(() => import('@/features/create-order/pages/CreateOrderPage'));
 const PublicMyTrackingPage = lazy(() => import('@/features/mytracking/pages/PublicMyTrackingPage'));
+const PrivacyPage = lazy(() => import('@/features/landing/pages/PrivacyPage'));
 const pages = {
   myTracking: lazy(() => import('@/features/mytracking/pages/MyTrackingPage')),
   staff: lazy(() => import('@/features/staff/pages/StaffPage')),
@@ -53,6 +54,8 @@ const routes: RouteObject[] = [
   { path: '/tracking/:bills?', element: <TrackingPage /> },
   // Trang MyTracking công khai của khách: /t/{đường dẫn} (?bills= mã đang tra).
   { path: '/t/:slug', element: <Suspense fallback={null}><PublicMyTrackingPage /></Suspense> },
+  // Chính sách bảo mật app Shopify (link khai trong App Store listing).
+  { path: '/privacy', element: <Suspense fallback={null}><PrivacyPage /></Suspense> },
   // Portal: phải đăng nhập, chưa có phiên thì chuyển về /login?next=...
   {
     element: (
