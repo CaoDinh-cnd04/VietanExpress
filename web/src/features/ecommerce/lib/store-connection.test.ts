@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { needsReauthorize, normalizeShopifyDomain, readOAuthResult, resolveEcomTab, formatSyncTime } from './store-connection';
+import type { StoreConnection } from '../types';
+import { needsReauthorize, normalizeShopifyDomain, readOAuthResult, resolveEcomTab, resolveShopifyLaunch, formatSyncTime } from './store-connection';
 
 describe('normalizeShopifyDomain', () => {
   it('nhận tên shop, domain myshopify và link admin', () => {
@@ -51,5 +52,29 @@ describe('formatSyncTime', () => {
   it('lấy ngày giờ theo múi giờ backend gửi', () => {
     expect(formatSyncTime('2026-10-05T14:54:25.6+07:00')).toBe('05/10/2026 14:54');
     expect(formatSyncTime('khác')).toBe('khác');
+  });
+});
+
+describe('resolveShopifyLaunch', () => {
+  const store = (shopDomain: string, status: StoreConnection['status']): StoreConnection =>
+    ({ id: '1', platform: 'shopify', shopName: shopDomain, shopDomain, status, connectedAt: '2026-10-07T10:00:00+07:00' });
+  const launch = (q: string) => new URLSearchParams(q);
+
+  it('chưa kết nối hoặc cần ủy quyền lại → tự kết nối shop Shopify gửi tới', () => {
+    expect(resolveShopifyLaunch(launch('shop=a.myshopify.com&hmac=x&timestamp=1'), [])).toEqual({ kind: 'connect', shop: 'a.myshopify.com' });
+    expect(resolveShopifyLaunch(launch('shop=a.myshopify.com&hmac=x'), [store('a.myshopify.com', 'revoked')]))
+      .toEqual({ kind: 'connect', shop: 'a.myshopify.com' });
+    expect(resolveShopifyLaunch(launch('shop=a.myshopify.com&hmac=x'), [store('b.myshopify.com', 'active')]))
+      .toEqual({ kind: 'connect', shop: 'a.myshopify.com' });
+  });
+
+  it('shop đã kết nối còn hoạt động → vào thẳng đơn hàng', () => {
+    expect(resolveShopifyLaunch(launch('shop=a.myshopify.com&hmac=x'), [store('a.myshopify.com', 'active')])).toEqual({ kind: 'connected' });
+  });
+
+  it('thiếu hmac hoặc shop sai dạng → không tự kết nối', () => {
+    expect(resolveShopifyLaunch(launch('shop=a.myshopify.com'), [])).toEqual({ kind: 'invalid' });
+    expect(resolveShopifyLaunch(launch('shop=evil.example.com&hmac=x'), [])).toEqual({ kind: 'invalid' });
+    expect(resolveShopifyLaunch(launch(''), [])).toEqual({ kind: 'invalid' });
   });
 });

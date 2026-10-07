@@ -93,8 +93,8 @@ export const ecommerce: Record<string, string> = {
   'Shop đã gỡ ứng dụng': 'App uninstalled by shop',
 
   // Trang đã gộp: Đơn hàng · Thêm đơn · Kết nối
-  'Kết nối Shopify, TikTok Shop để đơn tự về và tracking tự trả lên sàn, hoặc thêm đơn bằng file Excel.':
-    'Connect Shopify or TikTok Shop so orders arrive and tracking is sent back automatically, or add orders from an Excel file.',
+  'Kết nối Shopify, TikTok Shop để đơn tự về, hoặc thêm đơn bằng file Excel.':
+    'Connect Shopify or TikTok Shop so new orders come in automatically, or add orders from an Excel file.',
   'Đơn hàng': 'Orders',
   'Thêm đơn': 'Add orders',
   'Đã có bill': 'Bill issued',
@@ -104,7 +104,7 @@ export const ecommerce: Record<string, string> = {
   'Nhập đơn từ file': 'Import orders from file',
   'Tải file mẫu, điền đơn (mỗi đơn tối đa 5 sản phẩm), lưu dạng CSV UTF-8 rồi kéo thả lên đây. Hệ thống báo kết quả từng dòng.':
     'Download the template, fill in orders (up to 5 products each), save as CSV UTF-8 and drop it here. Results are reported per row.',
-  '· đơn mới tự về tab Đơn hàng, mã tracking tự trả lên sàn khi có bill': '· new orders appear in the Orders tab; tracking is sent back once a bill is issued',
+  '· đơn mới tự về tab Đơn hàng': '· new orders appear in the Orders tab',
   'Máy chủ chưa có chức năng kết nối sàn. Phần này sẽ hoạt động khi backend hoàn tất.': 'The server does not support store connections yet. This will work once the backend is done.',
   'Tên cửa hàng': 'Store name',
   'Nhập dạng ten-shop hoặc ten-shop.myshopify.com': 'Enter shop-name or shop-name.myshopify.com',
@@ -242,4 +242,10 @@ export const ecommerce: Record<string, string> = {
   // Trang Đơn hàng E-com (menu Dịch vụ & Bán hàng)
   'Đơn hàng E-com': 'E-com orders',
   'Đơn từ Shopify, file Excel hoặc nhập tay đã xác nhận gửi — in nhãn, phiếu đóng gói, bảng kê giao cho Việt An.': 'Orders from Shopify, Excel files or manual entry confirmed for shipping — print labels, packing lists and handover manifests for Viet An.',
+  // Mở app từ Shopify (/ecommerce/shopify)
+  'Kết nối Shopify': 'Connect Shopify',
+  'Đang kết nối cửa hàng Shopify…': 'Connecting your Shopify store…',
+  'Bạn sẽ được chuyển sang Shopify để xác nhận quyền đọc đơn hàng.': 'You will be redirected to Shopify to approve read access to your orders.',
+  'Chưa kết nối được cửa hàng Shopify': 'Could not connect your Shopify store',
+  'Mở trang Kết nối': 'Open the Connect tab',
 };

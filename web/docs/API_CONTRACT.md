@@ -226,7 +226,7 @@ Nghiên cứu chi tiết hai sàn và thiết kế backend: `docs/ECOM_INTEGRATI
 | Method | Path | Trạng thái | Mô tả |
 |---|---|---|---|
 | GET | `/ecom/stores` | Có sẵn | `{ data: StoreConnection[] }` của khách đang đăng nhập |
-| POST | `/ecom/stores/connect` | Có sẵn (Shopify; TikTok trả 422 "chưa hỗ trợ") | `{ platform: "shopify"\|"tiktok", shopDomain?, region?: "global"\|"us" }` → `{ authorizeUrl }`. Backend tạo `state` ngẫu nhiên gắn với khách (hết hạn 10 phút); frontend chuyển trình duyệt sang `authorizeUrl` |
+| POST | `/ecom/stores/connect` | Có sẵn (Shopify; TikTok trả 422 "chưa hỗ trợ") | `{ platform: "shopify"\|"tiktok", shopDomain?, region?: "global"\|"us", launch? }` → `{ authorizeUrl }`. Backend tạo `state` ngẫu nhiên gắn với khách (hết hạn 10 phút); frontend chuyển trình duyệt sang `authorizeUrl`. `launch` = query Shopify gắn khi mở app (`?shop=…&hmac=…&timestamp=…`, trang `/ecommerce/shopify` = application_url): backend kiểm HMAC và `shop` khớp `shopDomain`, sai → 400 `ECOM_LAUNCH_INVALID` |
 | GET | `/ecom/oauth/shopify/callback` | Có sẵn | Shopify redirect về (không do frontend gọi): kiểm `state`, `hmac`, `shop`; đổi `code` lấy token; đăng ký webhook; rồi **302** về `/ecommerce?tab=connect&connected=shopify` hoặc `&error=<thông báo>` |
 | GET | `/ecom/oauth/tiktok/callback` | **Mới** | TikTok Shop redirect về với `code`, `state`: đổi token, lấy `shop_cipher`, rồi 302 như trên |
 | POST | `/ecom/stores/:id/sync` | Có sẵn (Shopify) | Kéo đơn đang mở, chưa giao (tối đa 250) vào `dbo.DonTMDT` → `{ message, importedCount }`; token hết hạn tự làm mới, không làm mới được → 422 + trạng thái `expired` |

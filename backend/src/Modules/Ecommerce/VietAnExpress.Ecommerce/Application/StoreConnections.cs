@@ -19,7 +19,10 @@ internal sealed record StoreConnectionDto(
 internal sealed record GetStoreConnectionsQuery : IRequest<IReadOnlyList<StoreConnectionDto>>;
 
 /// <param name="PortalHost">Domain portal đã kiểm bằng <see cref="PortalHosts"/>.</param>
-internal sealed record StartStoreConnectionCommand(string? Platform, string? ShopDomain, string PortalHost) : IRequest<Result<StartedConnection>>;
+/// <param name="Launch">Query Shopify gắn khi mở app từ Shopify (shop, hmac, timestamp…); null = khách tự nhập tên shop.</param>
+internal sealed record StartStoreConnectionCommand(
+    string? Platform, string? ShopDomain, string PortalHost, IReadOnlyList<KeyValuePair<string, string>>? Launch = null)
+    : IRequest<Result<StartedConnection>>;
 
 /// <param name="Nonce">Đặt vào cookie <see cref="OAuthState.CookieName"/>.</param>
 internal sealed record StartedConnection(string AuthorizeUrl, string Nonce);
@@ -38,6 +41,7 @@ internal static class StoreErrors
     public static readonly Error InvalidShop = Error.Validation("ECOM_SHOP_INVALID", "Nhập dạng ten-shop hoặc ten-shop.myshopify.com");
     public static readonly Error NotConfigured = Error.BusinessRule("ECOM_NOT_CONFIGURED", "Máy chủ chưa cấu hình kết nối Shopify, vui lòng báo Việt An");
     public static readonly Error NotFound = Error.NotFound("ECOM_STORE_NOT_FOUND", "Không tìm thấy cửa hàng");
+    public static readonly Error InvalidLaunch = Error.Validation("ECOM_LAUNCH_INVALID", "Liên kết mở từ Shopify không hợp lệ, vui lòng mở lại ứng dụng từ Shopify admin");
     public static Error ChannelUnavailable(string name) => Error.BusinessRule("ECOM_CHANNEL_UNAVAILABLE", $"Chưa hỗ trợ kết nối {name}, Việt An đang hoàn thiện");
 
     public const string Expired = "Phiên kết nối đã hết hạn, vui lòng bấm Kết nối lại";
@@ -81,6 +85,8 @@ internal sealed class StoreConnectionHandlers(
         var o = shopify.Value;
         if (!o.IsConfigured || !tokens.IsConfigured) return StoreErrors.NotConfigured;
         if (ShopifyOAuth.NormalizeShop(c.ShopDomain) is not { } shop) return StoreErrors.InvalidShop;
+        // Mở từ Shopify: chỉ tin tên shop khi chữ ký đúng (chặn link giả dẫn khách ủy quyền nhầm shop).
+        if (c.Launch is { } launch && !ShopifyOAuth.IsValidLaunch(launch, shop, o.ClientSecret)) return StoreErrors.InvalidLaunch;
 
         var nonce = OAuthState.NewNonce();
         var state = OAuthState.Protect(

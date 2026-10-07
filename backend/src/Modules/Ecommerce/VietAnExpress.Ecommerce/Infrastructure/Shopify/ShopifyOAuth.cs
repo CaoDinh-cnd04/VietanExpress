@@ -50,4 +50,8 @@ internal static partial class ShopifyOAuth
         var expected = Convert.ToHexStringLower(HMACSHA256.HashData(Encoding.UTF8.GetBytes(clientSecret), Encoding.UTF8.GetBytes(message)));
         return CryptographicOperations.FixedTimeEquals(Encoding.ASCII.GetBytes(expected), Encoding.ASCII.GetBytes(hmac.ToLowerInvariant()));
     }
+
+    /// <summary>Query Shopify gắn khi mở app (application_url): chữ ký đúng và đúng shop đang kết nối.</summary>
+    public static bool IsValidLaunch(IReadOnlyList<KeyValuePair<string, string>> query, string shop, string clientSecret) =>
+        NormalizeShop(query.FirstOrDefault(p => p.Key == "shop").Value) == shop && IsValidHmac(query, clientSecret);
 }

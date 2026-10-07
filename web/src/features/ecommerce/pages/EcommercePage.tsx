@@ -27,7 +27,7 @@ export default function EcommercePage() {
 
   return (
     <>
-      <PageHeader title="E-commerce" description="Kết nối Shopify, TikTok Shop để đơn tự về và tracking tự trả lên sàn, hoặc thêm đơn bằng file Excel." />
+      <PageHeader title="E-commerce" description="Kết nối Shopify, TikTok Shop để đơn tự về, hoặc thêm đơn bằng file Excel." />
       <div className="page-stack">
         <Card flush>
           <Tabs ariaLabel={t('Chức năng E-commerce')} items={tabs} value={tab} onChange={k => setParams({ tab: k }, { replace: true })} />

@@ -2,6 +2,7 @@ using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Configuration;
 using VietAnExpress.Ecommerce.Application;
 using VietAnExpress.Ecommerce.Contracts;
@@ -23,13 +24,16 @@ internal sealed class StoresController(PortalHosts portalHosts, IConfiguration c
     [ProducesResponseType<ApiResponse<IReadOnlyList<StoreConnectionDto>>>(StatusCodes.Status200OK)]
     public async Task<IActionResult> List(CancellationToken ct) => OkData(await Sender.Send(new GetStoreConnectionsQuery(), ct));
 
-    /// <summary>Bắt đầu ủy quyền: trả <c>authorizeUrl</c> để trình duyệt chuyển sang sàn, kèm cookie nonce 10 phút.</summary>
+    /// <summary>
+    /// Bắt đầu ủy quyền: trả <c>authorizeUrl</c> để trình duyệt chuyển sang sàn, kèm cookie nonce 10 phút.
+    /// <c>launch</c> = query Shopify gắn khi mở app (cài từ App Store / bấm app trong Shopify admin) — có thì kiểm HMAC.
+    /// </summary>
     [HttpPost("stores/connect")]
     [HasPermission(EcommercePermissions.Connect)]
     [ProducesResponseType<StartConnectionResponse>(StatusCodes.Status200OK)]
     public async Task<IActionResult> Connect(StartConnectionRequest body, CancellationToken ct)
     {
-        var result = await Sender.Send(new StartStoreConnectionCommand(body.Platform, body.ShopDomain, RequestPortalHost()), ct);
+        var result = await Sender.Send(new StartStoreConnectionCommand(body.Platform, body.ShopDomain, RequestPortalHost(), ParseLaunch(body.Launch)), ct);
         if (result.IsFailure) return Problem(result.Error);
 
         Response.Cookies.Append(OAuthState.CookieName, result.Value.Nonce, NonceCookie(DateTimeOffset.UtcNow + OAuthState.Lifetime));
@@ -133,6 +137,9 @@ internal sealed class StoresController(PortalHosts portalHosts, IConfiguration c
     public async Task<IActionResult> Disconnect(long id, CancellationToken ct) =>
         FromResult(await Sender.Send(new DisconnectStoreCommand(id), ct), "Đã ngắt kết nối cửa hàng");
 
+    private static IReadOnlyList<KeyValuePair<string, string>>? ParseLaunch(string? launch) =>
+        launch is null ? null : [.. QueryHelpers.ParseQuery(launch).Select(q => new KeyValuePair<string, string>(q.Key, q.Value.ToString()))];
+
     /// <summary>Domain portal của request (proxy Vercel gửi qua X-Forwarded-Host), chỉ nhận domain trong danh sách cho phép.</summary>
     private string RequestPortalHost() => portalHosts.Resolve(Request.Headers["X-Forwarded-Host"].FirstOrDefault(), Request.Host.Value);
 
@@ -152,7 +159,7 @@ internal sealed record ImportCsvRequest(string? Csv);
 
 internal sealed record OrderIdsRequest(IReadOnlyList<string>? Ids);
 
-internal sealed record StartConnectionRequest(string? Platform, string? ShopDomain, string? Region);
+internal sealed record StartConnectionRequest(string? Platform, string? ShopDomain, string? Region, string? Launch = null);
 
 /// <summary>Frontend đọc thẳng <c>authorizeUrl</c> (không bọc trong data).</summary>
 internal sealed record StartConnectionResponse(string AuthorizeUrl);

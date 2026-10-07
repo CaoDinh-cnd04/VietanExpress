@@ -45,6 +45,15 @@ public class ShopifyOAuthTests
     }
 
     [Fact]
+    public void IsValidLaunch_can_dung_chu_ky_va_dung_shop()
+    {
+        Assert.True(ShopifyOAuth.IsValidLaunch(DocExample, "some-shop.myshopify.com", "hush"));
+        Assert.False(ShopifyOAuth.IsValidLaunch(DocExample, "other.myshopify.com", "hush"));
+        Assert.False(ShopifyOAuth.IsValidLaunch(DocExample, "some-shop.myshopify.com", "wrong"));
+        Assert.False(ShopifyOAuth.IsValidLaunch([new("shop", "some-shop.myshopify.com")], "some-shop.myshopify.com", "hush"));
+    }
+
+    [Fact]
     public void AuthorizeUrl_ma_hoa_tham_so()
     {
         var url = ShopifyOAuth.AuthorizeUrl("a.myshopify.com", "id", "read_orders,write_x", "https://p.app/cb", "s.t");

@@ -28,6 +28,19 @@ export function readOAuthResult(params: URLSearchParams): { ok: true; platform: 
   return platform ? { ok: true, platform } : null;
 }
 
+/**
+ * Mở app từ Shopify (cài từ App Store / bấm app trong Shopify admin): Shopify gắn ?shop=…&hmac=… vào application_url.
+ * Shop đã kết nối và còn hoạt động → vào thẳng đơn hàng; chưa có hoặc cần ủy quyền lại → kết nối tự động, không bắt khách gõ tên shop.
+ */
+export type ShopifyLaunch = { kind: 'invalid' } | { kind: 'connected' } | { kind: 'connect'; shop: string };
+
+export function resolveShopifyLaunch(params: URLSearchParams, stores: readonly StoreConnection[]): ShopifyLaunch {
+  const shop = params.get('hmac') ? normalizeShopifyDomain(params.get('shop') ?? '') : null;
+  if (!shop) return { kind: 'invalid' };
+  const active = stores.some(s => s.platform === 'shopify' && s.shopDomain === shop && s.status === 'active');
+  return active ? { kind: 'connected' } : { kind: 'connect', shop };
+}
+
 export const ECOM_TABS = ['orders', 'add', 'connect'] as const;
 export type EcomTab = (typeof ECOM_TABS)[number];
 

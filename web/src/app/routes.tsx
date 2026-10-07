@@ -25,6 +25,7 @@ const pages = {
   pricing: lazy(() => import('@/features/pricing/pages/PricingPage')),
   ecommerce: lazy(() => import('@/features/ecommerce/pages/EcommercePage')),
   ecomOrders: lazy(() => import('@/features/ecommerce/pages/EcomOrdersPage')),
+  shopifyLaunch: lazy(() => import('@/features/ecommerce/pages/ShopifyLaunchPage')),
   troubles: lazy(() => import('@/features/troubles/pages/TroublesPage')),
   notifications: lazy(() => import('@/features/notifications/pages/NotificationsPage')),
   support: lazy(() => import('@/features/support/pages/SupportPage')),
@@ -75,6 +76,8 @@ const routes: RouteObject[] = [
       page('pricing', 'Giá & gợi ý dịch vụ', pages.pricing),
       page('ecommerce', 'E-commerce', pages.ecommerce, PERMISSIONS.ecommerceView),
       page('ecommerce/orders', 'Đơn hàng E-com', pages.ecomOrders, PERMISSIONS.ecommerceView),
+      // application_url của app Shopify (shopify.app.toml): mở app từ Shopify → tự kết nối shop.
+      page('ecommerce/shopify', 'Kết nối Shopify', pages.shopifyLaunch, PERMISSIONS.ecommerceConnect),
       page('troubles', 'Quản lý sự cố', pages.troubles),
       page('notifications', 'Thông báo', pages.notifications),
       page('help', 'Trợ giúp & Góp ý', pages.support),

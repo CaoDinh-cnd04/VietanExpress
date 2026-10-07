@@ -48,7 +48,7 @@ function StoresCard() {
   }, [params, setParams, t, toast]);
 
   return (
-    <Card title="Kết nối sàn" subtitle="· đơn mới tự về tab Đơn hàng, mã tracking tự trả lên sàn khi có bill">
+    <Card title="Kết nối sàn" subtitle="· đơn mới tự về tab Đơn hàng">
       <div className="page-stack">
         {unavailable && (
           <Notice tone="warning">

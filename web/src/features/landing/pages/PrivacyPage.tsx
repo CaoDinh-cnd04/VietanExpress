@@ -56,7 +56,7 @@ export default function PrivacyPage() {
           <h2>2. How we use information</h2>
           <ul>
             <li>To display the merchant's Shopify orders in the Viet An Express customer portal.</li>
-            <li>To let the merchant create international express shipments and print shipping labels, commercial invoices and waybills.</li>
+            <li>To let the merchant confirm orders for international express shipping and print parcel labels, packing lists and handover manifests.</li>
             <li>To deliver shipments and provide customer support related to those shipments.</li>
             <li>To meet legal, customs and accounting obligations for shipments that are actually sent.</li>
           </ul>
