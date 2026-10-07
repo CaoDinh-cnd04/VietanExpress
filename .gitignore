@@ -29,3 +29,6 @@ TestResults/
 .DS_Store
 Thumbs.db
 .claude/settings.local.json
+
+# Script kiểm tra webhook Shopify chỉ dùng trên máy
+backend/scripts/test-shopify-webhooks.ps1
