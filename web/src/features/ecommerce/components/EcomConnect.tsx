@@ -79,7 +79,7 @@ function ShopifyConnect({ disabled }: { disabled: boolean }) {
       <strong className={styles.connectName}>Shopify</strong>
       <TextField
         label="Tên cửa hàng"
-        placeholder="ten-shop.myshopify.com"
+        placeholder={t('ten-shop.myshopify.com')}
         value={shop}
         onChange={e => setShop(e.target.value)}
         error={shop && !domain ? t('Nhập dạng ten-shop hoặc ten-shop.myshopify.com') : undefined}

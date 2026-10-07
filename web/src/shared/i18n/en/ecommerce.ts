@@ -248,4 +248,6 @@ export const ecommerce: Record<string, string> = {
   'Bạn sẽ được chuyển sang Shopify để xác nhận quyền đọc đơn hàng.': 'You will be redirected to Shopify to approve read access to your orders.',
   'Chưa kết nối được cửa hàng Shopify': 'Could not connect your Shopify store',
   'Mở trang Kết nối': 'Open the Connect tab',
+  '{n} SP': '{n} items',
+  'ten-shop.myshopify.com': 'your-shop.myshopify.com',
 };
