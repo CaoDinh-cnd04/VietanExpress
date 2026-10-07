@@ -86,7 +86,7 @@ internal sealed class ManualOrderHandler(EcommerceDbContext db, ICurrentUser use
     public async Task<Result<EcomOrderDto>> Handle(CreateManualOrderCommand c, CancellationToken ct)
     {
         if (user.CustomerId is not { } customerId) return StoreErrors.NotLoggedIn;
-        var now = VietnamTime.ToVietnam(clock.GetUtcNow()).DateTime;
+        var now = VietnamTime.Now(clock);
         var built = ManualOrderRules.Build(c.Input, now);
         if (built.IsFailure) return built.Error;
 
@@ -94,7 +94,7 @@ internal sealed class ManualOrderHandler(EcommerceDbContext db, ICurrentUser use
         if (await db.MarketplaceOrders.AnyAsync(o => o.CustomerId == customerId && o.Source == source && o.OrderName == imported.OrderName && o.DeletedAt == null, ct))
             return Error.Conflict("ECOM_ORDER_EXISTS", $"Mã đơn {imported.OrderName} đã có trong danh sách");
 
-        var order = MarketplaceOrder.CreateManual(customerId, source, imported, shipping, now);
+        var order = MarketplaceOrder.CreateManual(customerId, source, imported, shipping, now, user.StaffId);
         db.MarketplaceOrders.Add(order);
         await db.SaveChangesAsync(ct);
         return EcomOrderHandlers.ToDto(order);

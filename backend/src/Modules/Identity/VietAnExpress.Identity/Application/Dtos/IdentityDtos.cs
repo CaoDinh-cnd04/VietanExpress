@@ -56,7 +56,26 @@ internal sealed record StaffAccountDto(
 internal sealed record AssignablePermissionDto(string Code, string Description);
 
 /// <summary>Cấu hình MyTracking của khách đang đăng nhập; <c>Config</c> null = chưa cấu hình (frontend dùng mặc định).</summary>
-internal sealed record MyTrackingDto(string Slug, bool Published, System.Text.Json.JsonElement? Config, DateTime? UpdatedAt);
+internal sealed record MyTrackingDto(string Slug, bool Published, RawJson? Config, DateTime? UpdatedAt);
 
 /// <summary>Trang MyTracking công khai (đã xuất bản).</summary>
-internal sealed record PublicMyTrackingDto(string Slug, System.Text.Json.JsonElement Config);
+internal sealed record PublicMyTrackingDto(string Slug, RawJson Config);
+
+/// <summary>
+/// JSON đã lưu (đã kiểm tra khi ghi), trả nguyên văn vào phản hồi — không parse / clone lại cấu hình có thể tới 2 MB
+/// mỗi lần người nhận mở trang /t/{slug}.
+/// </summary>
+[System.Text.Json.Serialization.JsonConverter(typeof(RawJsonConverter))]
+internal readonly record struct RawJson(string Json);
+
+internal sealed class RawJsonConverter : System.Text.Json.Serialization.JsonConverter<RawJson>
+{
+    public override RawJson Read(ref System.Text.Json.Utf8JsonReader reader, Type typeToConvert, System.Text.Json.JsonSerializerOptions options)
+    {
+        using var doc = System.Text.Json.JsonDocument.ParseValue(ref reader);
+        return new RawJson(doc.RootElement.GetRawText());
+    }
+
+    public override void Write(System.Text.Json.Utf8JsonWriter writer, RawJson value, System.Text.Json.JsonSerializerOptions options) =>
+        writer.WriteRawValue(value.Json, skipInputValidation: true);
+}

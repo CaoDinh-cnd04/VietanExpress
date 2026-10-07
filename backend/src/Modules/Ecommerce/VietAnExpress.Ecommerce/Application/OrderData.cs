@@ -57,7 +57,8 @@ internal static class OrderData
     /// Trường bắt buộc còn thiếu trước khi xác nhận gửi — chỉ những gì sàn nào cũng có (người nhận, địa chỉ, SĐT, sản phẩm).
     /// Cân nặng, mã HS, chữ Latin không bắt buộc: Việt An cân / khai hải quan khi nhận hàng (người dùng đã chọn).
     /// </summary>
-    public static IReadOnlyList<string> Issues(MarketplaceOrder o)
+    /// <param name="products">Sản phẩm đã đọc sẵn (nếu có) — tránh deserialize ProductsJson lần nữa.</param>
+    public static IReadOnlyList<string> Issues(MarketplaceOrder o, IReadOnlyList<EcomProductDto>? products = null)
     {
         if (o.Bill is not null) return [];
         var r = o.Recipient;
@@ -65,7 +66,7 @@ internal static class OrderData
         if (string.IsNullOrWhiteSpace(r.Name)) issues.Add("Thiếu tên người nhận");
         if (string.IsNullOrWhiteSpace(r.Address1) || string.IsNullOrWhiteSpace(r.CountryCode)) issues.Add("Thiếu địa chỉ / nước đến");
         if (string.IsNullOrWhiteSpace(r.Phone)) issues.Add("Thiếu số điện thoại người nhận");
-        if (Products(o).Count == 0) issues.Add("Chưa có sản phẩm");
+        if ((products ?? Products(o)).Count == 0) issues.Add("Chưa có sản phẩm");
         return issues;
     }
 

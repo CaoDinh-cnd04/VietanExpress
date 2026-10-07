@@ -52,7 +52,7 @@ internal sealed class PrintOrdersHandler(
                 : new OrderPrintModel(o, []))
             .ToList();
 
-        var now = VietnamTime.ToVietnam(clock.GetUtcNow()).DateTime;
+        var now = VietnamTime.Now(clock);
         return OrderDocumentRenderer.Render(q.Doc, models, company.Value, now);
     }
 

@@ -59,6 +59,9 @@ internal sealed class MarketplaceOrderConfiguration : IEntityTypeConfiguration<M
             .OnDelete(DeleteBehavior.Restrict).HasConstraintName("FK_DonTMDT_KetNoiTMDT_ID");
 
         // Đồng bộ lại không tạo đơn trùng.
+        b.Property(x => x.CreatedByStaffId).HasColumnName("Nhan_Vien_Tao");
+        // Lọc đơn của tài khoản con: WHERE CustomerID = @c AND Nhan_Vien_Tao = @staff.
+        b.HasIndex(x => new { x.CustomerId, x.CreatedByStaffId }).HasDatabaseName("IX_DonTMDT_CustomerID_Nhan_Vien_Tao");
         b.HasIndex(x => new { x.CustomerId, x.Source, x.PlatformOrderId }).IsUnique()
             .HasFilter("[Ma_Don_San] IS NOT NULL").HasDatabaseName("UX_DonTMDT_CustomerID_Nguon_Ma_Don_San");
         // Tab Đơn hàng: đơn của khách, mới nhất trước.

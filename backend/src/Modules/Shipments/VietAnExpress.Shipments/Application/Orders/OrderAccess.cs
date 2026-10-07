@@ -43,7 +43,7 @@ internal sealed class OrderAccess(ICurrentUser user, ICustomersApi customers, Sh
     public long? CreatorStaffId => user.StaffId;
 
     public Task<OrderScope> ScopeAsync(CancellationToken ct) =>
-        Task.FromResult(new OrderScope(user.CustomerId ?? NoCustomer, user.OwnOrdersOnly() ? user.StaffId : null));
+        Task.FromResult(new OrderScope(user.CustomerId ?? NoCustomer, user.RestrictedStaffId(ShipmentsPermissions.ViewAll)));
 
     public IQueryable<LegacyOrder> Apply(IQueryable<LegacyOrder> query, OrderScope scope)
     {
@@ -70,9 +70,3 @@ internal sealed class OrderAccess(ICurrentUser user, ICustomersApi customers, Sh
     }
 }
 
-internal static class OrderScopeRules
-{
-    /// <summary>Tài khoản con không được cấp quyền xem toàn bộ đơn của công ty → chỉ thấy đơn / nháp mình tạo.</summary>
-    public static bool OwnOrdersOnly(this ICurrentUser user) =>
-        user.StaffId is not null && !user.HasPermission(ShipmentsPermissions.ViewAll);
-}

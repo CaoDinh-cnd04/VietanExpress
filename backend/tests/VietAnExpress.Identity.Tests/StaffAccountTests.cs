@@ -44,6 +44,25 @@ public class StaffAccountTests
     }
 
     [Fact]
+    public async Task Tai_khoan_con_dien_san_nguoi_gui_la_nhan_vien_con_cong_ty_dia_chi_MST_cua_khach_cha()
+    {
+        await using var f = new IdentityFixture();
+        await f.Staff.Handle(new CreateStaffCommand("kho.hn", StaffPassword, "Trần Thị Lan", "lan@sgb.vn", "0901234567", ["shipments.view"]), Ct);
+        await f.Staff.Handle(new CreateStaffCommand("kho.hcm", StaffPassword, "Lê Văn Minh", null, null, ["shipments.view"]), Ct);
+
+        var lan = (await f.Login.Handle(new LoginCommand("kho.hn", StaffPassword, false), Ct)).Value.User;
+        Assert.Equal(("SGB EXPRESS HN", "Trần Thị Lan", "0901234567", "lan@sgb.vn"), (lan.CompanyName, lan.ContactName, lan.Phone, lan.Email));
+
+        // Nhân viên chưa có SĐT / email: để trống, không lấy của công ty (người tạo đơn tự nhập).
+        var minh = (await f.Login.Handle(new LoginCommand("kho.hcm", StaffPassword, false), Ct)).Value.User;
+        Assert.Equal(("Lê Văn Minh", null, null), (minh.ContactName, minh.Phone, minh.Email));
+
+        // Tài khoản chính vẫn dùng người liên hệ / SĐT của công ty.
+        var admin = (await f.Login.Handle(new LoginCommand(IdentityFixture.UserName, IdentityFixture.Password, false), Ct)).Value.User;
+        Assert.Equal(("Đức Anh", "0977714964", "ops@sgb.vn"), (admin.ContactName, admin.Phone, admin.Email));
+    }
+
+    [Fact]
     public async Task Mat_khau_tai_khoan_con_luu_dang_bam()
     {
         await using var f = new IdentityFixture();
@@ -143,14 +162,15 @@ public class StaffAccountTests
     }
 
     [Fact]
-    public async Task Nhan_vien_tu_doi_mat_khau_va_xem_ho_so_cua_minh()
+    public async Task Nhan_vien_khong_tu_doi_mat_khau_nhung_xem_duoc_ho_so_cua_minh()
     {
         await using var f = new IdentityFixture();
         var staffId = await CreateStaffAsync(f);
         f.SignInAs(staffId);
 
         var changed = await f.ChangePassword.Handle(new ChangePasswordCommand(StaffPassword, "MatKhauMoi9", null), Ct);
-        Assert.True(changed.IsSuccess);
+        Assert.Equal(IdentityErrors.StaffPasswordManagedByAdmin, changed.Error);
+        Assert.True(StaffPasswordHasher.Verify(f.Db.StaffAccounts.Single().PasswordHash, StaffPassword)); // mật khẩu không đổi
         Assert.Equal(IdentityFixture.Password, f.StoredPassword()); // không đụng mật khẩu tài khoản chính
 
         var me = await f.Me.Handle(new GetSessionQuery(), Ct);
@@ -184,7 +204,7 @@ public class MyTrackingTests
 
         await f.MyTracking.Handle(new SaveMyTrackingCommand("sgb-express", true, Config("Xuat ban")), Ct);
         var page = await f.MyTracking.Handle(new GetPublicMyTrackingQuery("sgb-express"), Ct);
-        Assert.Equal("Xuat ban", page.Value.Config.GetProperty("title").GetString());
+        Assert.Equal("Xuat ban", JsonDocument.Parse(page.Value.Config.Json).RootElement.GetProperty("title").GetString());
     }
 
     [Fact]

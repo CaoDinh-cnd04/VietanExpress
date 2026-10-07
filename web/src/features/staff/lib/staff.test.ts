@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { formatDateTime, groupPermissions, togglePermission, toProfile } from './staff';
+import { formatIsoDateTime } from '@/shared/lib/format';
+import { groupPermissions, togglePermission, toProfile } from './staff';
 
 describe('groupPermissions', () => {
   it('gom theo module, giữ thứ tự và nhãn tiếng Việt', () => {
@@ -32,6 +33,11 @@ describe('togglePermission', () => {
     expect(togglePermission(['shipments.view', 'shipments.view-all'], 'shipments.view', false)).toEqual([]);
   });
 
+  it('quyền E-commerce: tạo đơn / xem toàn bộ cần quyền xem, bỏ quyền xem thì bỏ hết', () => {
+    expect(togglePermission([], 'ecommerce.orders', true)).toEqual(['ecommerce.orders', 'ecommerce.view']);
+    expect(togglePermission(['ecommerce.orders', 'ecommerce.view', 'ecommerce.view-all'], 'ecommerce.view', false)).toEqual([]);
+  });
+
   it('bỏ quyền con không ảnh hưởng quyền xem', () => {
     expect(togglePermission(['shipments.create', 'shipments.view'], 'shipments.create', false)).toEqual(['shipments.view']);
   });
@@ -44,10 +50,10 @@ describe('toProfile', () => {
   });
 });
 
-describe('formatDateTime', () => {
+describe('formatIsoDateTime', () => {
   it('đổi sang dd/mm/yyyy HH:mm, giá trị trống thì rỗng', () => {
-    expect(formatDateTime('2026-10-06T08:05:31')).toBe('06/10/2026 08:05');
-    expect(formatDateTime(null)).toBe('');
-    expect(formatDateTime('khác')).toBe('');
+    expect(formatIsoDateTime('2026-10-06T08:05:31')).toBe('06/10/2026 08:05');
+    expect(formatIsoDateTime(null)).toBe('');
+    expect(formatIsoDateTime('khác')).toBe('');
   });
 });

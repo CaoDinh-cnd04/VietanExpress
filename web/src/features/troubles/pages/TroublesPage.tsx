@@ -1,3 +1,4 @@
+import { isNotImplemented } from '@/shared/api/http';
 import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useI18n } from '@/shared/i18n';
@@ -27,7 +28,7 @@ const columns = (t: (text: string) => string): ReadonlyArray<Column<TroubleTicke
  */
 export default function TroublesPage() {
   const { t } = useI18n();
-  const { data = [], isLoading, isError, refetch } = useTroubles();
+  const { data = [], isLoading, isError, error, refetch } = useTroubles();
   const [params, setParams] = useSearchParams();
   const [tab, setTab] = useState<TabKey>('open');
   const [openTicket, setOpenTicket] = useState<TroubleTicket | null>(null);
@@ -61,7 +62,9 @@ export default function TroublesPage() {
           loading={isLoading}
           onRowClick={setOpenTicket}
           empty={
-            isError
+            isError && isNotImplemented(error)
+              ? { title: 'Chức năng quản lý sự cố đang được kết nối máy chủ', description: 'Cần báo sự cố gấp, vui lòng gọi hotline Việt An.' }
+              : isError
               ? { title: 'Không tải được danh sách sự cố', action: <Button onClick={() => void refetch()}>{t('Thử lại')}</Button> }
               : { title: 'Không có sự cố nào', description: 'Báo sự cố từ menu "⋯" của đơn trong Đơn hàng của tôi.' }
           }

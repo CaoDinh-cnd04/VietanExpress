@@ -155,7 +155,7 @@ internal sealed class ImportOrdersHandler(
 
             // Có MaVanDon.ID rồi mới ghi chi tiết kiện (MaVanDon_PCS_DIM) và dòng hàng (MaVanDon_ChiTietHang).
             await LegacyOrderLinesWriter.AddAsync(db, saved, ct);
-            OrderAccess.RecordCreators(db, saved.Select(s => s.Item1), access.CreatorStaffId, VietnamTime.ToVietnam(clock.GetUtcNow()).DateTime);
+            OrderAccess.RecordCreators(db, saved.Select(s => s.Item1), access.CreatorStaffId, VietnamTime.Now(clock));
 
             // Xoá mềm ngay để không hiện trong "Đơn nháp & chưa in" — chỉ giữ để in chứng từ.
             db.OrderDrafts.RemoveRange(drafts);

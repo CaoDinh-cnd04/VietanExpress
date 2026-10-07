@@ -6,6 +6,7 @@ import type { LoginRequest, Session, SessionUser } from './types';
 
 export const sessionKey = ['session'] as const;
 
+
 async function fetchSession(): Promise<Session> {
   try {
     const res = await http.get<{ data: SessionUser }>('/me');

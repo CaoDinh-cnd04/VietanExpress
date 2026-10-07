@@ -1,5 +1,6 @@
 import type { SavedProduct } from '../api';
 import { emptyInvoiceItem, type InvoiceItemValues } from '../schema';
+import { stripDiacritics } from '@/shared/lib/text';
 
 /** Chép thông tin mặt hàng, khách khai lại số lượng và đơn giá cho lần gửi mới. */
 export const invoiceItemFromProduct = (p: SavedProduct): InvoiceItemValues => ({
@@ -14,13 +15,7 @@ export const invoiceItemFromProduct = (p: SavedProduct): InvoiceItemValues => ({
 });
 
 /** Bỏ dấu tiếng Việt + chữ thường để tìm không phân biệt "ao" / "Áo". */
-export const fold = (s: string) =>
-  s
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .replace(/đ/g, 'd')
-    .replace(/Đ/g, 'D')
-    .toLowerCase();
+export const fold = (s: string) => stripDiacritics(s).toLowerCase();
 
 /**
  * Lọc thư viện mặt hàng theo ô tìm (tên EN / VN, mã HS, nhà sản xuất) và tab "Yêu thích".

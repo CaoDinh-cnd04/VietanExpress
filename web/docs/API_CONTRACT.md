@@ -5,7 +5,7 @@ Backend mới (SQL Server) chỉ cần làm đúng các hợp đồng này là f
 
 - Base URL: `/api/v1` (cấu hình bằng biến `VITE_API_BASE_URL`).
 - Kiểu dữ liệu TypeScript tương ứng nằm trong `web/src/features/<feature>/types.ts` hoặc `api.ts` — đó là nguồn chuẩn.
-- Trạng thái: **Có sẵn** = đã có ở backend Express cũ (đã gỡ khỏi repo) và frontend đã chạy thử với nó · **Mới** = backend cần làm thêm.
+- Trạng thái: **Có sẵn** = đã có ở backend Express cũ (đã gỡ khỏi repo) và frontend đã chạy thử với nó · **Mới** = backend cần làm thêm · **Chưa làm** = backend .NET hiện tại chưa có (gọi trả 404 — frontend hiện "Chức năng đang được kết nối máy chủ"). Kiểm tra ngày 06/10/2026.
 
 ## Quy ước chung
 
@@ -32,7 +32,7 @@ Backend mới (SQL Server) chỉ cần làm đúng các hợp đồng này là f
 | POST | `/orders/import/preview` | Có sẵn | Kiểm tra file Excel tạo đơn (multipart), chưa tạo đơn — trang "Tạo đơn từ Excel" |
 | POST | `/orders/import` | Có sẵn | Kiểm tra lại file và tạo đơn cho các dòng hợp lệ (≤ 100), cấp số vận đơn ngay |
 | DELETE | `/orders/:bill` | Có sẵn | Hủy đơn (chỉ đơn "Chưa đi") |
-| GET | `/orders/:bill/photos` | **Mới** | Ảnh kiện chụp tại kho |
+| GET | `/orders/:bill/photos` | **Chưa làm** | Ảnh kiện chụp tại kho |
 | GET | `/orders/:bill/events` | **Mới** | Hành trình đơn |
 | GET | `/orders/print?bills=A,B&doc=` | Có sẵn | Trang **HTML** in chứng từ cho 1 hoặc nhiều đơn (≤ 100), tự mở hộp thoại in. `doc`: `bill-a4` \| `invoice` \| `cvck` \| `label-a6`. Mẫu theo hệ thống cũ: `invoice` (A4 dọc, 3 bản / đơn: SHIPPER, CONSIGNEE, Air waybill No. / Date / No. of pkgs / Weight / Dimensions, bảng hàng tên Anh/ Việt + nhà sản xuất - xuất xứ, HS, số lượng, đơn giá, thành tiền, Reason for Export và lời cam kết), `cvck` (công văn cam kết nội dung hàng xuất), `label-a6` (khổ 100×150 mm: 3 liên + 1 shipping mark mỗi kiện; cân quy đổi trên nhãn làm tròn lên 0,5 kg) |
 | GET | `/orders/export` | Có sẵn | Bảng kê gửi hàng **.xlsx** (cùng tham số lọc như `GET /orders`, tối đa 10.000 dòng); tên file ở header `Content-Disposition` |
@@ -159,7 +159,7 @@ Khi cấp bill, hai mã được lưu vào `dbo.MaVanDon.ConsigneeIossNo` / `Con
 | PUT | `/catalog/categories/:id/favorite` | **Mới** | Đánh dấu / bỏ yêu thích, body `{ isFavorite }` → `{ message }`. Được cả nhóm chung (lưu riêng cho khách trong `dbo.MatHangKhachHang`, Loai = `NHOM`); nhóm của khách cập nhật `NhomHangHoa.Yeu_Thich`. Không thấy nhóm **404** |
 `Category`: `{ id, name, isFavorite, isOwn, suggestions: [{ en, vi, hs }] }` — `isOwn = false` là nhóm chung Việt An (`CustomerID` NULL), chỉ đọc.
 
-| GET | `/catalog/addon-fees` | **Mới** | Biểu phí tùy chọn dịch vụ: `AddonFee[]` = `{ name, fee: number \| null, currency, unit, note? }`. `name` khớp tên tùy chọn trên form (vd "Đóng gói hộ"); `currency` = `"%"` khi tính theo % (`unit` vd "giá trị hàng"); `fee` null = chưa có giá. Chưa có endpoint (404/501) → form hiện "Đang cập nhật" |
+| GET | `/catalog/addon-fees` | **Chưa làm** | Biểu phí tùy chọn dịch vụ: `AddonFee[]` = `{ name, fee: number \| null, currency, unit, note? }`. `name` khớp tên tùy chọn trên form (vd "Đóng gói hộ"); `currency` = `"%"` khi tính theo % (`unit` vd "giá trị hàng"); `fee` null = chưa có giá. Chưa có endpoint (404/501) → form hiện "Đang cập nhật" |
 | GET | `/catalog/products` | Có sẵn | Thư viện mặt hàng của khách: `SavedProduct[]` — lấy từ các dòng hàng đã khai trong `dbo.MaVanDon_ChiTietHang` (đơn của khách), mỗi mặt hàng 1 dòng, đơn giá lần gần nhất. Mặt hàng yêu thích đứng đầu, mặt hàng khách đã xóa không trả về. `SavedProduct.id` = khóa mặt hàng (SHA-256 hex 64 ký tự của tên EN/VN, HS, xuất xứ, đơn vị, nhà sản xuất — không phân biệt hoa thường); `isFavorite` |
 | PUT | `/catalog/products/:id/favorite` | **Mới** | Đánh dấu / bỏ yêu thích mặt hàng, body `{ isFavorite }` → `{ message }` (bảng `dbo.MatHangKhachHang`, Loai = `SP`). Khóa sai định dạng **400** |
 | DELETE | `/catalog/products/:id` | **Mới** | Xóa mặt hàng khỏi thư viện — chỉ ẩn (`Da_Xoa = 1`), dòng hàng trong đơn cũ giữ nguyên. |
@@ -167,10 +167,10 @@ Khi cấp bill, hai mã được lưu vào `dbo.MaVanDon.ConsigneeIossNo` / `Con
 | GET | `/invoices/recent?limit=20` | Có sẵn | Invoice đơn gần đây (≤ 50, từ `MaVanDon_ChiTietHang`) để chép lại: `{ bill, cnee, date, currency, items: SavedProduct[] }[]` |
 | GET | `/geo/countries` | Có sẵn | Quốc gia + mã điện thoại: `[{ code: "US", name: "United States", dialCode: "+1" }]` (backend lấy từ world-countries, cache 1 ngày) |
 | GET | `/geo/postal/:countryCode/:postalCode` | Có sẵn | Mã bưu chính → `{ countryCode, postalCode, city, state, stateCode }` (backend tra GeoNames postalCodeLookupJSON, ~100 nước, nhận cả mã đầy đủ như `SW1A 1AA`; tài khoản GeoNames chỉ ở cấu hình backend `GeoNames:Username`); không tìm thấy / chưa hỗ trợ / nguồn tạm lỗi → 404 |
-| GET | `/addresses/senders` | Có sẵn | Hồ sơ người gửi: `{ id, n (tên), c (liên hệ), t (điện thoại), d (địa chỉ) }` |
-| GET | `/addresses/receivers` | Có sẵn | Sổ địa chỉ người nhận: `{ id, n, ct, city, postal, contact, tel, a1, a2, a3 }` |
-| POST | `/addresses/receivers` | Có sẵn | Lưu người nhận vào sổ |
-| DELETE | `/addresses/receivers/:id` | Có sẵn | Xóa người nhận |
+| GET | `/addresses/senders` | **Chưa làm** | Hồ sơ người gửi: `{ id, n (tên), c (liên hệ), t (điện thoại), d (địa chỉ) }` |
+| GET | `/addresses/receivers` | **Chưa làm** | Sổ địa chỉ người nhận: `{ id, n, ct, city, postal, contact, tel, a1, a2, a3 }` |
+| POST | `/addresses/receivers` | **Chưa làm** | Lưu người nhận vào sổ |
+| DELETE | `/addresses/receivers/:id` | **Chưa làm** | Xóa người nhận |
 
 `SavedProduct`: `{ id?, descEn, descVi, manufacturer, origin, hs, unit, price }` (tất cả chuỗi).
 
@@ -182,10 +182,10 @@ Nên làm thêm (hiện khai tĩnh ở `shared/config/domain.ts`): `GET /service
 
 | Method | Path | Trạng thái | Mô tả |
 |---|---|---|---|
-| POST | `/rates` | Có sẵn | So sánh giá. Cũng được gọi khi bấm "Tạo đơn" để kiểm tra phụ phí |
-| GET | `/services` | Có sẵn | Danh sách dịch vụ & bảng giá |
-| POST | `/services` | Có sẵn | Tạo mới / cập nhật (theo `id`) bảng giá |
-| DELETE | `/services/:id` | Có sẵn | Xóa dịch vụ |
+| POST | `/rates` | **Chưa làm** | So sánh giá. Cũng được gọi khi bấm "Tạo đơn" để kiểm tra phụ phí |
+| GET | `/services` | **Chưa làm** | Danh sách dịch vụ & bảng giá |
+| POST | `/services` | Không dùng | Portal khách không nhập / sửa bảng giá — Việt An quản lý nội bộ |
+| DELETE | `/services/:id` | Không dùng | Như trên |
 
 `POST /rates` body: `{ country, weight, length?, width?, height?, type: "DOC"|"PACK" }` → `{ "rates": ServiceQuote[] }`
 `ServiceQuote`: `{ name, zone, chargeableWeight, volumetricWeight, baseFare, fscFee, surcharges, hasSurcharge, vatFee, totalFare, eta }`.
@@ -209,10 +209,10 @@ Gợi ý bảng SQL: `Services`, `ServiceZones`, `ServiceCountryZones`, `Service
 | PUT | `/ecom/orders/:id` | Có sẵn | Sửa đơn chưa có bill: `{ receiver: { name, company, phone, email, address1, address2, city, state, postal, countryCode }, kg, products: [{ name, sku, qty, fobPrice, sellingPrice, hsCode }], service, hub, branch, note }` → `{ data: EcomOrder, message }`. Đã sửa thì đồng bộ / nhập lại từ sàn không ghi đè. Đã có bill → 422 |
 | POST | `/ecom/webhook/:platform` | Có sẵn | Sàn đẩy đơn vào (không do frontend gọi) |
 | ~~POST~~ | ~~`/ecom/labels`~~ | Không dùng | In nhãn dán kiện A6, phiếu đóng gói A4, bảng kê giao hàng A4 tạo ngay trên trình duyệt từ dữ liệu `GET /ecom/orders` (`features/ecommerce/lib/print-docs.ts`, mã vạch Code 128 theo mã đơn shop) — backend không cần endpoint in |
-| GET | `/ecom/settings` | **Mới** | `EcomSettings` |
-| PUT | `/ecom/settings` | **Mới** | Cập nhật một phần `EcomSettings` → trả bản đầy đủ |
-| POST | `/ecom/settings/api-keys/regenerate` | **Mới** | `{ env: "production"\|"sandbox" }` → `EcomSettings` |
-| POST | `/ecom/settings/webhook/test` | **Mới** | Gửi sự kiện thử tới URL webhook |
+| GET | `/ecom/settings` | **Chưa làm** | `EcomSettings` |
+| PUT | `/ecom/settings` | **Chưa làm** | Cập nhật một phần `EcomSettings` → trả bản đầy đủ |
+| POST | `/ecom/settings/api-keys/regenerate` | **Chưa làm** | `{ env: "production"\|"sandbox" }` → `EcomSettings` |
+| POST | `/ecom/settings/webhook/test` | **Chưa làm** | Gửi sự kiện thử tới URL webhook |
 
 `NewManualEcomOrder`: `{ ref, source, cnee, phone, email?, ct, countryCode?, postal, city, state, address, kg, products: [{ name, sku, qty, fobPrice, sellingPrice }] }` — chỉ các trường đơn sàn nào cũng có (bắt buộc: ref, cnee, phone, ct, address, ≥ 1 sản phẩm); `kg` = 0 nếu Việt An cân. Dịch vụ / hub / chi nhánh / mã HS / khai hải quan do Việt An bổ sung khi nhận hàng.
 `ct` là tên nước tiếng Anh lấy từ `GET /geo/countries`, `countryCode` là mã ISO 2 ký tự (trống khi danh sách nước tạm lỗi). Form tự điền `city`, `state` từ `GET /geo/postal` (GeoNames); khách vẫn sửa được.
@@ -237,7 +237,7 @@ Nghiên cứu chi tiết hai sàn và thiết kế backend: `docs/ECOM_INTEGRATI
 `StoreConnection`: `{ id, platform: "shopify"|"tiktok", shopName, shopDomain?, region?, status: "active"|"expired"|"error"|"revoked", connectedAt, lastSyncAt?, lastError? }`.
 Token sàn (access/refresh) **chỉ lưu ở backend** (mã hóa), không bao giờ trả về frontend.
 `state` OAuth tự chứa và ký HMAC (mã khách, shop, domain portal, hạn 10 phút), kèm cookie nonce `vae_ecom_oauth` (SameSite=Lax, path `/api/v1/ecom/oauth`) — cookie đăng nhập là SameSite=Strict nên không đi kèm callback từ sàn. URL callback ghép từ domain portal khách đang dùng (X-Forwarded-Host của proxy Vercel, chỉ nhận domain trong `Company:PortalUrl` / `Cors:AllowedOrigins`); mỗi domain phải khai trong Allowed redirection URL(s) của app Shopify.
-Đơn nhận từ sàn xuất hiện trong `GET /ecom/orders` với `src` = `shopify` / `tiktok`; kết nối luôn **tự nhận đơn mới** và **tự đẩy mã tracking** lên sàn khi đơn được in & cấp bill (không có tùy chọn bật/tắt — muốn dừng thì ngắt kết nối).
+Đơn nhận từ sàn xuất hiện trong `GET /ecom/orders` với `src` = `shopify` / `tiktok`; kết nối luôn **tự nhận đơn mới** (webhook + nút Đồng bộ). **Chưa làm:** đơn E-com xác nhận gửi chưa được cấp bill (`dbo.MaVanDon`) và chưa tự đẩy mã tracking lên sàn (`fulfillmentCreate`) — dự kiến khi nối luồng E-com → cấp bill.
 Đơn mới về qua webhook `POST /ecom/webhooks/shopify` (chỉ Shopify gọi, kiểm HMAC; gồm cả 3 webhook compliance bắt buộc) — chi tiết: `ECOM_INTEGRATION.md` §2 "Webhook Shopify".
 Chủ shop gỡ app → kết nối chuyển `status: "revoked"` (frontend hiện "Shop đã gỡ ứng dụng", nút ủy quyền lại).
 
@@ -247,14 +247,14 @@ Chủ shop gỡ app → kết nối chuyển `status: "revoked"` (frontend hiệ
 
 | Method | Path | Trạng thái | Mô tả |
 |---|---|---|---|
-| GET | `/troubles` | Có sẵn | `TroubleTicket[]` |
-| POST | `/troubles` | Có sẵn | `{ bill, cnee?, ct?, type, lv: "low"\|"mid"\|"high", desc, req, contact }` |
-| POST | `/troubles/:id/reply` | Có sẵn | `{ reply, status? }` — khách bổ sung thông tin / nhắc CS / đóng ticket (`status: "done"`) |
-| GET | `/pickups` | Có sẵn | `PickupBooking[]` |
-| POST | `/pickups` | Có sẵn | `{ date (yyyy-mm-dd), slot, branch, address, contact, phone, pcs, weightKg?, note? }` — backend hiện chưa lưu `weightKg`, `note` |
-| GET | `/notifications` | Có sẵn | `{ data: Notification[], unreadCount }` — `imp: true` hiện popup khi mở portal |
-| POST | `/notifications/:id/read` | Có sẵn | Đánh dấu đã đọc |
-| POST | `/notifications/mark-all-read` | Có sẵn | Đánh dấu tất cả |
+| GET | `/troubles` | **Chưa làm** | `TroubleTicket[]` |
+| POST | `/troubles` | **Chưa làm** | `{ bill, cnee?, ct?, type, lv: "low"\|"mid"\|"high", desc, req, contact }` |
+| POST | `/troubles/:id/reply` | **Chưa làm** | `{ reply, status? }` — khách bổ sung thông tin / nhắc CS / đóng ticket (`status: "done"`) |
+| GET | `/pickups` | **Chưa làm** | `PickupBooking[]` |
+| POST | `/pickups` | **Chưa làm** | `{ date (yyyy-mm-dd), slot, branch, address, contact, phone, pcs, weightKg?, note? }` — backend hiện chưa lưu `weightKg`, `note` |
+| GET | `/notifications` | **Chưa làm** | `{ data: Notification[], unreadCount }` — `imp: true` hiện popup khi mở portal |
+| POST | `/notifications/:id/read` | **Chưa làm** | Đánh dấu đã đọc |
+| POST | `/notifications/mark-all-read` | **Chưa làm** | Đánh dấu tất cả |
 
 `TroubleTicket`: `{ id, bill, cnee, ct, type, lv, desc, req, contact, date, status: "new"|"doing"|"waitc"|"done", reply? }`. Nên chuyển `reply` thành danh sách tin nhắn `messages: [{ from: "customer"|"cs", text, at }]` — frontend sẽ đổi sang hiển thị hội thoại.
 
@@ -269,11 +269,18 @@ Chủ shop gỡ app → kết nối chuyển `status: "revoked"` (frontend hiệ
 - **Tài khoản con** (`accountType: "staff"`, `isAdmin: false`) lưu ở bảng tạm `dbo.TaiKhoanNhanVien` (mật khẩu băm PBKDF2):
   đăng nhập cùng `POST /auth/login` (thử `dbo.TCustomer` trước, không khớp thì thử tài khoản con), JWT có thêm claim `staff_id`,
   `customer_id` là khách cha, nhân viên chỉ có các quyền admin đã chọn.
+  `SessionUser` của tài khoản con: `companyName`, `address`, `taxCode` của công ty; `contactName` = họ tên nhân viên,
+  `phone` / `email` = của nhân viên (null nếu chưa khai, không lấy của công ty) — form Tạo đơn điền sẵn người gửi theo đó.
 - **Phạm vi đơn của nhân viên:** chỉ thấy vận đơn và đơn nháp **do mình tạo** (danh sách, chi tiết, hành trình, in, xuất Excel,
   thư viện mặt hàng). Người tạo vận đơn lưu ở bảng phụ `dbo.VanDonNguoiTao` (`MaVanDon_ID → StaffID`, không đổi `dbo.MaVanDon`),
   nháp lưu `shipments.OrderDrafts.CreatedByStaffId`; in từ nháp thì vận đơn thuộc người tạo nháp (admin in hộ vẫn là đơn của nhân viên).
   Quyền `shipments.view-all` ("Xem toàn bộ đơn của công ty", admin tick cho từng người) → thấy mọi đơn của công ty.
-  Tài khoản chính luôn thấy tất cả. Đơn e-commerce (`/ecom/orders`) không giới hạn theo người tạo.
+  Tài khoản chính luôn thấy tất cả.
+- **Quyền E-commerce:** `ecommerce.view` (xem đơn & cửa hàng), `ecommerce.orders` (nhập tay, nhập CSV, sửa, xác nhận / trả về, xóa, đồng bộ),
+  `ecommerce.connect` (kết nối / ngắt cửa hàng), `ecommerce.view-all` (xem toàn bộ đơn E-com của công ty).
+  Tài khoản con không có `ecommerce.view-all` chỉ thấy / xử lý đơn mình nhập tay hoặc nhập CSV (`dbo.DonTMDT.Nhan_Vien_Tao`);
+  đơn tự đồng bộ từ sàn không có người tạo nên chỉ tài khoản chính và người có `ecommerce.view-all` thấy.
+  Tài khoản con cũ chỉ có `ecommerce.connect` cần được admin cấp thêm `ecommerce.orders` để tiếp tục xử lý đơn.
   Tên đăng nhập duy nhất toàn hệ thống (không trùng tài khoản con khác hay `Login_UserName` của khách nào).
   Khóa / đặt lại mật khẩu / xóa → refresh token cũ bị từ chối (nhân viên phải đăng nhập lại khi access token hết hạn).
   Đổi quyền áp dụng ở lần làm mới phiên tiếp theo. Tài khoản bị khóa đăng nhập trả 401 `ACCOUNT_DISABLED`.
@@ -289,7 +296,7 @@ Chủ shop gỡ app → kết nối chuyển `status: "revoked"` (frontend hiệ
 | DELETE | `/account/staff/:id` | Có sẵn | `{ message }` — đơn nhân viên đã tạo vẫn thuộc khách cha |
 
 `StaffAccount`: `{ id, userName, fullName, email?, phone?, permissions: string[], active, createdAt, lastLoginAt? }` (giờ Việt Nam, không offset).
-Tài khoản con gọi các endpoint trên → 403. Nhân viên tự đổi mật khẩu bằng `POST /auth/change-password` như tài khoản chính.
+Tài khoản con gọi các endpoint trên → 403. Tài khoản con **không tự đổi mật khẩu**: `POST /auth/change-password` cần quyền `account.password` (chỉ tài khoản chính có, không cấp được cho nhân viên) → tài khoản con nhận 403; admin đặt lại qua `POST /account/staff/:id/reset-password`. Frontend ẩn mục Đổi mật khẩu theo quyền này.
 
 ### 7.2 MyTracking cá nhân
 
@@ -328,7 +335,7 @@ Liên hệ để trống thì không hiện nút trong preview. Cấu hình ản
 | Method | Path | Trạng thái | Mô tả |
 |---|---|---|---|
 | POST | `/auth/change-password` | **Mới** | `{ currentPassword, newPassword }` — sai mật khẩu hiện tại trả 400 + `message`. Quy tắc: ≥ 8 ký tự, có chữ và số. Ghi vào `dbo.TCustomer.Login_Password` (dạng như hệ thống cũ); các thiết bị khác phải đăng nhập lại |
-| POST | `/support/feedback` | **Mới** | `multipart/form-data`: `category, subject, message, contact, attachment?` (≤ 10MB) |
+| POST | `/support/feedback` | **Chưa làm** | `multipart/form-data`: `category, subject, message, contact, attachment?` (≤ 10MB) |
 | POST | `/auth/login` | **Mới** | `{ username, password, remember }` — `username` là tên đăng nhập của khách (`dbo.TCustomer.Login_UserName`), mật khẩu so với `Login_Password`; không khớp thì thử tài khoản con của nhân viên (§7.1). Đúng: đặt cookie phiên (httpOnly; `remember: false` → cookie hết khi đóng trình duyệt) và trả `{ data: SessionUser }`. Sai: 401 + `message` |
 | POST | `/auth/refresh` | Có sẵn | Đổi refresh token (cookie) lấy phiên mới — frontend tự gọi 1 lần khi gặp 401 |
 | POST | `/auth/logout` | **Mới** | Xóa cookie phiên |
@@ -349,7 +356,7 @@ Khi `/me` trả 404/501 (backend chưa bật đăng nhập), frontend cho vào p
 | Method | Path | Trạng thái | Mô tả |
 |---|---|---|---|
 | POST | `/public/tracking` | **Mới** | Tra cứu vận đơn trên trang chủ. Body `{ "bills": string[] }` (1–10 mã, đã viết hoa, bỏ trùng). Trả `{ data: TrackResult[] }` đúng thứ tự `bills` |
-| POST | `/public/contact` | **Mới** | Form "Gửi lời nhắn". Body `{ name, phone, email, message }` (`email` có thể rỗng). Trả `{ success, message }` — frontend hiện `message` lên toast |
+| POST | `/public/contact` | **Chưa làm** | Form "Gửi lời nhắn". Body `{ name, phone, email, message }` (`email` có thể rỗng). Trả `{ success, message }` — frontend hiện `message` lên toast |
 
 `TrackResult` (xem `features/landing/types.ts`):
 

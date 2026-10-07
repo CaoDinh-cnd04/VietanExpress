@@ -52,6 +52,10 @@ namespace VietAnExpress.Ecommerce.Infrastructure.Migrations
                         .HasColumnType("datetime")
                         .HasDefaultValueSql("GETDATE()");
 
+                    b.Property<long?>("CreatedByStaffId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("Nhan_Vien_Tao");
+
                     b.Property<string>("Currency")
                         .HasMaxLength(3)
                         .IsUnicode(false)
@@ -152,6 +156,9 @@ namespace VietAnExpress.Ecommerce.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("StoreConnectionId");
+
+                    b.HasIndex("CustomerId", "CreatedByStaffId")
+                        .HasDatabaseName("IX_DonTMDT_CustomerID_Nhan_Vien_Tao");
 
                     b.HasIndex("CustomerId", "PlacedAt")
                         .HasDatabaseName("IX_DonTMDT_CustomerID_Ngay_Dat_San");

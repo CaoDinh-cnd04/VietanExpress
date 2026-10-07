@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { getErrorMessage, isNotImplemented } from '@/shared/api/http';
 import { useI18n } from '@/shared/i18n';
 import { Button, Card, DataTable, DropdownMenu, Icon, Modal, Notice, PageHeader, StatusPill, type Column } from '@/shared/ui';
 import { useAssignablePermissions, useDeleteStaff, useStaffList, useUpdateStaff } from '../api';
 import { ResetPasswordModal } from '../components/ResetPasswordModal';
 import { StaffFormModal } from '../components/StaffFormModal';
-import { formatDateTime, toProfile } from '../lib/staff';
+import { formatIsoDateTime } from '@/shared/lib/format';
 import type { StaffAccount } from '../types';
 import styles from '../components/staff.module.css';
 
@@ -22,10 +22,11 @@ export default function StaffPage() {
   const [dialog, setDialog] = useState<Dialog>();
   const close = () => setDialog(undefined);
 
-  const describe = (code: string) => permissions.data?.find(p => p.code === code)?.description ?? code;
+  const descriptions = useMemo(() => new Map(permissions.data?.map(p => [p.code, p.description])), [permissions.data]);
+  const describe = (code: string) => descriptions.get(code) ?? code;
 
   const setActive = (s: StaffAccount, active: boolean) =>
-    update.mutate({ id: s.id, body: { ...toProfile({ fullName: s.fullName, email: s.email ?? '', phone: s.phone ?? '', permissions: s.permissions }), active } });
+    update.mutate({ id: s.id, body: { fullName: s.fullName, email: s.email ?? null, phone: s.phone ?? null, permissions: s.permissions, active } });
 
   const columns: Column<StaffAccount>[] = [
     {
@@ -68,7 +69,7 @@ export default function StaffPage() {
       key: 'login',
       header: t('Đăng nhập gần nhất'),
       width: 150,
-      render: s => <span className={styles.muted}>{formatDateTime(s.lastLoginAt) || t('Chưa đăng nhập')}</span>
+      render: s => <span className={styles.muted}>{formatIsoDateTime(s.lastLoginAt) || t('Chưa đăng nhập')}</span>
     },
     {
       key: 'actions',

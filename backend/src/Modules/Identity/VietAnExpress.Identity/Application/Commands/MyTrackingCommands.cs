@@ -25,11 +25,9 @@ internal sealed class MyTrackingHandlers(IdentityDbContext db, ICustomersApi cus
     IRequestHandler<SaveMyTrackingCommand, Result<MyTrackingDto>>,
     IRequestHandler<GetPublicMyTrackingQuery, Result<PublicMyTrackingDto>>
 {
-    private long? AdminCustomerId => user.StaffId is null ? user.CustomerId : null;
-
     public async Task<Result<MyTrackingDto>> Handle(GetMyTrackingQuery q, CancellationToken ct)
     {
-        if (AdminCustomerId is not { } customerId) return IdentityErrors.AdminOnly;
+        if (user.MainAccountCustomerId() is not { } customerId) return IdentityErrors.AdminOnly;
         var page = await db.MyTrackingPages.AsNoTracking().FirstOrDefaultAsync(p => p.CustomerId == customerId, ct);
         if (page is not null) return ToDto(page);
 
@@ -41,16 +39,18 @@ internal sealed class MyTrackingHandlers(IdentityDbContext db, ICustomersApi cus
 
     public async Task<Result<MyTrackingDto>> Handle(SaveMyTrackingCommand cmd, CancellationToken ct)
     {
-        if (AdminCustomerId is not { } customerId) return IdentityErrors.AdminOnly;
+        if (user.MainAccountCustomerId() is not { } customerId) return IdentityErrors.AdminOnly;
         if (cmd.Config.ValueKind != JsonValueKind.Object) return IdentityErrors.InvalidTrackingConfig;
         var json = cmd.Config.GetRawText();
         if (Encoding.UTF8.GetByteCount(json) > MyTrackingPage.ConfigMaxBytes) return IdentityErrors.InvalidTrackingConfig;
 
         var slug = cmd.Slug.Trim().ToLowerInvariant();
-        if (await db.MyTrackingPages.AnyAsync(p => p.Slug == slug && p.CustomerId != customerId, ct)) return IdentityErrors.SlugTaken;
+        // 1 truy vấn: trang của khách này + trang (nếu có) đang giữ đường dẫn muốn dùng — tối đa 2 dòng.
+        var rows = await db.MyTrackingPages.Where(p => p.CustomerId == customerId || p.Slug == slug).ToListAsync(ct);
+        if (rows.Any(p => p.Slug == slug && p.CustomerId != customerId)) return IdentityErrors.SlugTaken;
 
-        var now = VietnamTime.ToVietnam(clock.GetUtcNow()).DateTime;
-        var page = await db.MyTrackingPages.FirstOrDefaultAsync(p => p.CustomerId == customerId, ct);
+        var now = VietnamTime.Now(clock);
+        var page = rows.FirstOrDefault(p => p.CustomerId == customerId);
         if (page is null)
             db.MyTrackingPages.Add(page = new MyTrackingPage(customerId, slug, json, cmd.Published, now));
         else
@@ -64,14 +64,8 @@ internal sealed class MyTrackingHandlers(IdentityDbContext db, ICustomersApi cus
         var slug = q.Slug.Trim().ToLowerInvariant();
         if (!MyTrackingPage.IsValidSlug(slug)) return IdentityErrors.MyTrackingNotFound;
         var page = await db.MyTrackingPages.AsNoTracking().FirstOrDefaultAsync(p => p.Slug == slug && p.IsPublished, ct);
-        return page is null ? IdentityErrors.MyTrackingNotFound : new PublicMyTrackingDto(page.Slug, Parse(page.ConfigJson));
+        return page is null ? IdentityErrors.MyTrackingNotFound : new PublicMyTrackingDto(page.Slug, new RawJson(page.ConfigJson));
     }
 
-    private static MyTrackingDto ToDto(MyTrackingPage p) => new(p.Slug, p.IsPublished, Parse(p.ConfigJson), p.UpdatedAt);
-
-    private static JsonElement Parse(string json)
-    {
-        using var doc = JsonDocument.Parse(json);
-        return doc.RootElement.Clone();
-    }
+    private static MyTrackingDto ToDto(MyTrackingPage p) => new(p.Slug, p.IsPublished, new RawJson(p.ConfigJson), p.UpdatedAt);
 }

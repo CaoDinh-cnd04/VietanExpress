@@ -86,7 +86,7 @@ export const NAV: ReadonlyArray<NavEntry> = [
       { to: '/account/api-tracking', label: 'API Tracking' },
       { to: '/account/mytracking', label: 'MyTracking cá nhân', permission: PERMISSIONS.myTracking },
       { to: '/account/staff', label: 'Tài khoản nhân viên', permission: PERMISSIONS.manageStaff },
-      { to: '/account/password', label: 'Đổi mật khẩu' }
+      { to: '/account/password', label: 'Đổi mật khẩu', permission: PERMISSIONS.changePassword }
     ]
   }
 ];

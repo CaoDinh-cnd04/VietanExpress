@@ -46,7 +46,9 @@ internal sealed class EcommercePermissionProvider : IPermissionProvider
 
     public IEnumerable<PermissionDefinition> GetPermissions() =>
     [
-        new(EcommercePermissions.View, "Xem cửa hàng đã kết nối", Customer),
-        new(EcommercePermissions.Connect, "Kết nối / ngắt kết nối cửa hàng", Customer)
+        new(EcommercePermissions.View, "Xem đơn & cửa hàng E-commerce", Customer),
+        new(EcommercePermissions.Orders, "Tạo & xử lý đơn E-commerce", Customer),
+        new(EcommercePermissions.Connect, "Kết nối / ngắt kết nối cửa hàng", Customer),
+        new(EcommercePermissions.ViewAll, "Xem toàn bộ đơn E-commerce của công ty", Customer)
     ];
 }

@@ -13,6 +13,7 @@ import type { EcomOrder, EcomSource, StoreConnection } from '../types';
 import { DeleteOrdersModal } from './DeleteOrdersModal';
 import { EcomOrderDrawer } from './EcomOrderDrawer';
 import { PrintMenu } from './PrintMenu';
+import { PERMISSIONS, useCan } from '@/features/auth';
 import styles from './ecommerce.module.css';
 
 /**
@@ -34,6 +35,8 @@ export function EcomOrderList({ scope }: { scope: OrderScope }) {
   const all = useEcomOrders(scope);
   const { data: fetched = [], isFetching } = useEcomOrders(scope, src, q);
   const confirm = useConfirmEcomOrders();
+  // Tài khoản con chỉ có quyền xem: ẩn nút xác nhận / trả về / xóa / sửa.
+  const canProcess = useCan()(PERMISSIONS.ecommerceOrders);
   const stores = useStoreConnections();
 
   const allOrders = all.data ?? [];
@@ -172,21 +175,25 @@ export function EcomOrderList({ scope }: { scope: OrderScope }) {
             <strong>{t('Đã chọn {n} đơn', { n: selected.size })}</strong>
             {scope === 'inbox' ? (
               <>
-                <Button variant="primary" size="sm" disabled={confirm.isPending} onClick={() => confirm.mutate({ ids: [...selected], confirm: true }, { onSuccess: clearSelection })}>
-                  <Icon name="send" size={15} /> {t('Xác nhận gửi')}
-                </Button>
+                {canProcess && (
+                  <Button variant="primary" size="sm" disabled={confirm.isPending} onClick={() => confirm.mutate({ ids: [...selected], confirm: true }, { onSuccess: clearSelection })}>
+                    <Icon name="send" size={15} /> {t('Xác nhận gửi')}
+                  </Button>
+                )}
                 <PrintMenu orders={selectedOrders} />
               </>
             ) : (
               <>
                 <PrintMenu orders={selectedOrders} variant="primary" />
-                <Button size="sm" disabled={confirm.isPending} onClick={() => confirm.mutate({ ids: [...selected], confirm: false }, { onSuccess: clearSelection })}>
-                  {t('Trả về Đơn hàng')}
-                </Button>
+                {canProcess && (
+                  <Button size="sm" disabled={confirm.isPending} onClick={() => confirm.mutate({ ids: [...selected], confirm: false }, { onSuccess: clearSelection })}>
+                    {t('Trả về Đơn hàng')}
+                  </Button>
+                )}
               </>
             )}
             {/* Đơn đã gửi (trang Đơn hàng E-com) không xóa được. */}
-            {scope === 'inbox' && (
+            {scope === 'inbox' && canProcess && (
               <Button size="sm" onClick={() => setDeleting(selectedOrders)}>
                 <Icon name="trash" size={15} /> {t('Xóa')}
               </Button>
@@ -250,6 +257,7 @@ export function EcomOrderList({ scope }: { scope: OrderScope }) {
         onDelete={o => setDeleting([o])}
         onConfirm={(o, yes) => confirm.mutate({ ids: [o.id], confirm: yes }, { onSuccess: res => { if (res.count > 0) setOpenedId(null); } })}
         confirming={confirm.isPending}
+        canProcess={canProcess}
       />
       <DeleteOrdersModal
         orders={deleting}
@@ -267,6 +275,7 @@ export function EcomOrderList({ scope }: { scope: OrderScope }) {
 function StoreSyncBar({ stores }: { stores: ReadonlyArray<StoreConnection> }) {
   const { t } = useI18n();
   const sync = useSyncStore();
+  const allowed = useCan();
   return (
     <Card>
       <div className={styles.syncBar}>
@@ -282,8 +291,8 @@ function StoreSyncBar({ stores }: { stores: ReadonlyArray<StoreConnection> }) {
               </span>
             </div>
             {needsReauthorize(s) ? (
-              <LinkButton to="/ecommerce?tab=connect" size="sm" variant="primary">{t('Ủy quyền lại')}</LinkButton>
-            ) : (
+              allowed(PERMISSIONS.ecommerceConnect) && <LinkButton to="/ecommerce?tab=connect" size="sm" variant="primary">{t('Ủy quyền lại')}</LinkButton>
+            ) : allowed(PERMISSIONS.ecommerceOrders) && (
               <Button size="sm" disabled={sync.isPending} onClick={() => sync.mutate(s.id)}>
                 <Icon name="refresh" size={15} /> {t(sync.isPending && sync.variables === s.id ? 'Đang đồng bộ…' : 'Đồng bộ')}
               </Button>

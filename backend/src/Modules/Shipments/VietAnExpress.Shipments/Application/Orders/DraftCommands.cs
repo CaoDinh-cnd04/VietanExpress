@@ -4,6 +4,7 @@ using System.Text.Json.Nodes;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using VietAnExpress.SharedKernel.Application;
+using VietAnExpress.Shipments.Contracts;
 using VietAnExpress.SharedKernel.Results;
 using VietAnExpress.Shipments.Application.Dtos;
 using VietAnExpress.Shipments.Domain;
@@ -54,7 +55,7 @@ internal static class DraftScope
     {
         if (user.CustomerId is not { } customerId) return query.Where(_ => false);
         query = query.Where(d => d.CustomerId == customerId);
-        return user.OwnOrdersOnly() && user.StaffId is { } staffId ? query.Where(d => d.CreatedByStaffId == staffId) : query;
+        return user.RestrictedStaffId(ShipmentsPermissions.ViewAll) is { } staffId ? query.Where(d => d.CreatedByStaffId == staffId) : query;
     }
 
     public static DraftDto ToDto(OrderDraft d) => new(
@@ -154,10 +155,9 @@ internal sealed class PrintDraftHandler(
             draft.MarkPrinted(number);
             db.OrderDrafts.Remove(draft); // xoá mềm — vẫn giữ form để mở lại / nhân bản
             await db.SaveChangesAsync(ct);
+            // Đơn thuộc người tạo nháp (vd nhân viên tạo, admin in hộ thì vẫn là đơn của nhân viên đó) — lưu cùng chi tiết đơn.
+            OrderAccess.RecordCreators(db, [order], draft.CreatedByStaffId, VietnamTime.Now(clock));
             await LegacyOrderLinesWriter.AddAsync(db, [(order, payload)], ct);
-            // Đơn thuộc người tạo nháp (vd nhân viên tạo, admin in hộ thì vẫn là đơn của nhân viên đó).
-            OrderAccess.RecordCreators(db, [order], draft.CreatedByStaffId, VietnamTime.ToVietnam(clock.GetUtcNow()).DateTime);
-            await db.SaveChangesAsync(ct);
             await tx.CommitAsync(ct);
         });
         var bill = number.ToString(CultureInfo.InvariantCulture);

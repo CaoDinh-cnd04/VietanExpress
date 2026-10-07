@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { useLocalStorage } from '@/shared/lib/useLocalStorage';
 import { cx } from '@/shared/lib/cx';
@@ -26,17 +26,20 @@ export function AppShell() {
     else setCollapsed(c => !c);
   };
 
-  // Ctrl+B (⌘+B trên Mac): thu gọn / mở rộng menu — bỏ qua khi đang gõ trong vùng soạn thảo định dạng.
+  const toggleRef = useRef(toggleMenu);
+  toggleRef.current = toggleMenu;
+
+  // Ctrl+B (⌘+B trên Mac): thu gọn / mở rộng menu — bỏ qua khi đang gõ trong vùng soạn thảo định dạng. Gắn listener 1 lần.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (!(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey || e.key.toLowerCase() !== 'b') return;
       if ((e.target as HTMLElement | null)?.isContentEditable) return;
       e.preventDefault();
-      toggleMenu();
+      toggleRef.current();
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  });
+  }, []);
 
   return (
     <div className={cx(styles.shell, collapsed && styles.collapsed)}>

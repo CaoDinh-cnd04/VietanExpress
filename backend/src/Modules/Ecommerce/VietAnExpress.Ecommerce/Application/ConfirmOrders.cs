@@ -27,10 +27,10 @@ internal sealed class ConfirmEcomOrdersHandler(EcommerceDbContext db, ICurrentUs
         if (ids.Count == 0) return Error.Validation("ECOM_SELECT_EMPTY", "Chọn đơn trước");
         if (ids.Count > MaxPerRequest) return Error.Validation("ECOM_SELECT_TOO_MANY", $"Mỗi lần tối đa {MaxPerRequest} đơn");
 
-        var orders = await db.MarketplaceOrders.Where(o => o.CustomerId == customerId && o.DeletedAt == null && ids.Contains(o.Id)).ToListAsync(ct);
+        var orders = await db.MarketplaceOrders.VisibleTo(user, customerId).Where(o => o.DeletedAt == null && ids.Contains(o.Id)).ToListAsync(ct);
         if (orders.Count == 0) return Error.NotFound("ECOM_ORDER_NOT_FOUND", "Không tìm thấy đơn");
 
-        var now = VietnamTime.ToVietnam(clock.GetUtcNow()).DateTime;
+        var now = VietnamTime.Now(clock);
         if (!c.Confirm)
         {
             var returned = orders.Count(o => o.Unconfirm(now));

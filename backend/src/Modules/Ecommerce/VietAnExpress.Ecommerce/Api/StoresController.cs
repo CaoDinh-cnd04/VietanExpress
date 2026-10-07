@@ -55,7 +55,7 @@ internal sealed class StoresController(PortalHosts portalHosts, IConfiguration c
 
     /// <summary>Kéo ngay đơn đang mở, chưa giao từ sàn về dbo.DonTMDT (đơn đã có thì cập nhật nếu chưa cấp bill).</summary>
     [HttpPost("stores/{id:long}/sync")]
-    [HasPermission(EcommercePermissions.Connect)]
+    [HasPermission(EcommercePermissions.Orders)]
     [ProducesResponseType<SyncResult>(StatusCodes.Status200OK)]
     public async Task<IActionResult> Sync(long id, CancellationToken ct)
     {
@@ -72,7 +72,7 @@ internal sealed class StoresController(PortalHosts portalHosts, IConfiguration c
 
     /// <summary>Khách nhập tay 1 đơn (1–5 sản phẩm) vào danh sách đơn E-commerce.</summary>
     [HttpPost("manual")]
-    [HasPermission(EcommercePermissions.Connect)]
+    [HasPermission(EcommercePermissions.Orders)]
     [ProducesResponseType<ApiResponse<EcomOrderDto>>(StatusCodes.Status200OK)]
     public async Task<IActionResult> CreateManual(ManualOrderInput body, CancellationToken ct)
     {
@@ -82,7 +82,7 @@ internal sealed class StoresController(PortalHosts portalHosts, IConfiguration c
 
     /// <summary>Nhập đơn từ file CSV (hiện nhận file "Export orders" của Shopify) → { message, importedCount, errors: [{ row, message }] }.</summary>
     [HttpPost("import-csv")]
-    [HasPermission(EcommercePermissions.Connect)]
+    [HasPermission(EcommercePermissions.Orders)]
     [RequestSizeLimit(6 * 1024 * 1024)]
     [ProducesResponseType<CsvImportResult>(StatusCodes.Status200OK)]
     public async Task<IActionResult> ImportCsv(ImportCsvRequest body, CancellationToken ct)
@@ -93,20 +93,20 @@ internal sealed class StoresController(PortalHosts portalHosts, IConfiguration c
 
     /// <summary>Sửa đơn chưa có bill: người nhận, cân nặng, sản phẩm / mã HS, dịch vụ. Đồng bộ lại từ sàn không ghi đè dữ liệu đã sửa.</summary>
     [HttpPut("orders/{id:long}")]
-    [HasPermission(EcommercePermissions.Connect)]
+    [HasPermission(EcommercePermissions.Orders)]
     [ProducesResponseType<ApiResponse<EcomOrderDto>>(StatusCodes.Status200OK)]
     public async Task<IActionResult> UpdateOrder(long id, EcomOrderEditInput body, CancellationToken ct) =>
         FromResult(await Sender.Send(new UpdateEcomOrderCommand(id, body), ct), "Đã lưu thay đổi");
 
     /// <summary>Xác nhận gửi → đơn chuyển sang "Đơn hàng của tôi" (đơn thiếu tên / địa chỉ / SĐT / sản phẩm bị bỏ qua).</summary>
     [HttpPost("orders/confirm")]
-    [HasPermission(EcommercePermissions.Connect)]
+    [HasPermission(EcommercePermissions.Orders)]
     [ProducesResponseType<ConfirmOrdersResult>(StatusCodes.Status200OK)]
     public Task<IActionResult> Confirm(OrderIdsRequest body, CancellationToken ct) => SendConfirm(body, true, ct);
 
     /// <summary>Trả đơn đã xác nhận (chưa có bill) về tab Đơn hàng.</summary>
     [HttpPost("orders/unconfirm")]
-    [HasPermission(EcommercePermissions.Connect)]
+    [HasPermission(EcommercePermissions.Orders)]
     [ProducesResponseType<ConfirmOrdersResult>(StatusCodes.Status200OK)]
     public Task<IActionResult> Unconfirm(OrderIdsRequest body, CancellationToken ct) => SendConfirm(body, false, ct);
 
@@ -118,7 +118,7 @@ internal sealed class StoresController(PortalHosts portalHosts, IConfiguration c
 
     /// <summary>Xóa (ẩn) đơn chưa có bill — 1 hoặc nhiều đơn. Đơn Shopify đã xóa không bị đồng bộ / nhập file tạo lại.</summary>
     [HttpPost("orders/delete")]
-    [HasPermission(EcommercePermissions.Connect)]
+    [HasPermission(EcommercePermissions.Orders)]
     [ProducesResponseType<DeleteOrdersResult>(StatusCodes.Status200OK)]
     public async Task<IActionResult> DeleteOrders(OrderIdsRequest body, CancellationToken ct)
     {

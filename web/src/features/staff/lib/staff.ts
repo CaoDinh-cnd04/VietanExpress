@@ -1,3 +1,4 @@
+import { PERMISSIONS } from '@/features/auth';
 import type { AssignablePermission, StaffProfile } from '../types';
 
 /** Nhóm quyền theo module (phần trước dấu chấm của mã quyền) để hiển thị ô chọn. */
@@ -29,11 +30,13 @@ export function groupPermissions(list: readonly AssignablePermission[]): Permiss
  * Chọn quyền con thì tự thêm quyền xem; bỏ quyền xem thì bỏ luôn quyền con.
  */
 const REQUIRES: Readonly<Record<string, string>> = {
-  'shipments.create': 'shipments.view',
-  'shipments.update': 'shipments.view',
-  'shipments.issue-bill': 'shipments.view',
-  'shipments.view-all': 'shipments.view',
-  'ecommerce.connect': 'ecommerce.view'
+  [PERMISSIONS.shipmentsCreate]: PERMISSIONS.shipmentsView,
+  [PERMISSIONS.shipmentsUpdate]: PERMISSIONS.shipmentsView,
+  [PERMISSIONS.shipmentsIssueBill]: PERMISSIONS.shipmentsView,
+  [PERMISSIONS.shipmentsViewAll]: PERMISSIONS.shipmentsView,
+  [PERMISSIONS.ecommerceOrders]: PERMISSIONS.ecommerceView,
+  [PERMISSIONS.ecommerceViewAll]: PERMISSIONS.ecommerceView,
+  [PERMISSIONS.ecommerceConnect]: PERMISSIONS.ecommerceView
 };
 
 export function togglePermission(current: readonly string[], code: string, checked: boolean): string[] {
@@ -53,10 +56,4 @@ export function togglePermission(current: readonly string[], code: string, check
 export function toProfile(values: { fullName: string; email: string; phone: string; permissions: string[] }): StaffProfile {
   const blank = (v: string) => (v.trim() ? v.trim() : null);
   return { fullName: values.fullName.trim(), email: blank(values.email), phone: blank(values.phone), permissions: values.permissions };
-}
-
-/** '2026-10-06T08:05:00' (giờ Việt Nam từ backend) → '06/10/2026 08:05'. */
-export function formatDateTime(value?: string | null): string {
-  const m = value ? /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/.exec(value) : null;
-  return m ? `${m[3]}/${m[2]}/${m[1]} ${m[4]}:${m[5]}` : '';
 }

@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Threading.Channels;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -30,6 +31,15 @@ internal sealed class ShopifySyncWorker(ShopifySyncQueue queue, IServiceScopeFac
     /// <summary>Chờ gom các webhook cùng shop (Shopify thường gửi orders/create rồi orders/updated liền nhau).</summary>
     private static readonly TimeSpan Coalesce = TimeSpan.FromSeconds(3);
 
+    /// <summary>
+    /// Mỗi lần đồng bộ kéo lại toàn bộ đơn mở của shop (tới 5 trang GraphQL) — shop bán chạy gửi webhook liên tục
+    /// thì giới hạn 1 lần / 30 giây để tiết kiệm quota API Shopify và DB.
+    /// </summary>
+    private static readonly TimeSpan MinInterval = TimeSpan.FromSeconds(30);
+
+    private readonly Dictionary<string, long> _lastSyncTicks = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<string, byte> _deferred = new(StringComparer.Ordinal);
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         while (await queue.Reader.WaitToReadAsync(stoppingToken))
@@ -37,8 +47,31 @@ internal sealed class ShopifySyncWorker(ShopifySyncQueue queue, IServiceScopeFac
             await Task.Delay(Coalesce, stoppingToken);
             var shops = new HashSet<string>(StringComparer.Ordinal);
             while (queue.Reader.TryRead(out var shop)) shops.Add(shop);
-            foreach (var shop in shops) await SyncShopAsync(shop, stoppingToken);
+            foreach (var shop in shops)
+            {
+                var now = Environment.TickCount64;
+                if (_lastSyncTicks.TryGetValue(shop, out var last) && TimeSpan.FromMilliseconds(now - last) is var elapsed && elapsed < MinInterval)
+                {
+                    Defer(shop, MinInterval - elapsed, stoppingToken);
+                    continue;
+                }
+                _lastSyncTicks[shop] = now;
+                await SyncShopAsync(shop, stoppingToken);
+            }
         }
+    }
+
+    /// <summary>Hẹn đồng bộ lại shop khi hết khoảng chờ — mỗi shop chỉ 1 lịch hẹn, webhook trong lúc chờ gộp vào lần đó.</summary>
+    private void Defer(string shop, TimeSpan wait, CancellationToken ct)
+    {
+        if (!_deferred.TryAdd(shop, 0)) return;
+        _ = Task.Run(async () =>
+        {
+            try { await Task.Delay(wait, ct); }
+            catch (OperationCanceledException) { return; }
+            finally { _deferred.TryRemove(shop, out _); }
+            queue.Enqueue(shop);
+        }, CancellationToken.None);
     }
 
     private async Task SyncShopAsync(string shop, CancellationToken ct)

@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
-import { getErrorMessage } from '@/shared/api/http';
+import { getErrorMessage, isNotImplemented } from '@/shared/api/http';
 import { COUNTRIES } from '@/shared/config/domain';
 import { useI18n } from '@/shared/i18n';
 import { formatNumber, formatVnd } from '@/shared/lib/format';
@@ -110,7 +110,7 @@ export function QuoteLookup() {
         </form>
       </Card>
 
-      {quote.isError && <Notice tone="danger">{getErrorMessage(quote.error)}</Notice>}
+      {quote.isError && <Notice tone={isNotImplemented(quote.error) ? 'warning' : 'danger'}>{t(getErrorMessage(quote.error))}</Notice>}
 
       {quote.data && (
         <Card

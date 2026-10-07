@@ -182,7 +182,6 @@ internal static class BillA4
         var o = m.Order;
         var bill = H(m.Bill);
         var (addr1, addr2) = SplitAddress(o.SenderAddress);
-        var senderCountry = o.SenderCountryId is null or 231 ? "Viet Nam" : "";
         var qrCaption = slip == Slip.Shipper ? "Quét QR để tracking" : m.Bill;
 
         var signs = slip == Slip.Destination
@@ -226,7 +225,7 @@ internal static class BillA4
                   <div class="lines">
                     <div class="ln">{H(addr1)}</div>
                     <div class="ln">{H(addr2)}</div>
-                    <div class="ln split"><span>{senderCountry}</span><span class="lbl">Postal code:</span><span class="ln-in">{H(o.SenderPostalCode)}</span></div>
+                    <div class="ln split"><span>{m.SenderCountryText}</span><span class="lbl">Postal code:</span><span class="ln-in">{H(o.SenderPostalCode)}</span></div>
                     <div class="ln">{H(o.SenderName)}</div>
                     <div class="ln">{H(o.SenderPhone)}</div>
                     <div class="ln">{H(o.SenderContactName)}</div>
@@ -285,7 +284,7 @@ internal static class BillA4
         }
         while (dims.Count < 4) dims.Add("");
 
-        var pieces = pk.Count > 0 ? pk.Sum(p => p.Qty) : o.Pieces ?? 1;
+        var pieces = m.TotalPieces;
         return $"""
             <table class="pkg">
               <tr>
@@ -310,7 +309,7 @@ internal static class BillA4
         $"<div class=\"row\"><div class=\"lbl\">{labelHtml}</div><div class=\"val split\"><span class=\"ln ln-main\">{H(value)}</span>" +
         $"<span class=\"lbl\">{label2Html}</span><span class=\"ln ln-in\">{H(value2)}</span></div></div>";
 
-    private static string Value(LegacyOrder o) =>
+    internal static string Value(LegacyOrder o) =>
         o.GoodsValue is null ? "" : $"{(o.GoodsValue ?? 0).ToString("0.00", CultureInfo.InvariantCulture)} {o.Currency?.Trim()}".Trim();
 
     internal static string TrackingUrl(CompanyInfo c, string bill) =>

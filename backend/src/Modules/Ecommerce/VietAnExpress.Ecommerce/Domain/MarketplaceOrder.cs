@@ -62,6 +62,8 @@ internal sealed class MarketplaceOrder
     public DateTime? EditedAt { get; private set; }
     /// <summary>Khách đã xóa (ẩn) — giữ dòng để đồng bộ / nhập lại từ sàn không tạo lại đơn này.</summary>
     public DateTime? DeletedAt { get; private set; }
+    /// <summary>Tài khoản con đã tạo đơn (dbo.TaiKhoanNhanVien.ID) — đơn nhập tay / nhập CSV; null = tài khoản chính hoặc đồng bộ từ sàn.</summary>
+    public long? CreatedByStaffId { get; private set; }
     /// <summary>Khách đã xác nhận gửi → nằm ở tab "Đơn hàng của tôi" (vẫn ở dbo.DonTMDT, không ghi dbo.MaVanDon).</summary>
     public DateTime? ConfirmedAt { get; private set; }
     public DateTime CreateDate { get; private set; }
@@ -69,23 +71,25 @@ internal sealed class MarketplaceOrder
 
     private MarketplaceOrder() { }
 
-    public static MarketplaceOrder Import(long customerId, long? storeConnectionId, string source, ImportedOrder o, DateTime now)
+    public static MarketplaceOrder Import(long customerId, long? storeConnectionId, string source, ImportedOrder o, DateTime now,
+        long? createdByStaffId = null)
     {
         var order = new MarketplaceOrder
         {
             CustomerId = customerId, StoreConnectionId = storeConnectionId, Source = source,
-            PlatformOrderId = o.PlatformOrderId, CreateDate = now
+            PlatformOrderId = o.PlatformOrderId, CreateDate = now, CreatedByStaffId = createdByStaffId
         };
         order.Apply(o);
         return order;
     }
 
     /// <summary>Đơn khách nhập tay trên portal (không gắn shop đã kết nối).</summary>
-    public static MarketplaceOrder CreateManual(long customerId, string source, ImportedOrder o, ManualShipping shipping, DateTime now)
+    public static MarketplaceOrder CreateManual(long customerId, string source, ImportedOrder o, ManualShipping shipping, DateTime now,
+        long? createdByStaffId = null)
     {
         var order = new MarketplaceOrder
         {
-            CustomerId = customerId, Source = source, CreateDate = now,
+            CustomerId = customerId, Source = source, CreateDate = now, CreatedByStaffId = createdByStaffId,
             // Khách tự nhập = đã muốn gửi → vào thẳng "Đơn hàng của tôi".
             ConfirmedAt = now,
             Service = shipping.Service, Hub = shipping.Hub, Branch = shipping.Branch, CustomsJson = shipping.CustomsJson

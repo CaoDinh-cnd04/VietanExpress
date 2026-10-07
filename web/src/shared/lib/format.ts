@@ -15,6 +15,12 @@ export function formatIsoDate(value: string): string {
   return m ? `${m[3]}/${m[2]}/${m[1]}` : value;
 }
 
+/** '2026-10-06T08:05:00' (giờ Việt Nam từ backend) → '06/10/2026 08:05'; giá trị trống / sai dạng → ''. */
+export function formatIsoDateTime(value?: string | null): string {
+  const m = value ? /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/.exec(value) : null;
+  return m ? `${m[3]}/${m[2]}/${m[1]} ${m[4]}:${m[5]}` : '';
+}
+
 /** Ngày hôm nay dạng 'yyyy-mm-dd' (giá trị của input[type=date]). */
 export function todayIso(offsetDays = 0): string {
   const d = new Date(Date.now() + offsetDays * 86_400_000);

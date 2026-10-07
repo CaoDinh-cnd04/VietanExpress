@@ -37,6 +37,9 @@ export default async function handler(request: Request): Promise<Response> {
 
   const headers = new Headers(request.headers);
   HOP_BY_HOP.forEach(h => headers.delete(h));
+  // Fetch của Edge không hỗ trợ Expect: 100-continue. Proxy đã nhận body từ client;
+  // không chuyển tiếp yêu cầu bắt tay này sang kết nối backend.
+  headers.delete('expect');
   headers.set('ngrok-skip-browser-warning', '1');
   headers.set('x-forwarded-host', url.host);
 

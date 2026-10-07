@@ -1,18 +1,18 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
+import { PASSWORD_MESSAGE, PASSWORD_RULE } from '@/shared/lib/password';
+import { PERMISSIONS, useCan } from '@/features/auth';
 import { useI18n } from '@/shared/i18n';
 import { Button, Card, FormGrid, Notice, PageHeader, TextField } from '@/shared/ui';
 import { useChangePassword } from '../api';
 import styles from './account.module.css';
 
-/** Quy tắc mật khẩu — đồng bộ với backend. */
-const PASSWORD_RULE = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/;
 
 const schema = z
   .object({
     currentPassword: z.string().min(1, 'Nhập mật khẩu hiện tại'),
-    newPassword: z.string().regex(PASSWORD_RULE, 'Tối thiểu 8 ký tự, gồm cả chữ và số'),
+    newPassword: z.string().regex(PASSWORD_RULE, PASSWORD_MESSAGE),
     confirmPassword: z.string()
   })
   .refine(v => v.newPassword === v.confirmPassword, { path: ['confirmPassword'], message: 'Mật khẩu nhập lại không khớp' })
@@ -22,6 +22,26 @@ type FormValues = z.infer<typeof schema>;
 const EMPTY: FormValues = { currentPassword: '', newPassword: '', confirmPassword: '' };
 
 export default function ChangePasswordPage() {
+  if (!useCan()(PERMISSIONS.changePassword)) return <StaffPasswordNotice />;
+  return <ChangePasswordForm />;
+}
+
+/** Tài khoản con của nhân viên: mật khẩu do admin công ty đặt lại (backend cũng từ chối đổi). */
+function StaffPasswordNotice() {
+  const { t } = useI18n();
+  return (
+    <>
+      <PageHeader title="Đổi mật khẩu" />
+      <div className={styles.narrow}>
+        <Notice title="Tài khoản nhân viên không tự đổi mật khẩu">
+          {t('Vui lòng liên hệ quản trị viên tài khoản công ty để được đặt lại mật khẩu.')}
+        </Notice>
+      </div>
+    </>
+  );
+}
+
+function ChangePasswordForm() {
   const { t } = useI18n();
   const change = useChangePassword();
   const { register, handleSubmit, reset, formState } = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: EMPTY });

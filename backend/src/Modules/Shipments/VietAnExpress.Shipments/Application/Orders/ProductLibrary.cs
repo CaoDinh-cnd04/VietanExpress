@@ -149,7 +149,7 @@ internal sealed class ProductMarkHandlers(ShipmentsDbContext db, ICurrentUser us
     {
         if (user.CustomerId is not { } customerId) return OrderErrors.CustomerRequired;
         if (!ProductLibrary.IsValidKey(key)) return CatalogMarkErrors.InvalidKey;
-        var now = VietnamTime.ToVietnam(clock.GetUtcNow()).DateTime;
+        var now = VietnamTime.Now(clock);
         await CatalogMarkStore.UpsertAsync(db, customerId, CatalogMark.Product, key, m => apply(m, now), now, ct);
         return Result.Success();
     }

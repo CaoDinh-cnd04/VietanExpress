@@ -29,7 +29,7 @@ internal sealed class ShopifyWebhookHandler(
 {
     private static readonly TimeSpan DedupWindow = TimeSpan.FromHours(24);
 
-    private DateTime Now => VietnamTime.ToVietnam(clock.GetUtcNow()).DateTime;
+    private DateTime Now => VietnamTime.Now(clock);
 
     public async Task<WebhookOutcome> Handle(ReceiveShopifyWebhookCommand c, CancellationToken ct)
     {
@@ -74,9 +74,7 @@ internal sealed class ShopifyWebhookHandler(
     private async Task<WebhookOutcome> DataRequestAsync(ReceiveShopifyWebhookCommand c, CancellationToken ct)
     {
         var p = ShopifyWebhook.ParseCompliance(c.Body);
-        var customers = await ShopConnections(c.Shop).Select(s => s.CustomerId).Distinct().ToListAsync(ct);
-        var held = p.OrderIds.Count == 0 ? 0 : await db.MarketplaceOrders.CountAsync(o =>
-            customers.Contains(o.CustomerId) && o.Source == SalesChannelCodes.Shopify && o.PlatformOrderId != null && p.OrderIds.Contains(o.PlatformOrderId), ct);
+        var held = p.OrderIds.Count == 0 ? 0 : await OrdersOf(c.Shop, p.OrderIds).CountAsync(ct);
         logger.LogWarning(
             "Shopify customers/data_request: shop {Shop}, người mua {Customer}, đơn {Orders} — đang lưu {Held} đơn. Gửi dữ liệu cho chủ shop trong 30 ngày.",
             c.Shop, p.CustomerId, string.Join(',', p.OrderIds), held);
@@ -88,10 +86,7 @@ internal sealed class ShopifyWebhookHandler(
     {
         var p = ShopifyWebhook.ParseCompliance(c.Body);
         if (p.OrderIds.Count == 0) return new WebhookOutcome("redact-customer", 0);
-        var customers = await ShopConnections(c.Shop).Select(s => s.CustomerId).Distinct().ToListAsync(ct);
-        var orders = await db.MarketplaceOrders
-            .Where(o => customers.Contains(o.CustomerId) && o.Source == SalesChannelCodes.Shopify && o.PlatformOrderId != null && p.OrderIds.Contains(o.PlatformOrderId))
-            .ToListAsync(ct);
+        var orders = await OrdersOf(c.Shop, p.OrderIds).ToListAsync(ct);
         var now = Now;
         foreach (var o in orders) o.RedactPersonalData(now);
         await db.SaveChangesAsync(ct);
@@ -118,6 +113,12 @@ internal sealed class ShopifyWebhookHandler(
         logger.LogInformation("Bỏ qua webhook Shopify {Topic} từ {Shop}", topic, shop);
         return new WebhookOutcome("ignored");
     }
+
+    /// <summary>Đơn Shopify (theo mã đơn trên sàn) của các khách đã kết nối shop này — gồm cả đơn nhập từ file export của shop.</summary>
+    private IQueryable<Domain.MarketplaceOrder> OrdersOf(string shop, IReadOnlyCollection<string> platformOrderIds) =>
+        db.MarketplaceOrders
+            .Where(o => ShopConnections(shop).Any(s => s.CustomerId == o.CustomerId))
+            .ShopifyOrdersIn(platformOrderIds);
 
     private IQueryable<Domain.StoreConnection> ShopConnections(string shop) =>
         db.StoreConnections.Where(s => s.ChannelCode == SalesChannelCodes.Shopify && s.ShopId == shop);

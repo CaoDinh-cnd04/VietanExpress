@@ -1,7 +1,7 @@
 /** Tiếng Anh — giá & gợi ý dịch vụ: tra cứu giá, xem bảng giá, soạn bảng giá. */
 export const pricing: Record<string, string> = {
   // Trang & tab
-  'So sánh giá các hãng cho lô hàng, xem và quản lý bảng giá.': 'Compare carrier rates for a shipment, view and manage rate tables.',
+  'So sánh giá các hãng cho lô hàng và xem bảng giá dịch vụ.': 'Compare carrier rates for a shipment and view service rate tables.',
   'Chức năng bảng giá': 'Rate functions',
   'Tra cứu & gợi ý': 'Lookup & suggestions',
   'Bảng giá dịch vụ': 'Service rate tables',

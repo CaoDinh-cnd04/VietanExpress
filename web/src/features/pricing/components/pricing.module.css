@@ -131,79 +131,10 @@
   background: var(--color-surface-muted);
 }
 
-.gridInput {
-  width: 96px;
-  height: 28px;
-  padding: 0 6px;
-  border: 1px solid var(--color-border-strong);
-  border-radius: 6px;
-  background: var(--color-surface);
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-
-.gridInput:focus {
-  outline: none;
-  border-color: var(--color-brand);
-  box-shadow: var(--focus-ring);
-}
-
-.sectionTitle {
-  margin: var(--space-5) 0 var(--space-3);
-  font-size: var(--text-md);
-  font-weight: 600;
-}
-
-.sectionTitle:first-child {
-  margin-top: 0;
-}
-
-.row {
-  display: flex;
-  align-items: flex-end;
-  gap: var(--space-2);
-  flex-wrap: wrap;
-}
-
 .cardGrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: var(--space-3);
-}
-
-.svcCard {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  padding: var(--space-4);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-surface);
-}
-
-.svcCard h3 {
-  font-size: var(--text-md);
-  font-weight: 600;
-}
-
-.svcActions {
-  display: flex;
-  gap: var(--space-2);
-  margin-top: auto;
-  padding-top: var(--space-2);
-}
-
-.editorHead {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  margin-bottom: var(--space-4);
-}
-
-.editorHead h2 {
-  margin-right: auto;
-  font-size: var(--text-lg);
-  font-weight: 600;
 }
 
 .zoneList {
@@ -218,13 +149,3 @@
   color: var(--color-text);
 }
 
-.spacedTop {
-  margin-top: var(--space-3);
-}
-
-.rowList {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  margin-top: var(--space-3);
-}

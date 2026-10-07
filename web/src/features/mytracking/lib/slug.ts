@@ -1,3 +1,5 @@
+import { stripDiacritics } from '@/shared/lib/text';
+
 /** Đường dẫn trang MyTracking công khai /t/{slug} — đồng bộ với backend (MyTrackingPage.IsValidSlug). */
 export const SLUG_MIN = 3;
 export const SLUG_MAX = 60;
@@ -5,10 +7,7 @@ const SLUG_RULE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
 /** Gõ tự do → đường dẫn: bỏ dấu tiếng Việt, chữ thường, ký tự khác chữ / số thành "-". */
 export function normalizeSlug(text: string): string {
-  return text
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .replace(/đ/gi, 'd')
+  return stripDiacritics(text)
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+/, '')

@@ -27,7 +27,8 @@ export function Topbar({ onMenu, menuCollapsed, onStartTour }: { onMenu: () => v
 
   const menu: MenuItem[] = [
     { label: 'Xem hướng dẫn sử dụng', onSelect: onStartTour },
-    { label: 'Đổi mật khẩu', onSelect: () => void navigate('/account/password') },
+    // Tài khoản nhân viên không có quyền tự đổi mật khẩu — admin đặt lại ở trang Tài khoản nhân viên.
+    ...(allowed(PERMISSIONS.changePassword) ? [{ label: 'Đổi mật khẩu', onSelect: () => void navigate('/account/password') }] : []),
     ...(user && allowed(PERMISSIONS.manageStaff) ? [{ label: 'Tài khoản nhân viên', onSelect: () => void navigate('/account/staff') }] : []),
     { label: 'Trang giới thiệu', onSelect: () => void navigate('/') },
     ...(user

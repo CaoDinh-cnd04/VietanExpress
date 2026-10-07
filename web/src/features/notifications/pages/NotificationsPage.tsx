@@ -1,3 +1,4 @@
+import { isNotImplemented } from '@/shared/api/http';
 import { useState } from 'react';
 import { useI18n } from '@/shared/i18n';
 import { cx } from '@/shared/lib/cx';
@@ -7,7 +8,7 @@ import styles from '../components/notifications.module.css';
 
 export default function NotificationsPage() {
   const { t } = useI18n();
-  const { data, isLoading, isError, refetch } = useNotifications();
+  const { data, isLoading, isError, error, refetch } = useNotifications();
   const markRead = useMarkRead();
   const markAll = useMarkAllRead();
   const [open, setOpen] = useState<Notification | null>(null);
@@ -30,7 +31,9 @@ export default function NotificationsPage() {
         }
       />
       <Card flush>
-        {isError ? (
+        {isError && isNotImplemented(error) ? (
+          <EmptyState title="Chức năng thông báo đang được kết nối máy chủ" description="Vui lòng thử lại sau." />
+        ) : isError ? (
           <EmptyState title="Không tải được thông báo" action={<Button onClick={() => void refetch()}>{t('Thử lại')}</Button>} />
         ) : !isLoading && !items.length ? (
           <EmptyState title="Chưa có thông báo" />

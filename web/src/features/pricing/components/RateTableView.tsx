@@ -1,3 +1,4 @@
+import { isNotImplemented } from '@/shared/api/http';
 import { useState } from 'react';
 import { useI18n } from '@/shared/i18n';
 import { cx } from '@/shared/lib/cx';
@@ -14,10 +15,11 @@ const range = (from?: number | '', to?: number | '', unit = '') =>
 /** Tab "Bảng giá dịch vụ": xem bảng giá theo zone × mốc cân, danh sách nước theo zone, phụ thu. */
 export function RateTableView() {
   const { t } = useI18n();
-  const { data: services = [], isLoading } = useServices();
+  const { data: services = [], isLoading, error } = useServices();
   const [selectedId, setSelectedId] = useState<string>('');
   const svc = services.find(s => s.id === selectedId) ?? services[0];
 
+  if (isNotImplemented(error)) return <Card><EmptyState title="Bảng giá đang được kết nối máy chủ" description="Vui lòng liên hệ nhân viên kinh doanh Việt An để nhận báo giá." /></Card>;
   if (!isLoading && !services.length) return <Card><EmptyState title="Chưa có bảng giá" description="Khai bảng giá ở tab Quản lý & nhập giá." /></Card>;
 
   return (

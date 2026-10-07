@@ -17,3 +17,17 @@ public interface ICurrentUser
 
     bool HasPermission(string permission);
 }
+
+/// <summary>Quy tắc phạm vi dữ liệu theo loại tài khoản — dùng chung cho mọi module.</summary>
+public static class CurrentUserScope
+{
+    /// <summary>
+    /// Tài khoản con không có quyền <paramref name="viewAllPermission"/> chỉ thấy bản ghi mình tạo → trả StaffID để lọc;
+    /// tài khoản chính hoặc nhân viên có quyền xem toàn bộ → null (không lọc theo người tạo).
+    /// </summary>
+    public static long? RestrictedStaffId(this ICurrentUser user, string viewAllPermission) =>
+        user.StaffId is { } staffId && !user.HasPermission(viewAllPermission) ? staffId : null;
+
+    /// <summary>CustomerID khi đang dùng tài khoản chính (admin) của khách; tài khoản con / chưa đăng nhập → null.</summary>
+    public static long? MainAccountCustomerId(this ICurrentUser user) => user.StaffId is null ? user.CustomerId : null;
+}

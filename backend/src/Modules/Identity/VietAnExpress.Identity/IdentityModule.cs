@@ -93,6 +93,7 @@ internal sealed class IdentityPermissionProvider : IPermissionProvider
     public IEnumerable<PermissionDefinition> GetPermissions() =>
     [
         new(IdentityPermissions.ManageStaff, "Quản lý tài khoản nhân viên", SystemRoles.Customer),
-        new(IdentityPermissions.MyTracking, "Cấu hình trang MyTracking", SystemRoles.Customer)
+        new(IdentityPermissions.MyTracking, "Cấu hình trang MyTracking", SystemRoles.Customer),
+        new(IdentityPermissions.ChangePassword, "Đổi mật khẩu", SystemRoles.Customer)
     ];
 }

@@ -1,16 +1,14 @@
 import { z } from 'zod';
-
-/** Quy tắc mật khẩu — đồng bộ với backend (PasswordPolicy) và trang Đổi mật khẩu. */
-export const PASSWORD_RULE = /^(?=.*[A-Za-z])(?=.*\d).{8,}$/;
-const PASSWORD_MESSAGE = 'Tối thiểu 8 ký tự, gồm cả chữ và số';
+import { PASSWORD_MESSAGE, PASSWORD_RULE } from '@/shared/lib/password';
+import { isPhone, PHONE_MESSAGE } from '@/shared/lib/phone';
 
 /** Tên đăng nhập — đồng bộ với backend (StaffAccount.UserNamePattern, 3–50 ký tự). */
 export const USER_NAME_RULE = /^[A-Za-z0-9._@-]{3,50}$/;
 
 const profile = {
   fullName: z.string().trim().min(1, 'Nhập họ tên nhân viên').max(100, 'Họ tên tối đa 100 ký tự'),
-  email: z.string().trim().max(150).refine(v => !v || /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v), 'Email không hợp lệ'),
-  phone: z.string().trim().max(30, 'Số điện thoại tối đa 30 ký tự'),
+  email: z.union([z.literal(''), z.email('Email không hợp lệ').max(150)]),
+  phone: z.string().trim().max(30, 'Số điện thoại tối đa 30 ký tự').refine(v => !v || isPhone(v), PHONE_MESSAGE),
   permissions: z.array(z.string())
 };
 

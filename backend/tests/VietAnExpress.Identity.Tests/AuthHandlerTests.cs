@@ -33,6 +33,7 @@ internal sealed class IdentityFixture : IAsyncDisposable
         Customers.Setup(c => c.GetByIdAsync(CustomerId, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new CustomerSummary(CustomerId, "SaigonbayHN", "SGB EXPRESS HN", "Đức Anh", "ops@sgb.vn", "0977714964", null, null));
         CurrentUser.SetupGet(u => u.CustomerId).Returns(CustomerId);
+        CurrentUser.Setup(u => u.HasPermission(It.IsAny<string>())).Returns(true); // tài khoản chính
         Db.Logins.Add(new CustomerLogin(CustomerId, UserName, Password));
         Db.Logins.Add(new CustomerLogin(200877, "chua-co-mat-khau", ""));
         Db.SaveChanges();
@@ -41,12 +42,17 @@ internal sealed class IdentityFixture : IAsyncDisposable
     public SessionService Sessions => new(Tokens, Customers.Object, [new FakePermissions()]);
     public LoginHandler Login => new(Db, Sessions, Clock);
     public RefreshSessionHandler Refresh => new(Db, Tokens, Sessions);
-    public ChangePasswordHandler ChangePassword => new(Db, Tokens, Sessions, CurrentUser.Object, Clock);
+    public ChangePasswordHandler ChangePassword => new(Db, Tokens, Sessions, CurrentUser.Object);
     public StaffHandlers Staff => new(Db, Sessions, CurrentUser.Object, Clock);
     public MyTrackingHandlers MyTracking => new(Db, Customers.Object, CurrentUser.Object, Clock);
 
     /// <summary>Giả lập request của tài khoản con (null = tài khoản chính / admin).</summary>
-    public void SignInAs(long? staffId) => CurrentUser.SetupGet(u => u.StaffId).Returns(staffId);
+    public void SignInAs(long? staffId)
+    {
+        CurrentUser.SetupGet(u => u.StaffId).Returns(staffId);
+        // Tài khoản con không bao giờ có quyền chỉ-admin (account.*).
+        CurrentUser.Setup(u => u.HasPermission(It.IsAny<string>())).Returns<string>(p => staffId is null || !IdentityPermissions.AdminOnly.Contains(p));
+    }
     public GetSessionHandler Me => new(Db, Sessions, CurrentUser.Object);
 
     public string StoredPassword() => Db.Logins.AsNoTracking().Single(l => l.CustomerId == CustomerId).Password!;

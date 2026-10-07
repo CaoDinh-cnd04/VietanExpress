@@ -79,7 +79,7 @@ internal sealed class OrderImportAndEditHandlers(EcommerceDbContext db, ICurrent
     private const int MaxCsvLength = 5 * 1024 * 1024;
     private const int MaxOrdersPerFile = 1000;
 
-    private DateTime Now => VietnamTime.ToVietnam(clock.GetUtcNow()).DateTime;
+    private DateTime Now => VietnamTime.Now(clock);
 
     public async Task<Result<CsvImportResult>> Handle(ImportOrdersCsvCommand c, CancellationToken ct)
     {
@@ -99,7 +99,7 @@ internal sealed class OrderImportAndEditHandlers(EcommerceDbContext db, ICurrent
 
         var ids = wanted.Select(o => o.Order.PlatformOrderId).ToList();
         var existing = await db.MarketplaceOrders
-            .Where(o => o.CustomerId == customerId && o.Source == SalesChannelCodes.Shopify && o.PlatformOrderId != null && ids.Contains(o.PlatformOrderId))
+            .Where(o => o.CustomerId == customerId).ShopifyOrdersIn(ids)
             .ToDictionaryAsync(o => o.PlatformOrderId!, ct);
 
         var now = Now;
@@ -116,7 +116,7 @@ internal sealed class OrderImportAndEditHandlers(EcommerceDbContext db, ICurrent
             }
             else
             {
-                db.MarketplaceOrders.Add(MarketplaceOrder.Import(customerId, null, SalesChannelCodes.Shopify, o.Order, now));
+                db.MarketplaceOrders.Add(MarketplaceOrder.Import(customerId, null, SalesChannelCodes.Shopify, o.Order, now, user.StaffId));
                 added++;
             }
         }
@@ -136,7 +136,7 @@ internal sealed class OrderImportAndEditHandlers(EcommerceDbContext db, ICurrent
     public async Task<Result<EcomOrderDto>> Handle(UpdateEcomOrderCommand c, CancellationToken ct)
     {
         if (user.CustomerId is not { } customerId) return StoreErrors.NotLoggedIn;
-        var order = await db.MarketplaceOrders.FirstOrDefaultAsync(o => o.Id == c.Id && o.CustomerId == customerId && o.DeletedAt == null, ct);
+        var order = await db.MarketplaceOrders.VisibleTo(user, customerId).FirstOrDefaultAsync(o => o.Id == c.Id && o.DeletedAt == null, ct);
         if (order is null) return Error.NotFound("ECOM_ORDER_NOT_FOUND", "Không tìm thấy đơn");
         if (order.Bill is not null) return Error.BusinessRule("ECOM_ORDER_BILLED", "Đơn đã có bill, không sửa được");
 

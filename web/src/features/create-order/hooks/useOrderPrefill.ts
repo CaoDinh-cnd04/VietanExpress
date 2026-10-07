@@ -7,21 +7,27 @@ import { useDrafts } from '@/features/drafts/api';
 import { useOrder } from '@/features/orders/api';
 import { defaultValues, type CreateOrderValues } from '../schema';
 
-const STORAGE_KEY = 'va.createOrder.autosave';
+/**
+ * Khóa bản tự lưu theo tài khoản đang đăng nhập (mã khách + tên đăng nhập) — admin đăng xuất, nhân viên đăng nhập
+ * cùng tab sẽ không thấy đơn đang điền dở (kèm người gửi) của tài khoản trước.
+ */
+export function autosaveKey(user?: { customerCode: string; userName?: string } | null): string {
+  return user ? `va.createOrder.autosave:${user.customerCode}:${user.userName ?? ''}` : 'va.createOrder.autosave';
+}
 
 /** Bản tự lưu trong phiên (sessionStorage) — giữ dữ liệu khi đổi chế độ Từng bước / 1 trang hoặc tải lại trang. */
-export function readAutosave(): CreateOrderValues | undefined {
+export function readAutosave(key: string): CreateOrderValues | undefined {
   try {
-    const raw = window.sessionStorage.getItem(STORAGE_KEY);
+    const raw = window.sessionStorage.getItem(key);
     return raw ? { ...defaultValues(), ...(JSON.parse(raw) as Partial<CreateOrderValues>) } : undefined;
   } catch {
     return undefined;
   }
 }
 
-export function clearAutosave(): void {
+export function clearAutosave(key: string): void {
   try {
-    window.sessionStorage.removeItem(STORAGE_KEY);
+    window.sessionStorage.removeItem(key);
   } catch {
     /* storage bị chặn */
   }
@@ -38,7 +44,7 @@ const looksLikeForm = (v: unknown): v is CreateOrderValues =>
  * - không có tham số: khôi phục bản tự lưu trong phiên.
  * Trả về id đơn nháp đang sửa (nếu có) để trang gọi cập nhật thay vì tạo mới.
  */
-export function useOrderPrefill(form: UseFormReturn<CreateOrderValues>): { draftId: string | null; finishAutosave: () => void; retainDraft: (id: string) => void } {
+export function useOrderPrefill(form: UseFormReturn<CreateOrderValues>, storageKey: string): { draftId: string | null; finishAutosave: () => void; retainDraft: (id: string) => void } {
   const [params] = useSearchParams();
   const draftId = params.get('draft');
   const fromBill = params.get('from');
@@ -93,7 +99,7 @@ export function useOrderPrefill(form: UseFormReturn<CreateOrderValues>): { draft
   const save = useDebouncedCallback((v: unknown) => {
     if (stopped.current) return;
     try {
-      window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(v));
+      window.sessionStorage.setItem(storageKey, JSON.stringify(v));
     } catch {
       /* storage bị chặn */
     }
@@ -107,8 +113,8 @@ export function useOrderPrefill(form: UseFormReturn<CreateOrderValues>): { draft
   const finishAutosave = useCallback(() => {
     stopped.current = true;
     save.cancel();
-    clearAutosave();
-  }, [save]);
+    clearAutosave(storageKey);
+  }, [save, storageKey]);
 
   // Form hiện tại chính là bản vừa lưu; không reset từ cache khi gắn ID vào URL.
   const retainDraft = useCallback((id: string) => {

@@ -4,7 +4,10 @@ import type { CreateOrderValues } from '../schema';
 
 type Shipper = CreateOrderValues['shipper'];
 
-/** Hồ sơ khách đang đăng nhập (GET /me — lấy từ dbo.TCustomer). */
+/**
+ * Hồ sơ người đang đăng nhập (GET /me). Tài khoản chính: lấy từ dbo.TCustomer.
+ * Tài khoản con: công ty / địa chỉ / MST của công ty, người liên hệ / SĐT / email của nhân viên (trống nếu chưa khai).
+ */
 export interface CustomerProfile {
   companyName: string;
   contactName?: string | null;

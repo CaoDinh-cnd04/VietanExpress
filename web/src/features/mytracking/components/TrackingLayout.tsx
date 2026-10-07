@@ -7,11 +7,12 @@ import { ConfigImage } from './ConfigImage';
 import styles from '../pages/MyTrackingPage.module.css';
 
 const socialNetworks = [
-  { key: 'facebook', label: 'Facebook', logo: '/social/facebook.png', mark: '' },
-  { key: 'instagram', label: 'Instagram', logo: '/social/instagram.png', mark: '' },
-  { key: 'x', label: 'X', logo: '/social/x.svg', mark: '' },
-  { key: 'zalo', label: 'Zalo', logo: '/social/zalo.svg', mark: '' },
-  { key: 'whatsapp', label: 'WhatsApp', logo: '', mark: 'WA' }
+  { key: 'facebook', label: 'Facebook', logo: '/social/facebook.png' },
+  { key: 'instagram', label: 'Instagram', logo: '/social/instagram.png' },
+  { key: 'x', label: 'X', logo: '/social/x.svg' },
+  // Nút liên hệ nổi: biểu tượng chính thức (Simple Icons, CC0) màu trắng trên nền màu thương hiệu.
+  { key: 'zalo', label: 'Zalo', logo: '/social/zalo-glyph.svg' },
+  { key: 'whatsapp', label: 'WhatsApp', logo: '/social/whatsapp-glyph.svg' }
 ] as const;
 
 interface Props {
@@ -63,7 +64,7 @@ export function TrackingLayout({ config, children, mobile, standalone }: Props) 
         <strong>Connect with us:</strong>
         <div className={styles.socialIcons}>{footerSocial.map(network =>
           <a key={network.key} className={styles[network.key]} href={network.href} target="_blank" rel="noreferrer" aria-label={network.label} title={network.label}>
-            {network.logo ? <img src={network.logo} alt="" aria-hidden="true" width={24} height={24} /> : network.mark}
+            <img src={network.logo} alt="" aria-hidden="true" width={24} height={24} />
           </a>)}</div>
       </footer>}
     </div>
@@ -71,7 +72,7 @@ export function TrackingLayout({ config, children, mobile, standalone }: Props) 
       {phone && <a className={styles.phone} href={`tel:${phone}`} aria-label={t('Số điện thoại')}><Icon name="phone" size={16} /></a>}
       {floatingSocial.map(network =>
         <a key={network.key} className={styles[network.key]} href={network.href} target="_blank" rel="noreferrer" aria-label={network.label} title={network.label}>
-          {network.logo ? <img src={network.logo} alt="" aria-hidden="true" width={50} height={19} /> : network.mark}
+          <img src={network.logo} alt="" aria-hidden="true" width={22} height={22} />
         </a>)}
     </nav>}
   </div>;

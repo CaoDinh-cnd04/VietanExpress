@@ -1,6 +1,5 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { getErrorMessage, http, type ListResponse } from '@/shared/api/http';
-import { useToast } from '@/shared/ui';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { http, type ListResponse } from '@/shared/api/http';
 import type { QuoteRequest, ServiceQuote, ShippingService } from './types';
 
 export const pricingKeys = { services: ['pricing', 'services'] as const };
@@ -19,29 +18,3 @@ export function useServices() {
   });
 }
 
-/** Lưu (tạo mới hoặc cập nhật theo id) bảng giá một dịch vụ. */
-export function useSaveService() {
-  const qc = useQueryClient();
-  const toast = useToast();
-  return useMutation({
-    mutationFn: (svc: ShippingService) => http.post<{ message: string }>('/services', svc),
-    onSuccess: res => {
-      toast.show(res.message, 'success');
-      void qc.invalidateQueries({ queryKey: pricingKeys.services });
-    },
-    onError: e => toast.show(getErrorMessage(e), 'error')
-  });
-}
-
-export function useDeleteService() {
-  const qc = useQueryClient();
-  const toast = useToast();
-  return useMutation({
-    mutationFn: (id: string) => http.delete<{ message: string }>(`/services/${encodeURIComponent(id)}`),
-    onSuccess: res => {
-      toast.show(res.message, 'success');
-      void qc.invalidateQueries({ queryKey: pricingKeys.services });
-    },
-    onError: e => toast.show(getErrorMessage(e), 'error')
-  });
-}

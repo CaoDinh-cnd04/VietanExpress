@@ -25,6 +25,9 @@ public static class VietnamTime
 
     public static DateTimeOffset ToVietnam(DateTimeOffset utc) => TimeZoneInfo.ConvertTime(utc, Zone);
 
+    /// <summary>Giờ Việt Nam hiện tại (không offset) — các cột datetime của bảng dbo lưu theo giờ này.</summary>
+    public static DateTime Now(TimeProvider clock) => ToVietnam(clock.GetUtcNow()).DateTime;
+
     /// <summary>0 giờ ngày <paramref name="date"/> theo giờ Việt Nam, đổi ra UTC — dùng cho bộ lọc từ ngày / đến ngày.</summary>
     public static DateTimeOffset StartOfDayUtc(DateOnly date)
     {

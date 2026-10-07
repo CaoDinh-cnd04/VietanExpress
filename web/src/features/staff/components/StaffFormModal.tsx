@@ -63,14 +63,14 @@ export function StaffFormModal({ staff, onClose }: { staff?: StaffAccount; onClo
             </>
           )}
           <TextField label="Họ tên" required wide error={err('fullName')} {...register('fullName')} />
-          <TextField label="Email" type="email" error={err('email')} {...register('email')} />
-          <TextField label="Số điện thoại" type="tel" error={err('phone')} {...register('phone')} />
+          <TextField label="Email" type="email" hint="Điền sẵn email người gửi khi nhân viên tạo đơn" error={err('email')} {...register('email')} />
+          <TextField label="Số điện thoại" type="tel" hint="Điền sẵn SĐT người gửi khi nhân viên tạo đơn" error={err('phone')} {...register('phone')} />
         </FormGrid>
 
         <fieldset className={styles.permissions}>
           <legend>{t('Quyền sử dụng')}</legend>
           <p className={styles.hint}>
-            {t('Nhân viên chỉ thấy đơn hàng do mình tạo, trừ khi được chọn "Xem toàn bộ đơn của công ty". Đơn e-commerce thì ai có quyền e-commerce đều thấy. MyTracking và quản lý nhân viên chỉ dành cho tài khoản chính.')}
+            {t('Nhân viên chỉ thấy vận đơn và đơn E-commerce do mình tạo, trừ khi được chọn "Xem toàn bộ đơn" ở từng nhóm. Đơn tự đồng bộ từ sàn chỉ người có quyền xem toàn bộ đơn E-commerce thấy. MyTracking và quản lý nhân viên chỉ dành cho tài khoản chính.')}
           </p>
           {permissions.isError ? (
             <Notice tone="danger">{t('Không tải được danh sách quyền. Vui lòng thử lại.')}</Notice>

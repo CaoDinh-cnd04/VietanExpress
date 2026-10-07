@@ -1,4 +1,4 @@
-﻿.page { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.page { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .pageHeader { display: flex; align-items: baseline; flex-wrap: wrap; gap: 12px; padding-bottom: 14px; border-bottom: 1px solid var(--color-border-strong); }
 .pageHeader h1 { font-size: 24px; font-weight: 700; }
 .pageHeader p { font-size: var(--text-sm); color: var(--color-text-muted); }
@@ -75,12 +75,14 @@
 .socialIcons a, .floatingContacts a { display: grid; place-items: center; width: 36px; height: 36px; color: var(--color-on-hero); font-size: 10px; font-weight: 700; text-decoration: none; background: var(--color-tracking-bar); }
 .socialIcons a { border-radius: 6px; }
 .socialIcons img, .floatingContacts img { display: block; object-fit: contain; }
-.socialIcons .facebook, .socialIcons .instagram, .floatingContacts .zalo { background: var(--color-on-hero); }
+.socialIcons .facebook, .socialIcons .instagram { background: var(--color-on-hero); }
 .floatingContacts { display: flex; flex-direction: column; gap: 4px; position: absolute; left: 0; top: 100px; }
-.floatingContacts .zalo { border-radius: 0 6px 6px 0; }
-.floatingContacts .zalo img { width: 30px; height: auto; }
+.floatingContacts a { width: 40px; height: 40px; border-radius: 0 8px 8px 0; box-shadow: var(--shadow-sm); }
+.floatingContacts img { width: 22px; height: 22px; }
+.floatingContacts .zalo { background: var(--color-social-zalo); }
 .socialIcons a:focus-visible, .floatingContacts a:focus-visible { outline: 2px solid var(--color-brand); outline-offset: 2px; }
-.floatingContacts .whatsapp, .floatingContacts .phone { background: var(--color-social-whatsapp); }
+.floatingContacts .whatsapp { background: var(--color-social-whatsapp); }
+.floatingContacts .phone { background: var(--color-brand); }
 .mobile { width: 320px; max-width: 100%; margin: auto; padding-inline: 32px 12px; }
 .mobile .trackingColumns { grid-template-columns: 1fr; }
 .mobile .brandHeader { grid-template-columns: 1fr; align-items: start; }

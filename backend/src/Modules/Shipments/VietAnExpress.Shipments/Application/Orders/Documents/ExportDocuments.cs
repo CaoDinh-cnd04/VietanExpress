@@ -46,13 +46,12 @@ internal static class CommercialInvoice
                 """);
         }
         var total = lines.Sum(l => l.Amount);
-        var gross = m.Packages.Count > 0 ? m.Packages.Sum(p => p.GrossKg) : o.WeightKg ?? 0;
-        var pieces = m.Packages.Count > 0 ? m.Packages.Sum(p => p.Qty) : o.Pieces ?? 1;
+        var gross = m.TotalGrossKg;
+        var pieces = m.TotalPieces;
         var dims = string.Join("<br>", m.Packages.Select(p =>
             Doc.H(string.Create(CultureInfo.InvariantCulture, $"{p.Qty}*({Doc.Qty(p.Length)}*{Doc.Qty(p.Width)}*{Doc.Qty(p.Height)})"))));
         // Như hệ thống cũ: dòng 1 địa chỉ ở "Address", dòng 2 nối sau số điện thoại ở "Phone/Fax/Mail".
         var (addr1, addr2) = BillA4.SplitAddress(o.SenderAddress, 60);
-        var senderCountry = o.SenderCountryId is null or 231 ? "Viet Nam" : "";
         var consigneeAddress = new[] { o.ConsigneeAddress1, o.ConsigneeAddress2, o.ConsigneeAddress3 }
             .Where(a => !string.IsNullOrWhiteSpace(a)).DefaultIfEmpty("").ToList();
 
@@ -68,7 +67,7 @@ internal static class CommercialInvoice
                   {{Field("Company Name:", o.SenderName)}}
                   {{Field("Address:", addr1)}}
                   {{Field("Town/ Area Code:", o.SenderPostalCode)}}
-                  {{Field("State/ Country:", senderCountry)}}
+                  {{Field("State/ Country:", m.SenderCountryText)}}
                   {{Field("Contact Name:", o.SenderContactName)}}
                   {{Field("Phone/Fax/Mail:", Doc.Join(" ", o.SenderPhone, addr2, o.SenderEmail))}}
 
@@ -171,8 +170,8 @@ internal static class CommitmentLetter
     {
         var o = m.Order;
         var date = o.CreateDate ?? printedAt;
-        var gross = m.Packages.Count > 0 ? m.Packages.Sum(p => p.GrossKg) : o.WeightKg ?? 0;
-        var pieces = m.Packages.Count > 0 ? m.Packages.Sum(p => p.Qty) : o.Pieces ?? 1;
+        var gross = m.TotalGrossKg;
+        var pieces = m.TotalPieces;
         var rows = new StringBuilder();
         var n = 0;
         foreach (var l in m.InvoiceLines)
@@ -250,8 +249,6 @@ internal static class Doc
         string.Join(separator, parts.Select(p => p?.Trim()).Where(p => !string.IsNullOrEmpty(p)));
 
     public static string Date(DateTime? value) => value?.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture) ?? "";
-
-    public static string Kg(decimal? value) => (value ?? 0).ToString("0.00", CultureInfo.InvariantCulture);
 
     public static string Qty(decimal value) => value.ToString("0.##", CultureInfo.InvariantCulture);
 

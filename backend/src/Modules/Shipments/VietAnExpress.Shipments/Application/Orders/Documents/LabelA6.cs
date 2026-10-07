@@ -1,7 +1,7 @@
 using System.Globalization;
-using System.Net;
 using System.Text;
 using VietAnExpress.Shipments.Infrastructure.Legacy;
+using static VietAnExpress.Shipments.Application.Orders.Documents.Doc;
 
 namespace VietAnExpress.Shipments.Application.Orders.Documents;
 
@@ -13,12 +13,16 @@ internal static class LabelA6
 {
     private enum Slip { Shipper = 1, Origin = 2, Destination = 3 }
 
+    /// <summary>QR tracking + mã vạch số bill của 1 đơn — dùng lại cho 3 liên và mọi shipping mark, không tạo lại mỗi trang.</summary>
+    private sealed record OrderArt(string Qr, string HeadBarcode, string FootBarcode);
+
     public static string Render(OrderPrintModel m, CompanyInfo c, DateTime printedAt)
     {
+        var art = new OrderArt(BillA4.Qr(BillA4.TrackingUrl(c, m.Bill)), Code128.Svg(m.Bill, 36), Code128.Svg(m.Bill, 30));
         var sb = new StringBuilder();
-        foreach (var slip in new[] { Slip.Shipper, Slip.Origin, Slip.Destination }) sb.Append(SlipHtml(m, c, slip));
+        foreach (var slip in Enum.GetValues<Slip>()) sb.Append(SlipHtml(m, c, slip, art));
         var pieces = BillA4.PieceList(m.Packages, m.Order.Pieces ?? 1);
-        for (var i = 0; i < pieces.Count; i++) sb.Append(Mark(m, c, printedAt, i + 1, pieces.Count, pieces[i]));
+        for (var i = 0; i < pieces.Count; i++) sb.Append(Mark(m, c, printedAt, i + 1, pieces.Count, pieces[i], art));
         return sb.ToString();
     }
 
@@ -37,15 +41,14 @@ internal static class LabelA6
     /// <summary>1 dòng kích thước: "7.0 | 1*(31*27*27)=5.0" = cân thực | số kiện*(D*R*C)=cân quy đổi.</summary>
     public static string DimensionLine(PrintPackage p) =>
         string.Create(CultureInfo.InvariantCulture,
-            $"{p.GrossKg:0.0} | {p.Qty}*({Num(p.Length)}*{Num(p.Width)}*{Num(p.Height)})=<b>{RoundUpHalf(p.VolumeKg):0.0}</b>");
+            $"{p.GrossKg:0.0} | {p.Qty}*({Qty(p.Length)}*{Qty(p.Width)}*{Qty(p.Height)})=<b>{RoundUpHalf(p.VolumeKg):0.0}</b>");
 
     // ---------------- 1 liên ----------------
 
-    private static string SlipHtml(OrderPrintModel m, CompanyInfo c, Slip slip)
+    private static string SlipHtml(OrderPrintModel m, CompanyInfo c, Slip slip, OrderArt art)
     {
         var o = m.Order;
         var (addr1, addr2) = BillA4.SplitAddress(o.SenderAddress);
-        var senderCountry = o.SenderCountryId is null or 231 ? "Viet Nam" : "";
         var qrCaption = slip == Slip.Shipper ? "Quét QR để tracking" : m.Bill;
         var phone = BillA4.PhoneWithCode(o.ConsigneePhoneCode, o.ConsigneePhone);
         var tel = string.IsNullOrWhiteSpace(o.ConsigneeEmail) ? $"{H(phone)} |" : $"{H(phone)} | {H(o.ConsigneeEmail)}";
@@ -69,14 +72,14 @@ internal static class LabelA6
         return $"""
             <section class="page a6">
               <div class="box">
-                {Head(m, c, m.Bill, H(m.Bill))}
+                {Head(m, c, art.HeadBarcode, H(m.Bill))}
                 <div class="bar">1. <i>(Sender's information)</i>:</div>
                 <div class="sender">
-                  <div class="qr"><div class="qr-frame">{BillA4.Qr(BillA4.TrackingUrl(c, m.Bill))}</div><div class="qr-cap">{H(qrCaption)}</div></div>
+                  <div class="qr"><div class="qr-frame">{art.Qr}</div><div class="qr-cap">{H(qrCaption)}</div></div>
                   <div class="lines">
                     <div class="ln">{H(o.SenderName)}</div>
                     <div class="ln">{H(addr1)}</div>
-                    <div class="ln">{senderCountry}</div>
+                    <div class="ln">{m.SenderCountryText}</div>
                     <div class="ln">{H(o.SenderContactName)}</div>
                     <div class="ln">{H(o.SenderPhone)}</div>
                     <div class="ln last">{H(addr2)}</div>
@@ -92,13 +95,13 @@ internal static class LabelA6
                 </div>
                 <div class="bar">3. <i>(Shipment information)</i>:</div>
                 <div class="ship"><span>(Content):</span><b>{H(o.GoodsName)}</b></div>
-                <div class="ship"><span>(value invoice):</span><b>{H(Value(o))}</b></div>
+                <div class="ship"><span>(value invoice):</span><b>{H(BillA4.Value(o))}</b></div>
                 {Packages(m)}
                 <div class="signs">{signs}</div>
               </div>
               <div class="foot">
                 <div>{(slip == Slip.Origin ? "<div class=\"total\">Tổng cước:</div>" : "")}<div class="slip-name">{slipName}</div></div>
-                <div class="foot-awb">{Code128.Svg(m.Bill, 30)}<div>{H(m.Bill)}</div></div>
+                <div class="foot-awb">{art.FootBarcode}<div>{H(m.Bill)}</div></div>
               </div>
             </section>
             """;
@@ -108,8 +111,8 @@ internal static class LabelA6
     {
         var o = m.Order;
         var pk = m.Packages;
-        var pieces = pk.Count > 0 ? pk.Sum(p => p.Qty) : o.Pieces ?? 1;
-        var gross = pk.Count > 0 ? pk.Sum(p => p.GrossKg) : o.WeightKg ?? 0;
+        var pieces = m.TotalPieces;
+        var gross = m.TotalGrossKg;
         var vol = pk.Count > 0 ? pk.Sum(p => RoundUpHalf(p.VolumeKg)) : 0;
         const int maxLines = 3;
         var dims = pk.Take(maxLines).Select(DimensionLine).ToList();
@@ -126,22 +129,22 @@ internal static class LabelA6
 
     // ---------------- Shipping mark (1 / kiện) ----------------
 
-    private static string Mark(OrderPrintModel m, CompanyInfo c, DateTime printedAt, int index, int total, PrintPackage? piece)
+    private static string Mark(OrderPrintModel m, CompanyInfo c, DateTime printedAt, int index, int total, PrintPackage? piece, OrderArt art)
     {
         var o = m.Order;
         var pieceNo = $"{m.Bill}/{index}";
         var gw = (piece?.WeightKg ?? 0).ToString("0.00", CultureInfo.InvariantCulture);
-        var dim = piece is null ? "<b>0</b>*<b>0</b>*<b>0</b>" : $"<b>{Num(piece.Length)}</b>*<b>{Num(piece.Width)}</b>*<b>{Num(piece.Height)}</b>";
+        var dim = piece is null ? "<b>0</b>*<b>0</b>*<b>0</b>" : $"<b>{Qty(piece.Length)}</b>*<b>{Qty(piece.Width)}</b>*<b>{Qty(piece.Height)}</b>";
         var phone = BillA4.PhoneWithCode(o.ConsigneePhoneCode, o.ConsigneePhone);
 
         return $"""
             <section class="page a6 mark">
               <div class="box">
-                {Head(m, c, pieceNo, $"{H(m.Bill)} <small>/{index}</small>")}
+                {Head(m, c, Code128.Svg(pieceNo, 36), $"{H(m.Bill)} <small>/{index}</small>")}
                 <div class="m-title"><span>SHIPPING MARK<br><i>HAWB:</i></span><b>{H(m.Bill)}</b></div>
                 <div class="bar center"><i>Ref no.:</i> {H(o.CustomerBill)}</div>
                 <div class="m-dest">
-                  <div class="qr-frame">{BillA4.Qr(BillA4.TrackingUrl(c, m.Bill))}</div>
+                  <div class="qr-frame">{art.Qr}</div>
                   <div><div class="m-dest-lbl">DESTINATION</div><div class="m-dest-code">{H(BillA4.CountryCode(o.ConsigneeCountry))}</div></div>
                 </div>
                 <div class="m-pcs"><i>Pcs no:</i><b>{index} / {total}</b></div>
@@ -167,7 +170,7 @@ internal static class LabelA6
             """;
     }
 
-    private static string Head(OrderPrintModel m, CompanyInfo c, string barcode, string awbHtml) => $"""
+    private static string Head(OrderPrintModel m, CompanyInfo c, string barcodeSvg, string awbHtml) => $"""
         <div class="head">
           <img class="logo" src="{BillA4.LogoDataUri.Value}" alt="Việt An Express">
           <div class="brand">
@@ -176,25 +179,13 @@ internal static class LabelA6
             <div><b class="k">Hotline</b> : <b>{H(c.Hotline)}</b></div>
             <div><b class="k">Website</b> : <i>{H(c.Website)}</i></div>
           </div>
-          <div class="awb">{Code128.Svg(barcode, 36)}<div class="awb-no">{awbHtml}</div><div class="route">{H(RouteLabel(m.Order.ServiceName))}</div></div>
+          <div class="awb">{barcodeSvg}<div class="awb-no">{awbHtml}</div><div class="route">{H(RouteLabel(m.Order.ServiceName))}</div></div>
         </div>
         """;
 
     private static string ConsigneeAddress(LegacyOrder o) => Join(" , ", o.ConsigneeAddress1, o.ConsigneeAddress2, o.ConsigneeAddress3);
 
     private static string CityLine(LegacyOrder o) => Join(", ", o.ConsigneeCity, o.ConsigneeState, o.ConsigneePostalCode, o.ConsigneeCountry);
-
-    private static string Value(LegacyOrder o) =>
-        o.GoodsValue is null ? "" : $"{(o.GoodsValue ?? 0).ToString("0.00", CultureInfo.InvariantCulture)} {o.Currency?.Trim()}".Trim();
-
-    private static string Join(string separator, params string?[] parts) =>
-        string.Join(separator, parts.Select(p => p?.Trim()).Where(p => !string.IsNullOrEmpty(p)));
-
-    private static string H(string? value) => WebUtility.HtmlEncode(value?.Trim() ?? "");
-
-    private static string Date(DateTime? value) => value?.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture) ?? "";
-
-    private static string Num(decimal value) => value.ToString("0.##", CultureInfo.InvariantCulture);
 
     private static string Kg1(decimal value) => value.ToString("0.0", CultureInfo.InvariantCulture);
 

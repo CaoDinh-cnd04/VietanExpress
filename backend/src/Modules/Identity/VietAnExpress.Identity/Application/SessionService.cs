@@ -22,6 +22,8 @@ internal static class IdentityErrors
         Error.Forbidden("ADMIN_ONLY", "Chỉ tài khoản chính (quản trị) của công ty được thực hiện thao tác này");
     public static readonly Error TooManyStaff =
         Error.BusinessRule("TOO_MANY_STAFF", "Đã đạt số tài khoản nhân viên tối đa (100)");
+    public static readonly Error StaffPasswordManagedByAdmin =
+        Error.Forbidden("STAFF_PASSWORD_ADMIN_ONLY", "Tài khoản nhân viên không tự đổi mật khẩu được — vui lòng liên hệ quản trị viên tài khoản công ty để đặt lại");
     public static readonly Error StaffNotFound =
         Error.NotFound("STAFF_NOT_FOUND", "Không tìm thấy tài khoản nhân viên");
     public static readonly Error UserNameTaken =
@@ -53,12 +55,20 @@ internal sealed class SessionService(ITokenService tokens, ICustomersApi custome
         .OrderBy(p => p.Code, StringComparer.Ordinal)
         .ToList();
 
-    /// <summary>Quyền của tài khoản chính (admin).</summary>
-    public IReadOnlyList<string> Permissions => _customerPermissions.Select(p => p.Code).ToList();
+    // Tính 1 lần cho mỗi instance (danh sách quyền cố định trong code).
+    private IReadOnlyList<string>? _permissions;
+    private IReadOnlyList<PermissionDefinition>? _assignable;
+    private HashSet<string>? _assignableCodes;
 
-    /// <summary>Quyền admin được cấp cho tài khoản con — mọi quyền của khách trừ quản lý nhân viên / MyTracking.</summary>
+    /// <summary>Quyền của tài khoản chính (admin).</summary>
+    public IReadOnlyList<string> Permissions => _permissions ??= _customerPermissions.Select(p => p.Code).ToList();
+
+    /// <summary>Quyền admin được cấp cho tài khoản con — mọi quyền của khách trừ <see cref="IdentityPermissions.AdminOnly"/>.</summary>
     public IReadOnlyList<PermissionDefinition> AssignablePermissions =>
-        _customerPermissions.Where(p => !IdentityPermissions.AdminOnly.Contains(p.Code)).ToList();
+        _assignable ??= _customerPermissions.Where(p => !IdentityPermissions.AdminOnly.Contains(p.Code)).ToList();
+
+    public bool IsAssignable(string code) =>
+        (_assignableCodes ??= AssignablePermissions.Select(p => p.Code).ToHashSet(StringComparer.Ordinal)).Contains(code.Trim());
 
     /// <summary>Quyền thực tế của tài khoản con: quyền đã lưu ∩ quyền được cấp (quyền bị bỏ khỏi code thì tự mất).</summary>
     public IReadOnlyList<string> StaffPermissions(StaffAccount staff)
@@ -82,7 +92,6 @@ internal sealed class SessionService(ITokenService tokens, ICustomersApi custome
     /// <summary>Null nếu tài khoản con đã bị khóa hoặc hồ sơ khách cha không còn.</summary>
     public async Task<AuthSession?> StartAsync(StaffAccount staff, bool persistent, CancellationToken ct)
     {
-        if (!staff.IsActive) return null;
         var user = await BuildUserAsync(staff, ct);
         if (user is null) return null;
 
@@ -105,7 +114,11 @@ internal sealed class SessionService(ITokenService tokens, ICustomersApi custome
             Phone: customer.Phone, Address: customer.Address, TaxCode: customer.TaxCode, IsAdmin: true);
     }
 
-    /// <summary>Tài khoản con dùng hồ sơ của khách cha (điền sẵn người gửi khi tạo đơn); tên hiển thị là tên nhân viên.</summary>
+    /// <summary>
+    /// Tài khoản con: tên công ty, địa chỉ lấy hàng, MST lấy của khách cha (đơn thuộc công ty);
+    /// người liên hệ, điện thoại, email là của nhân viên — form tạo đơn điền sẵn người gửi theo đúng người đang tạo đơn.
+    /// Nhân viên chưa có điện thoại / email thì để trống (không lấy của công ty), người tạo đơn tự nhập.
+    /// </summary>
     public async Task<SessionUserDto?> BuildUserAsync(StaffAccount staff, CancellationToken ct)
     {
         if (!staff.IsActive) return null;
@@ -114,8 +127,8 @@ internal sealed class SessionService(ITokenService tokens, ICustomersApi custome
 
         return new SessionUserDto(
             staff.CustomerId, staff.UserName, staff.FullName, AccountTypes.Staff,
-            customer.Code, customer.CompanyName, customer.ContactName, staff.Email ?? customer.Email,
+            customer.Code, customer.CompanyName, staff.FullName, staff.Email,
             AvatarUrl: null, DefaultBranch: null, StaffRoles, StaffPermissions(staff),
-            Phone: customer.Phone, Address: customer.Address, TaxCode: customer.TaxCode, IsAdmin: false);
+            Phone: staff.Phone, Address: customer.Address, TaxCode: customer.TaxCode, IsAdmin: false);
     }
 }

@@ -104,7 +104,7 @@ internal sealed class GoodsCategoryHandlers(ShipmentsDbContext db, ICurrentUser 
         var category = await Visible().FirstOrDefaultAsync(c => c.Id == cmd.Id, ct);
         if (category is null) return GoodsCategoryErrors.NotFound;
 
-        var now = VietnamTime.ToVietnam(clock.GetUtcNow()).DateTime;
+        var now = VietnamTime.Now(clock);
         if (category.CustomerId is null)
         {
             var key = category.Id.ToString(System.Globalization.CultureInfo.InvariantCulture);
@@ -128,7 +128,7 @@ internal sealed class GoodsCategoryHandlers(ShipmentsDbContext db, ICurrentUser 
         var duplicate = await Visible().AnyAsync(c => c.Name == name.Value && (cmd.Id == null || c.Id != cmd.Id), ct);
         if (duplicate) return GoodsCategoryErrors.Duplicate(name.Value);
 
-        var now = VietnamTime.ToVietnam(clock.GetUtcNow()).DateTime;
+        var now = VietnamTime.Now(clock);
         GoodsCategory? category;
         if (cmd.Id is { } id)
         {

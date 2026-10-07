@@ -45,12 +45,12 @@ Nguyên tắc: phản hồi webhook nhanh (200 ngay, xử lý nền), chống tr
 | `Shopify:ApiVersion` (`2026-07`), `Shopify:Scopes`, `Shopify:CallbackPath` | `appsettings.json` |
 
 Trong Shopify Dev Dashboard → app → **Allowed redirection URL(s)** khai `{Company:PortalUrl}{CallbackPath}`, hiện là
-`https://viet-an-express.vercel.app/api/v1/ecom/oauth/shopify/callback` (Vercel proxy `/api` sang Render).
+`https://vietan-express.vercel.app/api/v1/ecom/oauth/shopify/callback` (Vercel proxy `/api` sang Render).
 
 ### Webhook Shopify (đã làm)
 
 1 URL nhận mọi chủ đề: **`POST {Company:PortalUrl}/api/v1/ecom/webhooks/shopify`**
-(hiện `https://viet-an-express.vercel.app/api/v1/ecom/webhooks/shopify`). Khai trong cấu hình app — mẫu: `shopify.app.toml.example`
+(hiện `https://vietan-express.vercel.app/api/v1/ecom/webhooks/shopify`). Khai trong cấu hình app — mẫu: `shopify.app.toml.example`
 (Shopify CLI `shopify app deploy`, hoặc Dev Dashboard → Versions → Webhooks / Compliance webhooks).
 
 | Chủ đề | Backend làm gì |
@@ -65,6 +65,19 @@ Trong Shopify Dev Dashboard → app → **Allowed redirection URL(s)** khai `{Co
 - Chống trùng theo `X-Shopify-Webhook-Id` (bộ nhớ 24 giờ); mọi thao tác idempotent nên nhận lại cũng không sai dữ liệu.
 - Vận đơn đã cấp (`dbo.MaVanDon`) là chứng từ vận chuyển / hải quan của Việt An, không xóa theo webhook redact.
 - Kiểm nhanh khi đã deploy: `shopify app webhook trigger --topic customers/redact --address <URL>` (Shopify CLI) hoặc nút "Send test" trong Dev Dashboard.
+
+### Khi App Store báo đỏ compliance webhooks / HMAC
+
+1. Chạy `powershell -File backend/scripts/test-shopify-webhooks.ps1` từ thư mục gốc. Script chỉ gửi chữ ký thiếu/sai tới cả 3 chủ đề, không gửi yêu cầu xóa dữ liệu hợp lệ. Kết quả phải là **401** ở cả 6 lần. Có thể dùng `-WebhookUrl <URL>` để đối chiếu backend trực tiếp với Vercel. Timeout lần đầu có thể do backend đang khởi động; kiểm tra lại và xem log máy chủ.
+2. Trong **đúng app public** → Versions → phiên bản **Active**, đối chiếu các subscription `customers/data_request`, `customers/redact`, `shop/redact` với URL `/api/v1/ecom/webhooks/shopify`. File TOML ở máy không tự cập nhật Shopify: phải phát hành cấu hình qua `shopify app deploy`. Trigger thử webhook cũng không xác nhận các subscription đã đăng ký.
+3. Backend cần `Shopify__ClientId` và `Shopify__ClientSecret` của chính app đó (không dùng secret của app thử nghiệm khác). Test chữ ký sai trả 401 chưa chứng minh secret production đúng; cần gửi webhook thử được ký bằng secret của app và kiểm tra log cùng HTTP 2xx.
+4. Sau khi backend và cấu hình app đã phát hành, chạy lại **Run** trong App Store review. Khi lỗi còn tồn tại, đối chiếu thời điểm Run với log backend: 404 là sai đường dẫn/thiếu endpoint; 5xx hoặc timeout là lỗi máy chủ/proxy; 401 với webhook có chữ ký hợp lệ cần kiểm secret và body gốc.
+
+Đã tái hiện Vercel trả `500 FUNCTION_INVOCATION_FAILED` với request có `Expect: 100-continue`, trong khi Render trực tiếp trả 401. Proxy loại header này khi chuyển tiếp; script kiểm tra cũng tắt cơ chế Expect của .NET. Nếu Vercel từ chối request trước khi handler chạy, cần xem Function Logs của Vercel: thay đổi trong handler không xử lý được lỗi xảy ra trước đó. Chưa có log Shopify để kết luận request kiểm duyệt sử dụng header này.
+
+`shopify.app.toml` ở thư mục gốc đã được đối chiếu với ảnh v1 Active: tên `Viet An Express`, App URL `/orders`, `embedded = true`, scope `read_orders`, webhook API `2026-10`. File mẫu trong `web/docs` mô tả cấu hình portal khác; không chép đè file gốc khi phát hành app Embedded này. Deploy sẽ cập nhật cả cấu hình app và các subscription webhook, nên cần kiểm tra đúng app trong bản xem trước của CLI.
+
+Tài liệu: https://shopify.dev/docs/apps/build/compliance/privacy-law-compliance
 
 ## 3. TikTok Shop
 

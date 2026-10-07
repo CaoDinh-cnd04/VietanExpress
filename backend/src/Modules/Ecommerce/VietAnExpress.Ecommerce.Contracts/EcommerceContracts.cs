@@ -15,6 +15,12 @@ public static class SalesChannelCodes
 
 public static class EcommercePermissions
 {
+    /// <summary>Xem cửa hàng đã kết nối và danh sách đơn E-commerce.</summary>
     public const string View = "ecommerce.view";
+    /// <summary>Tạo & xử lý đơn: nhập tay, nhập CSV, sửa, xác nhận / trả lại, xóa, đồng bộ từ sàn.</summary>
+    public const string Orders = "ecommerce.orders";
+    /// <summary>Kết nối / ngắt kết nối cửa hàng trên sàn.</summary>
     public const string Connect = "ecommerce.connect";
+    /// <summary>Tài khoản con xem mọi đơn E-commerce của công ty; không có thì chỉ thấy đơn mình tạo. Tài khoản chính luôn thấy tất cả.</summary>
+    public const string ViewAll = "ecommerce.view-all";
 }

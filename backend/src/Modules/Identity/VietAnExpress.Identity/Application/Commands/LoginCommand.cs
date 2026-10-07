@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using VietAnExpress.Identity.Application.Dtos;
+using VietAnExpress.Identity.Contracts;
 using VietAnExpress.Identity.Infrastructure;
 using VietAnExpress.SharedKernel.Application;
 using VietAnExpress.SharedKernel.Results;
@@ -37,7 +38,7 @@ internal sealed class LoginHandler(IdentityDbContext db, SessionService sessions
 
         var staffSession = await sessions.StartAsync(staff, cmd.Remember, ct);
         if (staffSession is null) return IdentityErrors.InvalidCredentials;
-        staff.RecordLogin(VietnamTime.ToVietnam(clock.GetUtcNow()).DateTime);
+        staff.RecordLogin(VietnamTime.Now(clock));
         await db.SaveChangesAsync(ct);
         return staffSession;
     }
@@ -83,12 +84,12 @@ internal sealed class RefreshSessionHandler(IdentityDbContext db, ITokenService 
 
 /// <summary>
 /// Ghi mật khẩu mới vào dbo.TCustomer.Login_Password (dạng chữ thường như hệ thống cũ — 2 hệ thống dùng chung);
-/// tài khoản con thì ghi mật khẩu đã băm vào dbo.TaiKhoanNhanVien.
+/// tài khoản con không được tự đổi (admin đặt lại).
 /// Mọi phiên cũ hết hiệu lực; thiết bị đang dùng nhận phiên mới ngay, giữ kiểu phiên (ghi nhớ hay không) theo refresh token hiện tại.
 /// </summary>
 internal sealed record ChangePasswordCommand(string CurrentPassword, string NewPassword, string? CurrentRefreshToken) : IRequest<Result<AuthSession>>;
 
-internal sealed class ChangePasswordHandler(IdentityDbContext db, ITokenService tokens, SessionService sessions, ICurrentUser currentUser, TimeProvider clock)
+internal sealed class ChangePasswordHandler(IdentityDbContext db, ITokenService tokens, SessionService sessions, ICurrentUser currentUser)
     : IRequestHandler<ChangePasswordCommand, Result<AuthSession>>
 {
     public async Task<Result<AuthSession>> Handle(ChangePasswordCommand cmd, CancellationToken ct)
@@ -96,17 +97,8 @@ internal sealed class ChangePasswordHandler(IdentityDbContext db, ITokenService 
         if (currentUser.CustomerId is not { } customerId) return IdentityErrors.SessionExpired;
         var persistent = cmd.CurrentRefreshToken is { Length: > 0 } rt && (await tokens.ReadRefreshTokenAsync(rt))?.IsPersistent == true;
 
-        if (currentUser.StaffId is { } staffId)
-        {
-            var staff = await db.StaffAccounts.FirstOrDefaultAsync(s => s.Id == staffId && s.CustomerId == customerId, ct);
-            if (staff is null || !staff.IsActive) return IdentityErrors.SessionExpired;
-            if (!StaffPasswordHasher.Verify(staff.PasswordHash, cmd.CurrentPassword)) return IdentityErrors.WrongCurrentPassword;
-
-            staff.SetPassword(StaffPasswordHasher.Hash(cmd.NewPassword), VietnamTime.ToVietnam(clock.GetUtcNow()).DateTime);
-            await db.SaveChangesAsync(ct);
-            var staffSession = await sessions.StartAsync(staff, persistent, ct);
-            return staffSession is null ? IdentityErrors.SessionExpired : staffSession;
-        }
+        // Tài khoản con không có quyền này — admin đặt lại ở trang Tài khoản nhân viên (POST /account/staff/{id}/reset-password).
+        if (!currentUser.HasPermission(IdentityPermissions.ChangePassword)) return IdentityErrors.StaffPasswordManagedByAdmin;
 
         var login = await db.Logins.FirstOrDefaultAsync(l => l.CustomerId == customerId, ct);
         if (login is null || !login.HasPassword) return IdentityErrors.SessionExpired;

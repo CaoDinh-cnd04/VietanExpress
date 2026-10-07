@@ -23,7 +23,7 @@ internal sealed class StoreSyncService(
     /// <summary>Làm mới access token sớm hơn hạn một chút.</summary>
     private static readonly TimeSpan RefreshMargin = TimeSpan.FromMinutes(5);
 
-    private DateTime Now => VietnamTime.ToVietnam(clock.GetUtcNow()).DateTime;
+    private DateTime Now => VietnamTime.Now(clock);
 
     public async Task<Result<StoreSyncCounts>> SyncAsync(StoreConnection store, CancellationToken ct)
     {
@@ -55,7 +55,7 @@ internal sealed class StoreSyncService(
         var imported = nodes.Select(ShopifyOrderMapper.Map).Where(o => o.PlatformOrderId.Length > 0).ToList();
         var ids = imported.Select(o => o.PlatformOrderId).ToList();
         var existing = await db.MarketplaceOrders
-            .Where(o => o.CustomerId == store.CustomerId && o.Source == SalesChannelCodes.Shopify && o.PlatformOrderId != null && ids.Contains(o.PlatformOrderId))
+            .Where(o => o.CustomerId == store.CustomerId).ShopifyOrdersIn(ids)
             .ToDictionaryAsync(o => o.PlatformOrderId!, ct);
 
         var now = Now;

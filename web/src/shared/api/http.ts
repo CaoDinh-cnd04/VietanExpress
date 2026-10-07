@@ -8,13 +8,18 @@
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api/v1';
 
 export class ApiError extends Error {
+  /** Backend chưa có endpoint: 404 / 501 không kèm message (lỗi 404 có message như "Không tìm thấy đơn" là lỗi thật). */
+  readonly notImplemented: boolean;
+
   constructor(
     message: string,
     readonly status: number,
-    readonly code?: string
+    readonly code?: string,
+    notImplemented = false
   ) {
     super(message);
     this.name = 'ApiError';
+    this.notImplemented = notImplemented;
   }
 }
 
@@ -22,8 +27,18 @@ export class ApiError extends Error {
 export const getErrorMessage = (e: unknown, fallback = 'Có lỗi xảy ra, vui lòng thử lại'): string =>
   e instanceof ApiError ? e.message : fallback;
 
-/** Endpoint backend chưa làm (404/501) — UI hiện trạng thái "đang cập nhật" thay vì báo lỗi. */
-export const isNotImplemented = (e: unknown): boolean => e instanceof ApiError && (e.status === 404 || e.status === 501);
+/** Endpoint backend chưa làm — UI hiện trạng thái "đang cập nhật" thay vì báo lỗi. */
+export const isNotImplemented = (e: unknown): boolean => e instanceof ApiError && e.notImplemented;
+
+/** Câu báo khi backend chưa có endpoint (404 / 501 không kèm message — vd route chưa làm). */
+export const NOT_READY_MESSAGE = 'Chức năng đang được kết nối máy chủ, vui lòng thử lại sau';
+
+/** Phản hồi lỗi → ApiError: ưu tiên message của backend; 404 / 501 không có message = chức năng chưa có. */
+export function toError(status: number, message?: string, code?: string): ApiError {
+  if (message) return new ApiError(message, status, code);
+  if (status === 404 || status === 501) return new ApiError(NOT_READY_MESSAGE, status, code, true);
+  return new ApiError('Lỗi máy chủ ({status})'.replace('{status}', String(status)), status, code);
+}
 
 export type QueryParams = Record<string, string | number | boolean | null | undefined>;
 
@@ -76,7 +91,7 @@ async function request<T>(method: string, path: string, { params, body }: Reques
   const payload: unknown = await res.json().catch(() => null);
   if (!res.ok) {
     const err = (payload ?? {}) as { message?: string; error?: string };
-    throw new ApiError(err.message ?? 'Lỗi máy chủ ({status})'.replace('{status}', String(res.status)), res.status, err.error);
+    throw toError(res.status, err.message, err.error);
   }
   return payload as T;
 }
@@ -84,7 +99,7 @@ async function request<T>(method: string, path: string, { params, body }: Reques
 /** Lỗi HTTP → ApiError (đọc message / error từ ProblemDetails của backend). */
 async function toApiError(res: Response): Promise<ApiError> {
   const err = ((await res.json().catch(() => null)) ?? {}) as { message?: string; error?: string };
-  return new ApiError(err.message ?? 'Lỗi máy chủ ({status})'.replace('{status}', String(res.status)), res.status, err.error);
+  return toError(res.status, err.message, err.error);
 }
 
 /** GET nội dung không phải JSON (trang in HTML, file Excel…). */

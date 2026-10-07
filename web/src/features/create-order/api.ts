@@ -195,14 +195,6 @@ export function useDeleteProduct() {
   });
 }
 
-export function useSaveProduct() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (p: SavedProduct) => http.post<{ message: string }>('/catalog/products', p),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: PRODUCTS_KEY })
-  });
-}
-
 export function useRecentInvoices(enabled: boolean) {
   return useQuery({
     queryKey: ['invoices', 'recent'],

@@ -57,7 +57,7 @@ internal sealed class StoreConnectionHandlers(
     IRequestHandler<CompleteShopifyConnectionCommand, CallbackOutcome>,
     IRequestHandler<DisconnectStoreCommand, Result>
 {
-    private DateTime Now => VietnamTime.ToVietnam(clock.GetUtcNow()).DateTime;
+    private DateTime Now => VietnamTime.Now(clock);
 
     public async Task<IReadOnlyList<StoreConnectionDto>> Handle(GetStoreConnectionsQuery q, CancellationToken ct)
     {

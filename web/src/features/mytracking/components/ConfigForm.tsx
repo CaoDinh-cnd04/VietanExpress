@@ -1,4 +1,4 @@
-﻿import { useRef, useState, type FormEventHandler } from 'react';
+import { useRef, useState, type FormEventHandler } from 'react';
 import { useFieldArray, type UseFormReturn } from 'react-hook-form';
 import { useI18n } from '@/shared/i18n';
 import { Button, Icon, TextAreaField, TextField } from '@/shared/ui';
@@ -105,18 +105,19 @@ export function ConfigForm({ form, onSave, onRestore, disabled, mode, published,
         </div>
         <div className={styles.socialForm}>{(['facebook', 'instagram', 'x'] as const).map(key => <TextField key={key} label={{ facebook: 'Facebook', instagram: 'Instagram', x: 'X' }[key]} placeholder="https://" error={errors.brand?.[key]?.message} {...register(`brand.${key}`)} />)}</div>
       </section>
-      {mode === 'local' ? <div className={styles.actions}>
-        <Button type="submit" variant="primary">{t('Lưu bản thử nghiệm')}</Button>
+      <div className={styles.actions}>
+        {mode === 'local'
+          ? <Button type="submit" variant="primary">{t('Lưu bản thử nghiệm')}</Button>
+          : <>
+            <Button type="submit" variant={published ? 'primary' : undefined}>{t('Lưu')}</Button>
+            {!published && <Button variant="primary" onClick={() => onPublish(true)}>{t('Lưu & xuất bản')}</Button>}
+          </>}
         <Button onClick={onRestore}>{t('Khôi phục mặc định')}</Button>
         <span className={styles.saveStatus} role="status">{t(isDirty ? 'Có thay đổi chưa lưu' : 'Không có thay đổi chưa lưu')}</span>
-        <Button disabled>{t('Xuất bản (sắp ra mắt)')}</Button>
-      </div> : <div className={styles.actions}>
-        <Button type="submit" variant={published ? 'primary' : undefined}>{t('Lưu')}</Button>
-        {!published && <Button variant="primary" onClick={() => onPublish(true)}>{t('Lưu & xuất bản')}</Button>}
-        <Button onClick={onRestore}>{t('Khôi phục mặc định')}</Button>
-        <span className={styles.saveStatus} role="status">{t(isDirty ? 'Có thay đổi chưa lưu' : 'Không có thay đổi chưa lưu')}</span>
-        {published && <Button variant="danger" onClick={() => onPublish(false)}>{t('Ngừng xuất bản')}</Button>}
-      </div>}
+        {mode === 'local'
+          ? <Button disabled>{t('Xuất bản (sắp ra mắt)')}</Button>
+          : published && <Button variant="danger" onClick={() => onPublish(false)}>{t('Ngừng xuất bản')}</Button>}
+      </div>
     </fieldset>
   </form>;
 }

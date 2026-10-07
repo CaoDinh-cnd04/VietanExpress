@@ -7,7 +7,9 @@ using Microsoft.Extensions.Options;
 using VietAnExpress.Identity.Application;
 using VietAnExpress.Identity.Application.Commands;
 using VietAnExpress.Identity.Application.Dtos;
+using VietAnExpress.Identity.Contracts;
 using VietAnExpress.Identity.Infrastructure;
+using VietAnExpress.SharedKernel.Authorization;
 using VietAnExpress.SharedKernel.Web;
 
 namespace VietAnExpress.Identity.Api;
@@ -60,7 +62,7 @@ internal sealed class AuthController(IOptions<JwtOptions> jwt) : ApiControllerBa
     }
 
     [HttpPost("change-password")]
-    [Authorize]
+    [HasPermission(IdentityPermissions.ChangePassword)]
     [ProducesResponseType<ApiMessage>(StatusCodes.Status200OK)]
     public async Task<IActionResult> ChangePassword(ChangePasswordRequest body, CancellationToken ct)
     {

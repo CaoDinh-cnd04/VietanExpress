@@ -36,6 +36,13 @@ internal sealed record OrderPrintModel(LegacyOrder Order, IReadOnlyList<PrintIte
 
     public string Bill => LegacyOrderView.BillOf(Order);
 
+    /// <summary>Tổng số kiện / cân thực: theo dòng kiện nếu có, không thì theo dbo.MaVanDon.</summary>
+    public int TotalPieces => Packages.Count > 0 ? Packages.Sum(p => p.Qty) : Order.Pieces ?? 1;
+    public decimal TotalGrossKg => Packages.Count > 0 ? Packages.Sum(p => p.GrossKg) : Order.WeightKg ?? 0;
+
+    /// <summary>Nước người gửi in trên chứng từ — đơn nội địa (chưa khai hoặc mã nước 231) là "Viet Nam".</summary>
+    public string SenderCountryText => Order.SenderCountryId is null or 231 ? "Viet Nam" : "";
+
     /// <summary>Không có chi tiết hàng (đơn hệ thống cũ) → 1 dòng từ tên hàng, số kiện, giá trị tổng.</summary>
     public IReadOnlyList<PrintItem> InvoiceLines
     {

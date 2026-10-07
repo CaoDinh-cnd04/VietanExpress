@@ -17,6 +17,8 @@ interface DrawerProps {
   onDelete: (o: EcomOrder) => void;
   /** yes = xác nhận gửi (sang Đơn hàng E-com), no = trả về tab Đơn hàng */
   onConfirm: (o: EcomOrder, yes: boolean) => void;
+  /** Có quyền tạo & xử lý đơn (xác nhận, sửa, xóa) — tài khoản con chỉ xem thì ẩn các nút này. */
+  canProcess: boolean;
   confirming: boolean;
 }
 
@@ -28,7 +30,7 @@ const stepOf = (o: EcomOrder) => (o.bill ? 2 : o.confirmed ? 1 : 0);
  * Ngăn chi tiết 1 đơn E-commerce: bước hiện tại, tóm tắt (người nhận, sản phẩm, giá trị, cân), thao tác (xác nhận / trả về, in, sửa, xóa),
  * rồi phiếu chi tiết. Đơn chưa có bill thì sửa được ngay trong ngăn.
  */
-export function EcomOrderDrawer({ order, onClose, onDelete, onConfirm, confirming }: DrawerProps) {
+export function EcomOrderDrawer({ order, onClose, onDelete, onConfirm, confirming, canProcess }: DrawerProps) {
   const { t } = useI18n();
   const copy = useCopyToClipboard();
   const [editing, setEditing] = useState(false);
@@ -110,7 +112,7 @@ export function EcomOrderDrawer({ order, onClose, onDelete, onConfirm, confirmin
 
         {!editing && (
           <div className={styles.toolbar}>
-            {o.editable && (o.confirmed ? (
+            {o.editable && canProcess && (o.confirmed ? (
               <Button size="sm" disabled={confirming} onClick={() => onConfirm(o, false)}>{t('Trả về Đơn hàng')}</Button>
             ) : (
               <Button size="sm" variant="primary" disabled={confirming || issues.length > 0} onClick={() => onConfirm(o, true)}>
@@ -118,7 +120,7 @@ export function EcomOrderDrawer({ order, onClose, onDelete, onConfirm, confirmin
               </Button>
             ))}
             <PrintMenu orders={[o]} variant={o.confirmed ? 'primary' : undefined} />
-            {o.editable && (
+            {o.editable && canProcess && (
               <>
                 <Button size="sm" onClick={() => setEditing(true)}>
                   <Icon name="edit" size={15} /> {t('Sửa đơn')}
