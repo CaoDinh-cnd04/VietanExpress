@@ -118,15 +118,24 @@ internal sealed class ShopifyClient(HttpClient http, IOptions<ShopifyOptions> op
             s.TryGetProperty("primaryDomain", out var d) && d.ValueKind == JsonValueKind.Object ? d.GetProperty("host").GetString() : null);
     }
 
-    /// <summary>Gỡ app khỏi shop (thu hồi token, Shopify tự hủy webhook). Lỗi chỉ ghi log — ngắt kết nối phía Việt An vẫn tiếp tục.</summary>
+    /// <summary>
+    /// Gỡ app khỏi shop bằng mutation GraphQL <c>appUninstall</c> (thu hồi token, Shopify tự hủy webhook).
+    /// Lỗi chỉ ghi log — ngắt kết nối phía Việt An vẫn tiếp tục.
+    /// </summary>
     public async Task RevokeAsync(string shop, string accessToken, CancellationToken ct)
     {
         try
         {
-            using var req = new HttpRequestMessage(HttpMethod.Delete, $"https://{shop}/admin/api_permissions/current.json");
+            using var req = new HttpRequestMessage(HttpMethod.Post, $"https://{shop}/admin/api/{O.ApiVersion}/graphql.json")
+            {
+                Content = JsonContent.Create(new { query = "mutation { appUninstall { userErrors { field message } } }" })
+            };
             req.Headers.Add("X-Shopify-Access-Token", accessToken);
+            req.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
             using var res = await http.SendAsync(req, ct);
-            if (!res.IsSuccessStatusCode) logger.LogWarning("Không gỡ được app khỏi {Shop}: HTTP {Status}", shop, (int)res.StatusCode);
+            var body = await res.Content.ReadAsStringAsync(ct);
+            if (!res.IsSuccessStatusCode || body.Contains("\"errors\"", StringComparison.Ordinal) || body.Contains("\"message\"", StringComparison.Ordinal))
+                logger.LogWarning("Không gỡ được app khỏi {Shop}: HTTP {Status} {Body}", shop, (int)res.StatusCode, body.Length > 300 ? body[..300] : body);
         }
         catch (HttpRequestException e)
         {

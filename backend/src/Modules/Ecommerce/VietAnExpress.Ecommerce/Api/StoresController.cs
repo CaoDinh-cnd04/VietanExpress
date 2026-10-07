@@ -2,7 +2,6 @@ using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Configuration;
 using VietAnExpress.Ecommerce.Application;
 using VietAnExpress.Ecommerce.Contracts;
@@ -24,20 +23,45 @@ internal sealed class StoresController(PortalHosts portalHosts, IConfiguration c
     [ProducesResponseType<ApiResponse<IReadOnlyList<StoreConnectionDto>>>(StatusCodes.Status200OK)]
     public async Task<IActionResult> List(CancellationToken ct) => OkData(await Sender.Send(new GetStoreConnectionsQuery(), ct));
 
-    /// <summary>
-    /// Bắt đầu ủy quyền: trả <c>authorizeUrl</c> để trình duyệt chuyển sang sàn, kèm cookie nonce 10 phút.
-    /// <c>launch</c> = query Shopify gắn khi mở app (cài từ App Store / bấm app trong Shopify admin) — có thì kiểm HMAC.
-    /// </summary>
+    /// <summary>Bắt đầu ủy quyền: trả <c>authorizeUrl</c> để trình duyệt chuyển sang sàn, kèm cookie nonce 10 phút.</summary>
     [HttpPost("stores/connect")]
     [HasPermission(EcommercePermissions.Connect)]
     [ProducesResponseType<StartConnectionResponse>(StatusCodes.Status200OK)]
     public async Task<IActionResult> Connect(StartConnectionRequest body, CancellationToken ct)
     {
-        var result = await Sender.Send(new StartStoreConnectionCommand(body.Platform, body.ShopDomain, RequestPortalHost(), ParseLaunch(body.Launch)), ct);
+        var result = await Sender.Send(new StartStoreConnectionCommand(body.Platform, body.ShopDomain, RequestPortalHost()), ct);
         if (result.IsFailure) return Problem(result.Error);
 
         Response.Cookies.Append(OAuthState.CookieName, result.Value.Nonce, NonceCookie(DateTimeOffset.UtcNow + OAuthState.Lifetime));
         return Ok(new StartConnectionResponse(result.Value.AuthorizeUrl));
+    }
+
+    /// <summary>
+    /// application_url của app Shopify: Shopify mở kèm ?shop=…&amp;hmac=… khi cài / mở app. Kiểm chữ ký rồi 302 sang OAuth ngay
+    /// (shop đã kết nối thì 302 vào portal); sai chữ ký → 302 về tab Kết nối kèm lỗi.
+    /// </summary>
+    [HttpGet("shopify/launch")]
+    [AllowAnonymous]
+    [ApiExplorerSettings(IgnoreApi = true)]
+    public async Task<IActionResult> ShopifyLaunch(CancellationToken ct)
+    {
+        var host = RequestPortalHost();
+        var result = await Sender.Send(new StartShopifyInstallCommand(QueryPairs(), host), ct);
+        if (result.IsFailure) return Redirect(PortalHosts.Url(host, $"/ecommerce?tab=connect&error={Uri.EscapeDataString(result.Error.Message)}"));
+
+        if (result.Value.Nonce is { } nonce) Response.Cookies.Append(OAuthState.CookieName, nonce, NonceCookie(DateTimeOffset.UtcNow + OAuthState.Lifetime));
+        return Redirect(result.Value.RedirectUrl);
+    }
+
+    /// <summary>Khách đã đăng nhập: gắn shop vừa cài từ Shopify (cookie do callback đặt) vào tài khoản.</summary>
+    [HttpPost("stores/claim")]
+    [HasPermission(EcommercePermissions.Connect)]
+    [ProducesResponseType<ApiResponse<StoreConnectionDto>>(StatusCodes.Status200OK)]
+    public async Task<IActionResult> Claim(CancellationToken ct)
+    {
+        var result = await Sender.Send(new ClaimShopifyInstallCommand(Request.Cookies[OAuthState.InstallCookieName]), ct);
+        Response.Cookies.Delete(OAuthState.InstallCookieName, InstallCookie(null));
+        return result.IsFailure ? Problem(result.Error) : OkData(result.Value);
     }
 
     /// <summary>Shopify redirect về sau khi chủ shop đồng ý → 302 về /ecommerce?tab=connect&amp;connected=shopify hoặc &amp;error=…</summary>
@@ -46,11 +70,16 @@ internal sealed class StoresController(PortalHosts portalHosts, IConfiguration c
     [ApiExplorerSettings(IgnoreApi = true)]
     public async Task<IActionResult> ShopifyCallback(CancellationToken ct)
     {
-        var query = Request.Query.Select(q => new KeyValuePair<string, string>(q.Key, q.Value.ToString())).ToList();
-        var outcome = await Sender.Send(new CompleteShopifyConnectionCommand(query, Request.Cookies[OAuthState.CookieName]), ct);
+        var outcome = await Sender.Send(new CompleteShopifyConnectionCommand(QueryPairs(), Request.Cookies[OAuthState.CookieName]), ct);
         Response.Cookies.Delete(OAuthState.CookieName, NonceCookie(null));
 
         var host = outcome.PortalHost is { } h && portalHosts.IsAllowed(h) ? h : RequestPortalHost();
+        // Cài từ Shopify: giữ token trong cookie, portal bắt đăng nhập rồi gọi stores/claim.
+        if (outcome.PendingInstall is { } pending)
+        {
+            Response.Cookies.Append(OAuthState.InstallCookieName, pending, InstallCookie(DateTimeOffset.UtcNow + OAuthState.InstallLifetime));
+            return Redirect(PortalHosts.Url(host, "/ecommerce/shopify"));
+        }
         var target = outcome.Error is null
             ? $"/ecommerce?tab=connect&connected={SalesChannelCodes.Shopify}"
             : $"/ecommerce?tab=connect&error={Uri.EscapeDataString(outcome.Error)}";
@@ -137,8 +166,8 @@ internal sealed class StoresController(PortalHosts portalHosts, IConfiguration c
     public async Task<IActionResult> Disconnect(long id, CancellationToken ct) =>
         FromResult(await Sender.Send(new DisconnectStoreCommand(id), ct), "Đã ngắt kết nối cửa hàng");
 
-    private static IReadOnlyList<KeyValuePair<string, string>>? ParseLaunch(string? launch) =>
-        launch is null ? null : [.. QueryHelpers.ParseQuery(launch).Select(q => new KeyValuePair<string, string>(q.Key, q.Value.ToString()))];
+    private List<KeyValuePair<string, string>> QueryPairs() =>
+        [.. Request.Query.Select(q => new KeyValuePair<string, string>(q.Key, q.Value.ToString()))];
 
     /// <summary>Domain portal của request (proxy Vercel gửi qua X-Forwarded-Host), chỉ nhận domain trong danh sách cho phép.</summary>
     private string RequestPortalHost() => portalHosts.Resolve(Request.Headers["X-Forwarded-Host"].FirstOrDefault(), Request.Host.Value);
@@ -153,13 +182,24 @@ internal sealed class StoresController(PortalHosts portalHosts, IConfiguration c
         Expires = expires,
         IsEssential = true
     };
+
+    // Lax: đặt ở callback (điều hướng từ Shopify về), portal gọi stores/claim cùng domain.
+    private CookieOptions InstallCookie(DateTimeOffset? expires) => new()
+    {
+        HttpOnly = true,
+        Secure = configuration.GetValue("Jwt:SecureCookies", true),
+        SameSite = SameSiteMode.Lax,
+        Path = "/api/v1/ecom",
+        Expires = expires,
+        IsEssential = true
+    };
 }
 
 internal sealed record ImportCsvRequest(string? Csv);
 
 internal sealed record OrderIdsRequest(IReadOnlyList<string>? Ids);
 
-internal sealed record StartConnectionRequest(string? Platform, string? ShopDomain, string? Region, string? Launch = null);
+internal sealed record StartConnectionRequest(string? Platform, string? ShopDomain, string? Region);
 
 /// <summary>Frontend đọc thẳng <c>authorizeUrl</c> (không bọc trong data).</summary>
 internal sealed record StartConnectionResponse(string AuthorizeUrl);

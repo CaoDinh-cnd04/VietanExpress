@@ -150,6 +150,15 @@ export function useStartStoreConnection() {
   });
 }
 
+/** Gắn shop vừa cài từ Shopify (backend giữ token trong cookie sau OAuth) vào tài khoản đang đăng nhập. */
+export function useClaimShopifyInstall() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => http.post<{ data: StoreConnection }>('/ecom/stores/claim').then(r => r.data),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ecomKeys.stores })
+  });
+}
+
 /** Kéo đơn mới từ sàn ngay (ngoài webhook / lịch tự động). */
 export function useSyncStore() {
   const qc = useQueryClient();

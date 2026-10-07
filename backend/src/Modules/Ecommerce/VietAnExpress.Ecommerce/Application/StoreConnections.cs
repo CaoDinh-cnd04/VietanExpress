@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text.Json;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -19,10 +21,24 @@ internal sealed record StoreConnectionDto(
 internal sealed record GetStoreConnectionsQuery : IRequest<IReadOnlyList<StoreConnectionDto>>;
 
 /// <param name="PortalHost">Domain portal đã kiểm bằng <see cref="PortalHosts"/>.</param>
-/// <param name="Launch">Query Shopify gắn khi mở app từ Shopify (shop, hmac, timestamp…); null = khách tự nhập tên shop.</param>
-internal sealed record StartStoreConnectionCommand(
-    string? Platform, string? ShopDomain, string PortalHost, IReadOnlyList<KeyValuePair<string, string>>? Launch = null)
-    : IRequest<Result<StartedConnection>>;
+internal sealed record StartStoreConnectionCommand(string? Platform, string? ShopDomain, string PortalHost) : IRequest<Result<StartedConnection>>;
+
+/// <summary>
+/// Shopify mở app (application_url) kèm ?shop=…&amp;hmac=… khi cài hoặc bấm app trong Shopify admin. Kiểm chữ ký rồi
+/// chuyển ngay sang OAuth (App Store 2.3.2) — trừ khi shop đã kết nối và còn token thì vào thẳng portal.
+/// </summary>
+internal sealed record StartShopifyInstallCommand(IReadOnlyList<KeyValuePair<string, string>> Query, string PortalHost) : IRequest<Result<ShopifyLaunch>>;
+
+/// <param name="Nonce">Null = không qua OAuth (shop đã kết nối), không cần cookie nonce.</param>
+internal sealed record ShopifyLaunch(string RedirectUrl, string? Nonce);
+
+/// <summary>Khách đã đăng nhập: gắn shop vừa cài (cookie <see cref="OAuthState.InstallCookieName"/>) vào tài khoản.</summary>
+internal sealed record ClaimShopifyInstallCommand(string? Cookie) : IRequest<Result<StoreConnectionDto>>;
+
+/// <summary>Token shop vừa cài từ Shopify, chờ khách đăng nhập — mã hóa bằng <see cref="TokenProtector"/>, chỉ nằm trong cookie HttpOnly.</summary>
+internal sealed record PendingShopifyInstall(
+    string Shop, string ShopName, string? Currency, string Scopes, string AccessToken, DateTime? AccessTokenExpiresAt,
+    string? RefreshToken, DateTime? RefreshTokenExpiresAt, DateTimeOffset ExpiresAt);
 
 /// <param name="Nonce">Đặt vào cookie <see cref="OAuthState.CookieName"/>.</param>
 internal sealed record StartedConnection(string AuthorizeUrl, string Nonce);
@@ -31,7 +47,8 @@ internal sealed record StartedConnection(string AuthorizeUrl, string Nonce);
 internal sealed record CompleteShopifyConnectionCommand(IReadOnlyList<KeyValuePair<string, string>> Query, string? CookieNonce) : IRequest<CallbackOutcome>;
 
 /// <param name="Error">Null = thành công; ngược lại là câu tiếng Việt hiện cho khách.</param>
-internal sealed record CallbackOutcome(string? PortalHost, string? Error);
+/// <param name="PendingInstall">Cài từ Shopify (chưa biết khách): giá trị cookie <see cref="OAuthState.InstallCookieName"/>.</param>
+internal sealed record CallbackOutcome(string? PortalHost, string? Error, string? PendingInstall = null);
 
 internal sealed record DisconnectStoreCommand(long Id) : IRequest<Result>;
 
@@ -42,6 +59,7 @@ internal static class StoreErrors
     public static readonly Error NotConfigured = Error.BusinessRule("ECOM_NOT_CONFIGURED", "Máy chủ chưa cấu hình kết nối Shopify, vui lòng báo Việt An");
     public static readonly Error NotFound = Error.NotFound("ECOM_STORE_NOT_FOUND", "Không tìm thấy cửa hàng");
     public static readonly Error InvalidLaunch = Error.Validation("ECOM_LAUNCH_INVALID", "Liên kết mở từ Shopify không hợp lệ, vui lòng mở lại ứng dụng từ Shopify admin");
+    public static readonly Error NoPendingInstall = Error.NotFound("ECOM_INSTALL_NOT_FOUND", "Không có cửa hàng Shopify nào đang chờ kết nối, vui lòng mở lại ứng dụng từ Shopify admin");
     public static Error ChannelUnavailable(string name) => Error.BusinessRule("ECOM_CHANNEL_UNAVAILABLE", $"Chưa hỗ trợ kết nối {name}, Việt An đang hoàn thiện");
 
     public const string Expired = "Phiên kết nối đã hết hạn, vui lòng bấm Kết nối lại";
@@ -58,7 +76,9 @@ internal sealed class StoreConnectionHandlers(
     ILogger<StoreConnectionHandlers> logger) :
     IRequestHandler<GetStoreConnectionsQuery, IReadOnlyList<StoreConnectionDto>>,
     IRequestHandler<StartStoreConnectionCommand, Result<StartedConnection>>,
+    IRequestHandler<StartShopifyInstallCommand, Result<ShopifyLaunch>>,
     IRequestHandler<CompleteShopifyConnectionCommand, CallbackOutcome>,
+    IRequestHandler<ClaimShopifyInstallCommand, Result<StoreConnectionDto>>,
     IRequestHandler<DisconnectStoreCommand, Result>
 {
     private DateTime Now => VietnamTime.Now(clock);
@@ -85,13 +105,31 @@ internal sealed class StoreConnectionHandlers(
         var o = shopify.Value;
         if (!o.IsConfigured || !tokens.IsConfigured) return StoreErrors.NotConfigured;
         if (ShopifyOAuth.NormalizeShop(c.ShopDomain) is not { } shop) return StoreErrors.InvalidShop;
-        // Mở từ Shopify: chỉ tin tên shop khi chữ ký đúng (chặn link giả dẫn khách ủy quyền nhầm shop).
-        if (c.Launch is { } launch && !ShopifyOAuth.IsValidLaunch(launch, shop, o.ClientSecret)) return StoreErrors.InvalidLaunch;
+        return Authorize(customerId, shop, c.PortalHost);
+    }
 
+    public async Task<Result<ShopifyLaunch>> Handle(StartShopifyInstallCommand c, CancellationToken ct)
+    {
+        if (!shopify.Value.IsConfigured || !tokens.IsConfigured) return StoreErrors.NotConfigured;
+        // Chỉ tin tên shop khi chữ ký Shopify đúng (chặn link giả dẫn khách ủy quyền nhầm shop).
+        var shop = ShopifyOAuth.NormalizeShop(c.Query.FirstOrDefault(p => p.Key == "shop").Value);
+        if (shop is null || !ShopifyOAuth.IsValidLaunch(c.Query, shop, shopify.Value.ClientSecret)) return StoreErrors.InvalidLaunch;
+
+        var connected = await db.StoreConnections.AnyAsync(s => s.ChannelCode == SalesChannelCodes.Shopify && s.ShopId == shop
+            && s.DisconnectedAt == null && s.Status == StoreConnection.Active && s.AccessTokenEncrypted != null, ct);
+        if (connected) return new ShopifyLaunch(PortalHosts.Url(c.PortalHost, "/ecommerce"), null);
+
+        var started = Authorize(OAuthState.InstallFlow, shop, c.PortalHost);
+        return new ShopifyLaunch(started.AuthorizeUrl, started.Nonce);
+    }
+
+    private StartedConnection Authorize(long customerId, string shop, string portalHost)
+    {
+        var o = shopify.Value;
         var nonce = OAuthState.NewNonce();
         var state = OAuthState.Protect(
-            new OAuthStatePayload(customerId, channel.Code, shop, c.PortalHost, clock.GetUtcNow() + OAuthState.Lifetime, nonce), tokens.Key);
-        var url = ShopifyOAuth.AuthorizeUrl(shop, o.ClientId, o.Scopes, PortalHosts.Url(c.PortalHost, o.CallbackPath), state);
+            new OAuthStatePayload(customerId, SalesChannelCodes.Shopify, shop, portalHost, clock.GetUtcNow() + OAuthState.Lifetime, nonce), tokens.Key);
+        var url = ShopifyOAuth.AuthorizeUrl(shop, o.ClientId, o.Scopes, PortalHosts.Url(portalHost, o.CallbackPath), state);
         return new StartedConnection(url, nonce);
     }
 
@@ -125,26 +163,65 @@ internal sealed class StoreConnectionHandlers(
         var info = await client.GetShopAsync(shop, token.AccessToken, ct);
 
         var now = Now;
+        var pending = new PendingShopifyInstall(
+            shop, info?.Name ?? shop, info?.Currency, token.Scopes, token.AccessToken,
+            token.ExpiresIn is { } s ? now.AddSeconds(s) : null, token.RefreshToken,
+            token.RefreshTokenExpiresIn is { } r ? now.AddSeconds(r) : null, clock.GetUtcNow() + OAuthState.InstallLifetime);
+        if (state.CustomerId == OAuthState.InstallFlow)
+        {
+            logger.LogInformation("Shopify {Shop} đã cài app — chờ khách đăng nhập để gắn vào tài khoản", shop);
+            return new(state.PortalHost, null, tokens.Protect(JsonSerializer.Serialize(pending)));
+        }
+
+        await SaveConnectionAsync(state.CustomerId, pending, ct);
+        return new(state.PortalHost, null);
+    }
+
+    public async Task<Result<StoreConnectionDto>> Handle(ClaimShopifyInstallCommand c, CancellationToken ct)
+    {
+        if (user.CustomerId is not { } customerId) return StoreErrors.NotLoggedIn;
+        if (!tokens.IsConfigured || ReadPending(c.Cookie) is not { } pending || pending.ExpiresAt < clock.GetUtcNow())
+            return StoreErrors.NoPendingInstall;
+        return ToDto(await SaveConnectionAsync(customerId, pending, ct));
+    }
+
+    private PendingShopifyInstall? ReadPending(string? cookie)
+    {
+        if (string.IsNullOrEmpty(cookie)) return null;
+        try
+        {
+            return JsonSerializer.Deserialize<PendingShopifyInstall>(tokens.Unprotect(cookie));
+        }
+        catch (Exception e) when (e is CryptographicException or FormatException or JsonException or ArgumentException or OverflowException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>Kết nối mới hoặc ủy quyền lại / cài lại (shop đã có thì cập nhật token, không tạo trùng — App Store 2.3.4).</summary>
+    private async Task<StoreConnection> SaveConnectionAsync(long customerId, PendingShopifyInstall p, CancellationToken ct)
+    {
+        var now = Now;
         var connection = await db.StoreConnections.FirstOrDefaultAsync(
-            s => s.CustomerId == state.CustomerId && s.ChannelCode == SalesChannelCodes.Shopify && s.ShopId == shop, ct);
+            s => s.CustomerId == customerId && s.ChannelCode == SalesChannelCodes.Shopify && s.ShopId == p.Shop, ct);
         if (connection is null)
         {
-            connection = StoreConnection.Create(state.CustomerId, SalesChannelCodes.Shopify, shop, info?.Name ?? shop, now);
+            connection = StoreConnection.Create(customerId, SalesChannelCodes.Shopify, p.Shop, p.ShopName, now);
             db.StoreConnections.Add(connection);
         }
         connection.Authorize(new StoreAuthorization(
-            Truncate(info?.Name ?? shop, StoreConnection.ShopNameMaxLength),
-            shop,
-            info?.Currency is { Length: StoreConnection.CurrencyMaxLength } currency ? currency : null,
-            Truncate(token.Scopes, StoreConnection.ScopesMaxLength),
-            tokens.Protect(token.AccessToken),
-            token.ExpiresIn is { } s ? now.AddSeconds(s) : null,
-            token.RefreshToken is { } refresh ? tokens.Protect(refresh) : null,
-            token.RefreshTokenExpiresIn is { } r ? now.AddSeconds(r) : null), now);
+            Truncate(p.ShopName, StoreConnection.ShopNameMaxLength),
+            p.Shop,
+            p.Currency is { Length: StoreConnection.CurrencyMaxLength } currency ? currency : null,
+            Truncate(p.Scopes, StoreConnection.ScopesMaxLength),
+            tokens.Protect(p.AccessToken),
+            p.AccessTokenExpiresAt,
+            p.RefreshToken is { } refresh ? tokens.Protect(refresh) : null,
+            p.RefreshTokenExpiresAt), now);
         await db.SaveChangesAsync(ct);
 
-        logger.LogInformation("Khách {CustomerId} đã kết nối Shopify {Shop}", state.CustomerId, shop);
-        return new(state.PortalHost, null);
+        logger.LogInformation("Khách {CustomerId} đã kết nối Shopify {Shop}", customerId, p.Shop);
+        return connection;
     }
 
     public async Task<Result> Handle(DisconnectStoreCommand c, CancellationToken ct)

@@ -128,8 +128,6 @@ export interface StartStoreConnection {
   platform: StorePlatform;
   shopDomain?: string;
   region?: TiktokRegion;
-  /** Query Shopify gắn khi mở app từ Shopify (backend kiểm HMAC). */
-  launch?: string;
 }
 
 export interface StoreSyncResult {

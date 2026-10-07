@@ -1,22 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { StoreConnection } from '../types';
-import { needsReauthorize, normalizeShopifyDomain, readOAuthResult, resolveEcomTab, resolveShopifyLaunch, formatSyncTime } from './store-connection';
-
-describe('normalizeShopifyDomain', () => {
-  it('nhận tên shop, domain myshopify và link admin', () => {
-    expect(normalizeShopifyDomain('My-Shop')).toBe('my-shop.myshopify.com');
-    expect(normalizeShopifyDomain(' my-shop.myshopify.com ')).toBe('my-shop.myshopify.com');
-    expect(normalizeShopifyDomain('https://my-shop.myshopify.com/admin/orders')).toBe('my-shop.myshopify.com');
-    expect(normalizeShopifyDomain('https://admin.shopify.com/store/my-shop/orders')).toBe('my-shop.myshopify.com');
-  });
-
-  it('từ chối domain riêng, ký tự lạ và chuỗi rỗng', () => {
-    expect(normalizeShopifyDomain('')).toBeNull();
-    expect(normalizeShopifyDomain('shop.example.com')).toBeNull();
-    expect(normalizeShopifyDomain('my shop')).toBeNull();
-    expect(normalizeShopifyDomain('-shop')).toBeNull();
-  });
-});
+import { needsReauthorize, readOAuthResult, resolveEcomTab, reconnectAction, formatSyncTime } from './store-connection';
 
 describe('needsReauthorize', () => {
   it('chỉ expired / revoked cần ủy quyền lại', () => {
@@ -55,26 +38,12 @@ describe('formatSyncTime', () => {
   });
 });
 
-describe('resolveShopifyLaunch', () => {
-  const store = (shopDomain: string, status: StoreConnection['status']): StoreConnection =>
-    ({ id: '1', platform: 'shopify', shopName: shopDomain, shopDomain, status, connectedAt: '2026-10-07T10:00:00+07:00' });
-  const launch = (q: string) => new URLSearchParams(q);
-
-  it('chưa kết nối hoặc cần ủy quyền lại → tự kết nối shop Shopify gửi tới', () => {
-    expect(resolveShopifyLaunch(launch('shop=a.myshopify.com&hmac=x&timestamp=1'), [])).toEqual({ kind: 'connect', shop: 'a.myshopify.com' });
-    expect(resolveShopifyLaunch(launch('shop=a.myshopify.com&hmac=x'), [store('a.myshopify.com', 'revoked')]))
-      .toEqual({ kind: 'connect', shop: 'a.myshopify.com' });
-    expect(resolveShopifyLaunch(launch('shop=a.myshopify.com&hmac=x'), [store('b.myshopify.com', 'active')]))
-      .toEqual({ kind: 'connect', shop: 'a.myshopify.com' });
-  });
-
-  it('shop đã kết nối còn hoạt động → vào thẳng đơn hàng', () => {
-    expect(resolveShopifyLaunch(launch('shop=a.myshopify.com&hmac=x'), [store('a.myshopify.com', 'active')])).toEqual({ kind: 'connected' });
-  });
-
-  it('thiếu hmac hoặc shop sai dạng → không tự kết nối', () => {
-    expect(resolveShopifyLaunch(launch('shop=a.myshopify.com'), [])).toEqual({ kind: 'invalid' });
-    expect(resolveShopifyLaunch(launch('shop=evil.example.com&hmac=x'), [])).toEqual({ kind: 'invalid' });
-    expect(resolveShopifyLaunch(launch(''), [])).toEqual({ kind: 'invalid' });
+describe('reconnectAction', () => {
+  it('Shopify đã gỡ app → cài lại từ Shopify; hết hạn hoặc TikTok → ủy quyền lại; đang chạy → không cần', () => {
+    expect(reconnectAction({ platform: 'shopify', status: 'revoked' })).toBe('reinstall');
+    expect(reconnectAction({ platform: 'shopify', status: 'expired' })).toBe('reauthorize');
+    expect(reconnectAction({ platform: 'tiktok', status: 'revoked' })).toBe('reauthorize');
+    expect(reconnectAction({ platform: 'shopify', status: 'active' })).toBeNull();
+    expect(reconnectAction({ platform: 'shopify', status: 'error' })).toBeNull();
   });
 });

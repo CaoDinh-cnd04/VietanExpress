@@ -5,6 +5,7 @@ using System.Text;
 namespace VietAnExpress.Ecommerce.Infrastructure;
 
 /// <summary>Nội dung tham số <c>state</c> gửi sang sàn và nhận lại ở callback.</summary>
+/// <param name="CustomerId"><see cref="OAuthState.InstallFlow"/> = mở app từ Shopify, chưa biết khách — đăng nhập xong mới gắn shop.</param>
 /// <param name="PortalHost">Domain portal khách đang dùng — callback đưa khách về đúng domain đó.</param>
 /// <param name="Nonce">Trùng cookie <see cref="OAuthState.CookieName"/> của trình duyệt đã bấm Kết nối.</param>
 internal sealed record OAuthStatePayload(long CustomerId, string Channel, string Shop, string PortalHost, DateTimeOffset ExpiresAt, string Nonce);
@@ -17,6 +18,13 @@ internal static class OAuthState
 {
     public const string CookieName = "vae_ecom_oauth";
     public static readonly TimeSpan Lifetime = TimeSpan.FromMinutes(10);
+
+    /// <summary>Mã khách trong state khi OAuth bắt đầu từ Shopify (cài / mở app) — chưa đăng nhập portal.</summary>
+    public const long InstallFlow = 0;
+
+    /// <summary>Cookie giữ token shop vừa cài (đã mã hóa) tới khi khách đăng nhập và gắn shop vào tài khoản.</summary>
+    public const string InstallCookieName = "vae_shopify_install";
+    public static readonly TimeSpan InstallLifetime = TimeSpan.FromMinutes(30);
 
     public static string NewNonce() => Base64Url(RandomNumberGenerator.GetBytes(16));
 

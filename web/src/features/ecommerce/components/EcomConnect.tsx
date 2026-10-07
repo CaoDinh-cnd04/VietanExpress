@@ -16,7 +16,7 @@ import {
   useTestWebhook
 } from '../api';
 import { API_EXAMPLE, STORE_PLATFORMS, STORE_STATUS, TIKTOK_REGIONS, WEBHOOK_EVENTS } from '../constants';
-import { formatSyncTime, needsReauthorize, normalizeShopifyDomain, readOAuthResult } from '../lib/store-connection';
+import { formatSyncTime, readOAuthResult, reconnectAction } from '../lib/store-connection';
 import type { EcomSettings, StoreConnection, TiktokRegion } from '../types';
 import styles from './ecommerce.module.css';
 
@@ -60,7 +60,7 @@ function StoresCard() {
           </Notice>
         )}
         {stores.data?.map(s => <StoreRow key={s.id} store={s} onDisconnect={() => setDisconnecting(s)} />)}
-        <ShopifyConnect disabled={unavailable} />
+        <ShopifyConnect />
         <TiktokConnect disabled={unavailable} />
       </div>
       <DisconnectModal store={disconnecting} onClose={() => setDisconnecting(null)} />
@@ -68,26 +68,15 @@ function StoresCard() {
   );
 }
 
-function ShopifyConnect({ disabled }: { disabled: boolean }) {
+/** Shopify chỉ kết nối bằng cách cài app từ Shopify (App Store 2.3.1: không cho nhập tay tên shop). */
+function ShopifyConnect() {
   const { t } = useI18n();
-  const start = useStartStoreConnection();
-  const [shop, setShop] = useState('');
-  const domain = normalizeShopifyDomain(shop);
-
   return (
     <div className={styles.connectRow}>
       <strong className={styles.connectName}>Shopify</strong>
-      <TextField
-        label="Tên cửa hàng"
-        placeholder={t('ten-shop.myshopify.com')}
-        value={shop}
-        onChange={e => setShop(e.target.value)}
-        error={shop && !domain ? t('Nhập dạng ten-shop hoặc ten-shop.myshopify.com') : undefined}
-        disabled={disabled}
-      />
-      <Button variant="primary" disabled={disabled || !domain || start.isPending} onClick={() => domain && start.mutate({ platform: 'shopify', shopDomain: domain })}>
-        <Icon name="link" size={15} /> {t('Kết nối')}
-      </Button>
+      <p className={styles.sub}>
+        {t('Cài ứng dụng Viet An Express từ Shopify App Store hoặc mở ứng dụng trong Shopify admin. Shopify chuyển về đây, bạn đăng nhập là shop tự kết nối vào tài khoản này.')}
+      </p>
     </div>
   );
 }
@@ -119,7 +108,7 @@ function StoreRow({ store, onDisconnect }: { store: StoreConnection; onDisconnec
   const sync = useSyncStore();
   const start = useStartStoreConnection();
   const status = STORE_STATUS[store.status];
-  const reauth = needsReauthorize(store);
+  const action = reconnectAction(store);
 
   return (
     <div className={styles.storeRow}>
@@ -134,7 +123,9 @@ function StoreRow({ store, onDisconnect }: { store: StoreConnection; onDisconnec
         </div>
         <div className={styles.formActions}>
           <StatusPill tone={status.tone}>{status.label}</StatusPill>
-          {reauth ? (
+          {action === 'reinstall' ? (
+            <span className={styles.sub}>{t('Cài lại ứng dụng từ Shopify để kết nối lại')}</span>
+          ) : action === 'reauthorize' ? (
             <Button size="sm" variant="primary" disabled={start.isPending} onClick={() => start.mutate({ platform: store.platform, shopDomain: store.shopDomain })}>
               {t('Ủy quyền lại')}
             </Button>
@@ -168,7 +159,7 @@ function DisconnectModal({ store, onClose }: { store: StoreConnection | null; on
         </>
       }
     >
-      <p>{t('Việt An sẽ ngừng nhận đơn và ngừng đẩy tracking cho {shop}. Đơn đã nhận vẫn giữ nguyên.', { shop: store?.shopName ?? '' })}</p>
+      <p>{t('Việt An sẽ ngừng nhận đơn từ {shop} và gỡ ứng dụng khỏi shop. Đơn đã nhận vẫn giữ nguyên.', { shop: store?.shopName ?? '' })}</p>
     </Modal>
   );
 }

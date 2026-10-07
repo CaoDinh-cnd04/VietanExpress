@@ -84,8 +84,6 @@ export const ecommerce: Record<string, string> = {
   'Không tải được danh sách cửa hàng, vui lòng thử lại sau.': 'Could not load stores, please try again later.',
   'Ủy quyền lại': 'Re-authorize',
   'Ngắt kết nối cửa hàng': 'Disconnect store',
-  'Việt An sẽ ngừng nhận đơn và ngừng đẩy tracking cho {shop}. Đơn đã nhận vẫn giữ nguyên.':
-    'Viet An will stop receiving orders and pushing tracking for {shop}. Orders already received are kept.',
   'Hoa Kỳ (US)': 'United States (US)',
   'Đang hoạt động': 'Active',
   'Hết hạn ủy quyền': 'Authorization expired',
@@ -245,9 +243,11 @@ export const ecommerce: Record<string, string> = {
   // Mở app từ Shopify (/ecommerce/shopify)
   'Kết nối Shopify': 'Connect Shopify',
   'Đang kết nối cửa hàng Shopify…': 'Connecting your Shopify store…',
-  'Bạn sẽ được chuyển sang Shopify để xác nhận quyền đọc đơn hàng.': 'You will be redirected to Shopify to approve read access to your orders.',
+  'Đang gắn cửa hàng vừa cài vào tài khoản của bạn.': 'Linking the store you just installed to your account.',
+  'Cài ứng dụng Viet An Express từ Shopify App Store hoặc mở ứng dụng trong Shopify admin. Shopify chuyển về đây, bạn đăng nhập là shop tự kết nối vào tài khoản này.': 'Install the Viet An Express app from the Shopify App Store or open it from your Shopify admin. Shopify sends you back here; after you log in, the store connects to this account automatically.',
+  'Cài lại ứng dụng từ Shopify để kết nối lại': 'Reinstall the app from Shopify to reconnect',
+  'Việt An sẽ ngừng nhận đơn từ {shop} và gỡ ứng dụng khỏi shop. Đơn đã nhận vẫn giữ nguyên.': 'Viet An will stop receiving orders from {shop} and uninstall the app from the store. Orders already received are kept.',
   'Chưa kết nối được cửa hàng Shopify': 'Could not connect your Shopify store',
   'Mở trang Kết nối': 'Open the Connect tab',
   '{n} SP': '{n} items',
-  'ten-shop.myshopify.com': 'your-shop.myshopify.com',
 };
