@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useFormContext, useWatch } from 'react-hook-form';
 import { ApiError } from '@/shared/api/http';
 import { Button, Card, FormGrid, TextField, useToast, type TextFieldProps } from '@/shared/ui';
@@ -6,14 +6,16 @@ import { useI18n } from '@/shared/i18n';
 import { useDebouncedCallback } from '@/shared/lib/useDebouncedCallback';
 import { sanitizePhone } from '@/shared/lib/phone';
 import { euCountryCode, isEuCountry } from '@/shared/config/eu';
-import { useAddressSuggestions, useCountries, usePostalLookup, useReceivers, useSaveReceiver } from '../api';
+import { useAddressSuggestions, useCountries, usePostalLookup, useRecentReceivers, useReceivers, useSaveReceiver } from '../api';
 import { COUNTRIES, RULES } from '../constants';
+import { useCombobox } from '../hooks/useCombobox';
 import { useFieldBinder, type FieldName } from '../hooks/useFieldBinder';
 import { splitAddressLines } from '../lib/address';
+import { receiverFields, recentReceiverQuery, recentReceiverSubtitle, type RecentReceiver } from '../lib/recent-receivers';
 import { addressQuery, findCountry, normalizePostal, shouldResetAddress, suggestionFields, type AddressSuggestion } from '../lib/geo';
 import type { CreateOrderValues } from '../schema';
 import { AddressPickerDialog } from './AddressPickerDialog';
-import { AddressSuggestions, suggestionOptionId } from './AddressSuggestions';
+import { SuggestionList } from './SuggestionList';
 import styles from './form.module.css';
 
 const MAX = RULES.receiverAddressMax;
@@ -156,50 +158,36 @@ export function ReceiverSection() {
   // ---------- Gợi ý địa chỉ (Geoapify) khi khách gõ Địa chỉ 1 → điền địa chỉ, thành phố, tỉnh / bang, mã bưu chính ----------
   const [addrQuery, setAddrQuery] = useState<string | null>(null);
   const scheduleAddr = useDebouncedCallback((value: string | null) => setAddrQuery(value), 350);
-  const [suggestOpen, setSuggestOpen] = useState(false);
-  const [active, setActive] = useState(-1);
-  const suggestions = useAddressSuggestions(countryCode, addrQuery);
-  const suggestItems = suggestOpen && addrQuery ? suggestions.data ?? [] : [];
-  const listId = useId();
-
-  const pickSuggestion = (s: AddressSuggestion) => {
+  const addressSuggestions = useAddressSuggestions(countryCode, addrQuery);
+  const addrBox = useCombobox(addrQuery ? addressSuggestions.data ?? [] : [], (s: AddressSuggestion) => {
     scheduleAddr.cancel();
     const opts = { shouldDirty: true, shouldValidate: true } as const;
     suggestionFields(s).forEach(([field, value]) => setValue(`receiver.${field}`, value, opts));
     pickedPostal.current = normalizePostal(s.postalCode ?? '');
-    setSuggestOpen(false);
-    setActive(-1);
     setAddrQuery(null);
-  };
-  const onAddr1KeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Escape') return setSuggestOpen(false);
-    if (!suggestItems.length) return;
-    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-      e.preventDefault();
-      const step = e.key === 'ArrowDown' ? 1 : -1;
-      setActive(i => (i + step + suggestItems.length) % suggestItems.length);
-    } else if (e.key === 'Enter' && active >= 0) {
-      e.preventDefault();
-      pickSuggestion(suggestItems[active]!);
-    }
-  };
+  });
   const addr1Extra: AddressFieldExtra = {
     onChange: () => {
       scheduleAddr(addressQuery(getValues('receiver.addr1')));
-      setSuggestOpen(true);
-      setActive(-1);
+      addrBox.onType();
     },
-    onBlur: () => setSuggestOpen(false),
-    input: {
-      role: 'combobox',
-      autoComplete: 'off',
-      'aria-autocomplete': 'list',
-      'aria-expanded': suggestItems.length > 0,
-      'aria-controls': listId,
-      'aria-activedescendant': active >= 0 && suggestItems.length ? suggestionOptionId(listId, active) : undefined,
-      onKeyDown: onAddr1KeyDown
-    }
+    onBlur: addrBox.close,
+    input: addrBox.inputProps
   };
+
+  // ---------- Gõ tên công ty → người nhận đã gửi trước đây (đơn cũ của khách) → điền lại toàn bộ thông tin người nhận ----------
+  const [companyQuery, setCompanyQuery] = useState<string | null>(null);
+  const scheduleCompany = useDebouncedCallback((value: string | null) => setCompanyQuery(value), 250);
+  const recentReceivers = useRecentReceivers(companyQuery);
+  const companyBox = useCombobox(companyQuery ? recentReceivers.data ?? [] : [], (r: RecentReceiver) => {
+    scheduleCompany.cancel();
+    setCompanyQuery(null);
+    const opts = { shouldDirty: true, shouldValidate: true } as const;
+    receiverFields(r).forEach(([field, value]) => setValue(`receiver.${field}`, value, opts));
+    // Nước đổi theo người nhận đã chọn: thành phố / mã bưu chính lấy từ đơn cũ, không để tra mã ghi đè.
+    lastCountryCode.current = findCountry(countryList, r.country ?? '')?.code ?? lastCountryCode.current;
+    pickedPostal.current = normalizePostal(r.postalCode ?? '');
+  });
 
   return (
     <Card
@@ -213,7 +201,30 @@ export function ReceiverSection() {
         <TextField label="Mã bưu chính (postal code)" hint={postalHint} autoComplete="postal-code" {...bind('receiver.postal')} />
         <TextField label="Thành phố (city)" required {...bind('receiver.city')} />
         <TextField label="Tỉnh / bang (state)" {...bind('receiver.state')} />
-        <TextField label="Tên công ty (company name)" required wide {...bind('receiver.company')} />
+        <div className={styles.suggestWrap}>
+          <TextField
+            label="Tên công ty (company name)"
+            required
+            wide
+            {...companyBox.inputProps}
+            {...bind('receiver.company', {
+              onChange: () => {
+                scheduleCompany(recentReceiverQuery(getValues('receiver.company')));
+                companyBox.onType();
+              },
+              onBlur: companyBox.close
+            })}
+          />
+          {companyBox.visible.length > 0 && (
+            <SuggestionList
+              id={companyBox.listId}
+              label="Người nhận đã gửi"
+              items={companyBox.visible.map((r, i) => ({ key: `${i}-${r.company}`, title: r.company, subtitle: recentReceiverSubtitle(r) }))}
+              active={companyBox.active}
+              onPick={companyBox.pick}
+            />
+          )}
+        </div>
         <TextField label="Người liên hệ (contact name)" required {...bind('receiver.contact')} />
         <TextField label="Điện thoại (tel)" required type="tel" prefix={dialCode || undefined} {...bind('receiver.tel', { onChange: e => { const clean = sanitizePhone(e.target.value); if (clean !== e.target.value) setValue('receiver.tel', clean, { shouldDirty: true }); } })} />
         <TextField label="Tax ID" {...bind('receiver.taxId')} />
@@ -226,7 +237,16 @@ export function ReceiverSection() {
         )}
         <div className={styles.suggestWrap}>
           {addressField('addr1', 'Địa chỉ 1 (address 1)', addr1, true, addr1Extra)}
-          {suggestItems.length > 0 && <AddressSuggestions id={listId} items={suggestItems} active={active} onPick={pickSuggestion} />}
+          {addrBox.visible.length > 0 && (
+            <SuggestionList
+              id={addrBox.listId}
+              label="Gợi ý địa chỉ"
+              items={addrBox.visible.map(s => ({ key: s.label, title: s.label }))}
+              active={addrBox.active}
+              onPick={addrBox.pick}
+              footer="Powered by Geoapify · © OpenStreetMap contributors"
+            />
+          )}
         </div>
         {addressField('addr2', 'Địa chỉ 2 (address 2)', addr2, true)}
         {addressField('addr3', 'Địa chỉ 3 (address 3)', addr3, false)}

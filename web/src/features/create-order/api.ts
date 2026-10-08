@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { ApiError, http } from '@/shared/api/http';
 import type { AddressSuggestion, Country, PostalInfo } from './lib/geo';
+import type { RecentReceiver } from './lib/recent-receivers';
 
 /** Nhóm hàng hóa (dbo.NhomHangHoa). */
 export interface Category {
@@ -245,6 +246,18 @@ export function useAddressSuggestions(countryCode: string | undefined, query: st
         .then(r => r.data),
     enabled: countryCode?.length === 2 && !!query,
     staleTime: ONE_DAY,
+    placeholderData: previous => previous,
+    retry: false
+  });
+}
+
+/** Người nhận đã gửi trước đây có tên công ty chứa `q` (đơn cũ của khách). API_CONTRACT.md §1. */
+export function useRecentReceivers(query: string | null) {
+  return useQuery({
+    queryKey: ['orders', 'receivers', query],
+    queryFn: () => http.get<{ data: RecentReceiver[] }>('/orders/receivers', { q: query }).then(r => r.data),
+    enabled: !!query,
+    staleTime: 60_000,
     placeholderData: previous => previous,
     retry: false
   });

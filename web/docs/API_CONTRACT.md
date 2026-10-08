@@ -28,6 +28,7 @@ Backend mới (SQL Server) chỉ cần làm đúng các hợp đồng này là f
 | Method | Path | Trạng thái | Mô tả |
 |---|---|---|---|
 | GET | `/orders` | Có sẵn | Danh sách có lọc, sắp xếp, phân trang |
+| GET | `/orders/receivers?q=SEE` | **Mới** | Người nhận khách đã gửi trước đây (từ đơn trong `dbo.MaVanDon`, cùng phạm vi với danh sách đơn — tài khoản con chỉ thấy đơn mình tạo), tên công ty chứa `q` (≥ 1 ký tự), mới nhất trước, mỗi người nhận (tên + điện thoại + địa chỉ 1) 1 dòng, tối đa 20 → `[{ company, contact, phone, phoneCode, email, taxId, country, city, state, postalCode, address1, address2, address3, iossNo, eoriNo, lastUsed }]`. Quyền `shipments.create` |
 | GET | `/orders/:bill` | Có sẵn | Chi tiết 1 đơn (khung "Chi tiết đơn hàng" + "Nhân bản đơn"): `Order` + `shipper { company, contact, tel, address, taxId, email }` + `receiver { company, contact, tel, country, city, postal, state, addr1, addr2, addr3, taxId, email }` + `packages [{ qty, packType, length, width, height, weightKg }]` (cân **1 kiện**, từ MaVanDon_PCS_DIM) + `invoice { currency, exportType, shippingFee, goodsValue, items [{ descEn, descVi, qty, unit, price, amount, hs, origin }] }` (từ MaVanDon_ChiTietHang) |
 | POST | `/orders/import/preview` | Có sẵn | Kiểm tra file Excel tạo đơn (multipart), chưa tạo đơn — trang "Tạo đơn từ Excel" |
 | POST | `/orders/import` | Có sẵn | Kiểm tra lại file và tạo đơn cho các dòng hợp lệ (≤ 100), cấp số vận đơn ngay |

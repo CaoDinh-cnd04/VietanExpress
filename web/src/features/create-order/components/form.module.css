@@ -945,3 +945,9 @@
   color: var(--color-text-faint);
   font-size: var(--text-xs);
 }
+
+.suggestSub {
+  margin-top: 1px;
+  color: var(--color-text-faint);
+  font-size: var(--text-xs);
+}
