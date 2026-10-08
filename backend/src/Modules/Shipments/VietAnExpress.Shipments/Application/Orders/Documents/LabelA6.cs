@@ -51,7 +51,7 @@ internal static class LabelA6
         var (addr1, addr2) = BillA4.SplitAddress(o.SenderAddress);
         var qrCaption = slip == Slip.Shipper ? "Quét QR để tracking" : m.Bill;
         var phone = BillA4.PhoneWithCode(o.ConsigneePhoneCode, o.ConsigneePhone);
-        var tel = string.IsNullOrWhiteSpace(o.ConsigneeEmail) ? $"{H(phone)} |" : $"{H(phone)} | {H(o.ConsigneeEmail)}";
+        var tel = string.IsNullOrWhiteSpace(o.ConsigneeEmail) ? H(phone) : $"{H(phone)} | {H(o.ConsigneeEmail)}";
 
         var signs = slip == Slip.Destination
             ? $"""
@@ -115,14 +115,16 @@ internal static class LabelA6
         var gross = m.TotalGrossKg;
         var vol = pk.Count > 0 ? pk.Sum(p => RoundUpHalf(p.VolumeKg)) : 0;
         const int maxLines = 3;
-        var dims = pk.Take(maxLines).Select(DimensionLine).ToList();
-        if (pk.Count > maxLines) dims.Add($"… +{pk.Count - maxLines}");
+        // Kiện không khai D×R×C → không in dòng kích thước toàn số 0.
+        var measured = pk.Where(p => p.Length * p.Width * p.Height > 0).ToList();
+        var dims = measured.Take(maxLines).Select(DimensionLine).ToList();
+        if (measured.Count > maxLines) dims.Add($"… +{measured.Count - maxLines}");
 
         return $"""
             <table class="pkg">
               <tr><th>Số kiện<br><i>(PCS)</i></th><th>TL thực<br><i>(G.W)</i></th><th>TL Qui Đổi<br><i>(Vol.W)</i></th>
                 <th rowspan="2" class="dims"><div class="dims-title">(Dimensions)</div>{string.Concat(dims.Select(d => $"<div class=\"dim\">{d}</div>"))}</th></tr>
-              <tr><td class="big">{pieces}</td><td class="big">{Kg1(gross)}</td><td class="big">{(vol > 0 ? Kg1(vol) : "")}</td></tr>
+              <tr><td class="big">{pieces}</td><td class="big">{Kg1(gross)}</td><td class="big">{(pk.Count > 0 ? Kg1(vol) : "")}</td></tr>
             </table>
             """;
     }
@@ -194,7 +196,9 @@ internal static class LabelA6
     public const string Css = """
         @page { size: 100mm 150mm; margin: 0; }
         * { box-sizing: border-box; }
-        body { margin: 0; font-family: "Open Sans", Arial, "Segoe UI", sans-serif; font-size: 8px; color: #000; background: #e9ece9; }
+        /* Arial, chữ nhỏ nhất 8px (trước 6px): máy in nhiệt 203 dpi in rõ, không đứt nét. */
+        body { margin: 0; font-family: Arial, Helvetica, sans-serif; font-size: 9px; color: #000; background: #e9ece9;
+               -webkit-print-color-adjust: exact; print-color-adjust: exact; text-rendering: geometricPrecision; }
         .toolbar { position: sticky; top: 0; display: flex; gap: 12px; align-items: center; padding: 10px 16px; background: #1e6b2c; color: #fff; z-index: 1; font-size: 12px; }
         .toolbar button { padding: 6px 18px; border: 0; border-radius: 6px; background: #fff; color: #1e6b2c; font-weight: 700; cursor: pointer; }
         .toolbar .hint { opacity: .85; }
@@ -204,15 +208,15 @@ internal static class LabelA6
         .box { border: 1.2px solid #000; display: flex; flex-direction: column; min-height: 0; }
         .head { display: grid; grid-template-columns: 14mm 1fr 33mm; gap: 1.5mm; align-items: center; padding: 1mm 1.5mm; height: 17mm; border-bottom: 1px solid #000; }
         .logo { width: 14mm; height: 11mm; object-fit: contain; }
-        .brand { font-family: "Times New Roman", Times, serif; font-size: 6.5px; line-height: 1.3; }
-        .brand-name { font-size: 13px; font-weight: 700; line-height: 1.1; }
-        .brand .k { display: inline-block; min-width: 7mm; font-size: 6px; }
+        .brand { font-size: 8px; line-height: 1.25; }
+        .brand-name { font-size: 14px; font-weight: 700; line-height: 1.1; }
+        .brand .k { display: inline-block; min-width: 7mm; font-size: 8px; }
         .awb { text-align: center; line-height: 1.1; }
         .awb .barcode { display: block; width: 100%; height: 7mm; }
-        .awb-no { font-size: 13px; }
-        .awb-no small { font-size: 8px; }
-        .route { font-size: 7px; }
-        .bar { background: #e6e6e6; font-weight: 700; padding: .3mm 1.5mm; border-top: 1px solid #000; border-bottom: 1px solid #000; }
+        .awb-no { font-size: 14px; font-weight: 700; }
+        .awb-no small { font-size: 9px; }
+        .route { font-size: 8px; font-weight: 700; }
+        .bar { background: none; font-weight: 700; padding: .3mm 1.5mm; border-top: 1px solid #000; border-bottom: 1px solid #000; }
         .bar.center { text-align: center; }
         .head + .bar, .m-title + .bar, .m-pcs + .bar { border-top: 0; }
         .sender { display: grid; grid-template-columns: 22mm 1fr; padding: .5mm 1.5mm .8mm 0; }
@@ -222,7 +226,7 @@ internal static class LabelA6
         .qr-frame::before { left: 0; border-right: 0; }
         .qr-frame::after { right: 0; border-left: 0; }
         .qr-frame svg { display: block; width: 100%; height: 100%; }
-        .qr-cap { color: #e00; font-style: italic; font-size: 6.5px; }
+        .qr-cap { color: #e00; font-style: italic; font-size: 8px; }
         .lines { display: flex; flex-direction: column; min-width: 0; }
         .ln { border-bottom: .8px dashed #000; min-height: 3.6mm; line-height: 3.6mm; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .ln.last { border-bottom: 0; }
@@ -230,7 +234,7 @@ internal static class LabelA6
         .party > div { overflow: hidden; }
         .party .addr { max-height: 3.5em; }
         .party .indent { padding-left: 4mm; }
-        .party.small { font-size: 7px; line-height: 1.3; }
+        .party.small { font-size: 8px; line-height: 1.3; }
         .ship { display: grid; grid-template-columns: 22mm 1fr; gap: 2mm; padding: .6mm 1.5mm; border-top: 1px solid #000; white-space: nowrap; overflow: hidden; }
         .ship span { text-align: right; }
         .ship b { overflow: hidden; text-overflow: ellipsis; }
@@ -238,19 +242,19 @@ internal static class LabelA6
         .pkg th, .pkg td { border: 1px solid #000; padding: .4mm .6mm; text-align: center; vertical-align: top; }
         .pkg tr > *:first-child { border-left: 0; }
         .pkg tr > *:last-child { border-right: 0; }
-        .pkg th:not(.dims) { width: 13mm; font-size: 7px; border-bottom: 0; }
+        .pkg th:not(.dims) { width: 13mm; font-size: 8px; border-bottom: 0; }
         .pkg td { border-top: 0; height: 8mm; vertical-align: middle; }
         .pkg .big { font-size: 15px; font-weight: 700; }
         .pkg .dims { font-weight: 400; text-align: left; }
         .dims-title { text-align: center; font-weight: 700; border-bottom: .8px dashed #000; }
-        .dim { font-size: 7px; line-height: 1.5; }
+        .dim { font-size: 8px; line-height: 1.4; }
         .signs { display: grid; grid-template-columns: 1fr 1fr; min-height: 13mm; border-top: 1px solid #000; }
         .sign { display: flex; flex-direction: column; justify-content: space-between; padding: .6mm 1.2mm; }
         .sign + .sign { border-left: 1px solid #000; }
-        .sign-date { font-size: 6.5px; line-height: 1.25; }
+        .sign-date { font-size: 8px; line-height: 1.25; }
         .foot { display: flex; justify-content: space-between; align-items: flex-end; padding: 1.5mm 1mm 0; }
         .total { font-size: 11px; font-weight: 700; }
-        .slip-name { font-size: 7px; }
+        .slip-name { font-size: 8px; }
         .foot-awb { width: 30mm; text-align: center; font-size: 9px; line-height: 1.1; }
         .foot-awb .barcode { display: block; width: 100%; height: 6mm; }
         .m-title { display: flex; justify-content: center; align-items: center; gap: 2mm; padding: .8mm 0; border-bottom: 1px solid #000; }
@@ -258,7 +262,7 @@ internal static class LabelA6
         .m-title b { font-size: 26px; line-height: 1; }
         .m-dest { display: grid; grid-template-columns: 30mm 1fr; align-items: center; padding: 1.5mm; border-bottom: 1px solid #000; }
         .m-dest .qr-frame { margin: 0 auto; width: 22mm; height: 22mm; }
-        .m-dest-lbl { font-weight: 700; font-size: 7px; }
+        .m-dest-lbl { font-weight: 700; font-size: 8px; }
         .m-dest-code { font-size: 38px; font-weight: 700; line-height: 1.05; }
         .m-pcs { display: grid; grid-template-columns: 22mm 1fr; align-items: center; padding: .5mm 3mm; font-size: 12px; font-weight: 700; border-bottom: 1px solid #000; }
         .m-pcs b { font-size: 30px; line-height: 1.1; }

@@ -271,11 +271,14 @@ internal static class BillA4
         if (pk.Count > 0)
         {
             gross = Kg(pk.Sum(p => p.GrossKg));
+            // Không khai kích thước → TL quy đổi 0 (như hệ thống cũ), cột kích thước để trống.
             vol = Kg(pk.Sum(p => p.VolumeKg));
+            // Kiện không khai D×R×C → không in "1 × 0 × 0 × 0 cm".
+            var measured = pk.Where(p => p.Length * p.Width * p.Height > 0).ToList();
             const int maxLines = 4;
-            var shown = pk.Count > maxLines ? pk.Take(maxLines - 1) : pk;
+            var shown = measured.Count > maxLines ? measured.Take(maxLines - 1) : measured;
             dims.AddRange(shown.Select(p => $"{p.Qty} × {Kg(p.Length)} × {Kg(p.Width)} × {Kg(p.Height)} cm"));
-            if (pk.Count > maxLines) dims.Add($"… và {pk.Count - (maxLines - 1)} dòng kiện khác");
+            if (measured.Count > maxLines) dims.Add($"… và {measured.Count - (maxLines - 1)} dòng kiện khác");
         }
         else
         {
@@ -381,7 +384,9 @@ internal static class BillA4
     public const string Css = """
         @page { size: A4 landscape; margin: 7mm; }
         * { box-sizing: border-box; }
-        body { margin: 0; font-family: "Times New Roman", Times, serif; font-size: 11.5px; color: #000; background: #e9ece9; }
+        /* Arial + cỡ chữ thống nhất (chữ thường 12px, chữ nhỏ 11px): nét đều, in laser / in nhiệt không mờ. */
+        body { margin: 0; font-family: Arial, Helvetica, sans-serif; font-size: 12px; color: #000; background: #e9ece9;
+               -webkit-print-color-adjust: exact; print-color-adjust: exact; text-rendering: geometricPrecision; }
         .toolbar { position: sticky; top: 0; display: flex; gap: 12px; align-items: center; padding: 10px 16px; background: #1e6b2c; color: #fff; z-index: 1; font-family: Arial, "Segoe UI", sans-serif; font-size: 12px; }
         .toolbar button { padding: 6px 18px; border: 0; border-radius: 6px; background: #fff; color: #1e6b2c; font-weight: 700; cursor: pointer; }
         .toolbar .hint { opacity: .85; }
@@ -392,13 +397,13 @@ internal static class BillA4
         .box { border: 1.5px solid #000; flex: 1; display: flex; flex-direction: column; min-height: 0; }
         .s-head { display: grid; grid-template-columns: 22mm 1fr 42mm; gap: 2mm; align-items: center; padding: 1.5mm 3mm; height: 23mm; }
         .logo { width: 22mm; height: 16mm; object-fit: contain; }
-        .brand { font-size: 10px; line-height: 1.3; }
+        .brand { font-size: 11px; line-height: 1.3; }
         .brand-name { font-size: 22px; font-weight: 700; line-height: 1.1; }
-        .brand .k { display: inline-block; min-width: 9mm; font-size: 9px; }
+        .brand .k { display: inline-block; min-width: 9mm; font-size: 11px; }
         .awb { text-align: center; }
         .awb .barcode { display: block; width: 100%; height: 8mm; }
         .awb-no { font-size: 20px; line-height: 1.1; }
-        .route { font-size: 11px; }
+        .route { font-size: 11px; font-weight: 700; }
         .bar { background: #92d050; font-weight: 700; padding: .4mm 1.5mm; border-top: 1px solid #000; border-bottom: 1px solid #000; }
         .sender { display: grid; grid-template-columns: 50mm 1fr; padding: 1mm 3mm 0 0; }
         .qr { display: flex; flex-direction: column; align-items: center; justify-content: center; }
@@ -436,21 +441,22 @@ internal static class BillA4
         .c-w { width: 19mm; }
         .pkg .dims { font-weight: 400; text-align: left; padding: .5mm 2mm; }
         .dims-title { text-align: center; font-weight: 700; }
-        .dim { border-bottom: 1px dashed #000; min-height: 4.6mm; line-height: 4.6mm; font-size: 10.5px; }
+        .dim { border-bottom: 1px dashed #000; min-height: 4.6mm; line-height: 4.6mm; font-size: 11px; }
         .pkg td { height: 14mm; border-top: 0; vertical-align: middle; }
-        .pkg .pcs { font-size: 24px; font-weight: 700; }
-        .pkg .w { font-weight: 700; }
+        .pkg .pcs { font-size: 20px; font-weight: 700; }
+        /* Số kiện, TL thực, TL quy đổi cùng 1 cỡ. */
+        .pkg .w { font-size: 20px; font-weight: 700; }
         .pkg tr:first-child th:not(.dims) { border-bottom: 0; }
         .signs { display: grid; grid-template-columns: 1fr 1fr; flex: 1; min-height: 18mm; border-top: 1px solid #000; }
         .sign { display: flex; flex-direction: column; justify-content: space-between; padding: 1mm 2mm; }
         .sign + .sign { border-left: 1px solid #000; }
-        .sign-date { font-size: 10.5px; line-height: 1.2; }
+        .sign-date { font-size: 11px; line-height: 1.2; }
         .s-foot { display: flex; justify-content: space-between; align-items: flex-end; padding: 1.5mm 3mm 0; height: 15mm; }
         .total { font-size: 16px; font-weight: 700; margin-bottom: 1.5mm; }
-        .slip-name { font-size: 10.5px; }
+        .slip-name { font-size: 11px; }
         .foot-awb { width: 42mm; text-align: center; font-size: 13px; line-height: 1; }
         .foot-awb .barcode { display: block; width: 100%; height: 7mm; }
-        .terms-col { font-size: 10.6px; line-height: 1.28; text-align: justify; overflow: hidden; }
+        .terms-col { font-size: 10.5px; line-height: 1.28; text-align: justify; overflow: hidden; }
         .terms-col p { margin: 0 0 .55mm; }
         .terms-col .sub { padding-left: 3.5mm; }
         .t-title, .t-h { font-weight: 700; margin: .6mm 0 .3mm; }
@@ -469,7 +475,7 @@ internal static class BillA4
         .m-pcs { display: grid; grid-template-columns: 38mm 1fr; align-items: center; padding: 1mm 6mm; font-size: 22px; font-weight: 700; }
         .m-pcs b { font-size: 56px; line-height: 1; }
         .m-party { padding: .8mm 3mm; font-weight: 700; font-size: 13px; line-height: 1.45; }
-        .m-party.small { font-size: 10px; line-height: 1.3; }
+        .m-party.small { font-size: 11px; line-height: 1.3; }
         .m-foot { display: flex; justify-content: space-between; align-items: center; padding: 2mm 6mm 0; font-size: 13px; }
         .m-big { font-size: 18px; }
         .m-date { text-align: center; font-size: 30px; font-weight: 700; margin-top: 8mm; }
