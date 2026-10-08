@@ -73,9 +73,6 @@ export const createOrder: Record<string, string> = {
   'Không tìm thấy mã này — vui lòng tự nhập thành phố, tỉnh / bang': 'Postal code not found — please enter city and state yourself',
   'Hệ thống kiểm tra VSVX chỉ mang tính chất tham khảo. Vui lòng tự kiểm tra VSVX với hãng trước khi gửi hàng.':
     'The remote-area check is for reference only. Please confirm remote areas with the carrier before shipping.',
-  'Lưu vào sổ địa chỉ': 'Save to address book',
-  'Lưu để lần sau chọn nhanh.': 'Save it to pick quickly next time.',
-  'Không lưu được địa chỉ': 'Could not save the address',
   'Tìm nhanh…': 'Quick search…',
   'Tìm trong danh sách': 'Search the list',
   'Chọn': 'Select',

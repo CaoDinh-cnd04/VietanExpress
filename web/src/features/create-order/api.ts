@@ -37,20 +37,6 @@ export interface SenderProfile {
   d: string;
 }
 
-/** Mục sổ địa chỉ người nhận (backend ReceiverEntry). */
-export interface ReceiverEntry {
-  id?: string;
-  n: string;
-  ct: string;
-  city: string;
-  postal: string;
-  contact: string;
-  tel: string;
-  a1: string;
-  a2?: string;
-  a3?: string;
-}
-
 const ONE_HOUR = 60 * 60 * 1000;
 
 export function useCategories() {
@@ -98,21 +84,6 @@ export function useSenders() {
   return useQuery({
     queryKey: ['addresses', 'senders'],
     queryFn: () => http.get<{ data: SenderProfile[] }>('/addresses/senders').then(r => r.data)
-  });
-}
-
-export function useReceivers() {
-  return useQuery({
-    queryKey: ['addresses', 'receivers'],
-    queryFn: () => http.get<{ data: ReceiverEntry[] }>('/addresses/receivers').then(r => r.data)
-  });
-}
-
-export function useSaveReceiver() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (entry: ReceiverEntry) => http.post<{ message: string }>('/addresses/receivers', entry),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ['addresses', 'receivers'] })
   });
 }
 
@@ -260,5 +231,15 @@ export function useRecentReceivers(query: string | null) {
     staleTime: 60_000,
     placeholderData: previous => previous,
     retry: false
+  });
+}
+
+/** Sổ địa chỉ người nhận: 100 người nhận gần nhất từ đơn cũ của khách (GET /orders/receivers không có q). */
+export function useReceiverBook(enabled: boolean) {
+  return useQuery({
+    queryKey: ['orders', 'receivers', 'book'],
+    queryFn: () => http.get<{ data: RecentReceiver[] }>('/orders/receivers').then(r => r.data),
+    enabled,
+    staleTime: 60_000
   });
 }

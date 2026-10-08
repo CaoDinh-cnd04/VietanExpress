@@ -28,7 +28,7 @@ Backend mới (SQL Server) chỉ cần làm đúng các hợp đồng này là f
 | Method | Path | Trạng thái | Mô tả |
 |---|---|---|---|
 | GET | `/orders` | Có sẵn | Danh sách có lọc, sắp xếp, phân trang |
-| GET | `/orders/receivers?q=SEE` | **Mới** | Người nhận khách đã gửi trước đây (từ đơn trong `dbo.MaVanDon`, cùng phạm vi với danh sách đơn — tài khoản con chỉ thấy đơn mình tạo), tên công ty chứa `q` (≥ 1 ký tự), mới nhất trước, mỗi người nhận (tên + điện thoại + địa chỉ 1) 1 dòng, tối đa 20 → `[{ company, contact, phone, phoneCode, email, taxId, country, city, state, postalCode, address1, address2, address3, iossNo, eoriNo, lastUsed }]`. Quyền `shipments.create` |
+| GET | `/orders/receivers?q=SEE` | **Mới** | Người nhận khách đã gửi trước đây (từ đơn trong `dbo.MaVanDon`, cùng phạm vi với danh sách đơn — tài khoản con chỉ thấy đơn mình tạo), tên công ty chứa `q` (tối đa 20) — không có `q` là sổ địa chỉ (100 người nhận gần nhất); mới nhất trước, mỗi người nhận (tên + điện thoại + địa chỉ 1) 1 dòng → `[{ company, contact, phone, phoneCode, email, taxId, country, city, state, postalCode, address1, address2, address3, iossNo, eoriNo, lastUsed }]`. Quyền `shipments.create` |
 | GET | `/orders/:bill` | Có sẵn | Chi tiết 1 đơn (khung "Chi tiết đơn hàng" + "Nhân bản đơn"): `Order` + `shipper { company, contact, tel, address, taxId, email }` + `receiver { company, contact, tel, country, city, postal, state, addr1, addr2, addr3, taxId, email }` + `packages [{ qty, packType, length, width, height, weightKg }]` (cân **1 kiện**, từ MaVanDon_PCS_DIM) + `invoice { currency, exportType, shippingFee, goodsValue, items [{ descEn, descVi, qty, unit, price, amount, hs, origin }] }` (từ MaVanDon_ChiTietHang) |
 | POST | `/orders/import/preview` | Có sẵn | Kiểm tra file Excel tạo đơn (multipart), chưa tạo đơn — trang "Tạo đơn từ Excel" |
 | POST | `/orders/import` | Có sẵn | Kiểm tra lại file và tạo đơn cho các dòng hợp lệ (≤ 100), cấp số vận đơn ngay |
@@ -170,9 +170,7 @@ Khi cấp bill, hai mã được lưu vào `dbo.MaVanDon.ConsigneeIossNo` / `Con
 | GET | `/geo/postal/:countryCode/:postalCode` | Có sẵn | Mã bưu chính → `{ countryCode, postalCode, city, state, stateCode }` (backend tra GeoNames postalCodeLookupJSON, ~100 nước, nhận cả mã đầy đủ như `SW1A 1AA`; tài khoản GeoNames chỉ ở cấu hình backend `GeoNames:Username`); không tìm thấy / chưa hỗ trợ / nguồn tạm lỗi → 404 |
 | GET | `/geo/addresses?country=US&q=123 Main` | **Mới** | Gợi ý địa chỉ khi khách gõ ô Địa chỉ 1 (backend gọi Geoapify Address Autocomplete, lọc theo nước, tối đa 6 dòng, cache 1 ngày; key chỉ ở cấu hình backend `Geoapify:ApiKey`) → `[{ label, address1, city, state, stateCode, postalCode, countryCode }]`. `q` dưới 3 ký tự, nước sai, chưa cấu hình key hoặc nguồn tạm lỗi → `[]`. `address1` rỗng khi gợi ý chỉ tới cấp thành phố / mã bưu chính |
 | GET | `/addresses/senders` | **Chưa làm** | Hồ sơ người gửi: `{ id, n (tên), c (liên hệ), t (điện thoại), d (địa chỉ) }` |
-| GET | `/addresses/receivers` | **Chưa làm** | Sổ địa chỉ người nhận: `{ id, n, ct, city, postal, contact, tel, a1, a2, a3 }` |
-| POST | `/addresses/receivers` | **Chưa làm** | Lưu người nhận vào sổ |
-| DELETE | `/addresses/receivers/:id` | **Chưa làm** | Xóa người nhận |
+| — | `/addresses/receivers` | **Bỏ** | Sổ địa chỉ người nhận lấy từ đơn cũ: `GET /orders/receivers` (không có `q`) — không lưu sổ riêng |
 
 `SavedProduct`: `{ id?, descEn, descVi, manufacturer, origin, hs, unit, price }` (tất cả chuỗi).
 
