@@ -899,3 +899,49 @@
 .feeRowOn td {
   background: var(--color-brand-softer);
 }
+
+/* ---------- Gợi ý địa chỉ dưới ô Địa chỉ 1 ---------- */
+.suggestWrap {
+  position: relative;
+  grid-column: 1 / -1;
+}
+
+.suggestPanel {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 2px);
+  left: 0;
+  right: 0;
+  padding: var(--space-1);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-lg);
+}
+
+.suggestList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.suggestItem {
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.suggestItem:hover,
+.suggestActive {
+  background: var(--color-brand-softer);
+  color: var(--color-brand-strong);
+}
+
+.suggestCredit {
+  margin: var(--space-1) 10px 2px;
+  color: var(--color-text-faint);
+  font-size: var(--text-xs);
+}

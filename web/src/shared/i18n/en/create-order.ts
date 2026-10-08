@@ -58,6 +58,7 @@ export const createOrder: Record<string, string> = {
   // Người nhận
   'Thông tin người nhận': 'Receiver information',
   'Sổ địa chỉ': 'Address book',
+  'Gợi ý địa chỉ': 'Address suggestions',
   'Sổ địa chỉ người nhận': 'Receiver address book',
   'Nước đến (country)': 'Destination country',
   'Mã bưu chính (postal code)': 'Postal code',

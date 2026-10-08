@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using VietAnExpress.Shipments.Infrastructure.Geo;
 using VietAnExpress.Shipments.Infrastructure.Geo.GeoNames;
+using VietAnExpress.Shipments.Infrastructure.Geo.Geoapify;
 using Xunit;
 
 namespace VietAnExpress.Shipments.Tests.Application;
@@ -164,9 +165,60 @@ public class GeoLookupServiceTests
 
     private static PostalLookupResult Found(string city) => PostalLookupResult.Found(new PostalInfo("XX", "?", city, null, null));
 
-    private static GeoLookupService Service(IPostalCodeProvider provider) =>
+    /// <summary>Nguồn gợi ý địa chỉ giả: trả theo hàm, ghi lại các lần hỏi.</summary>
+    private sealed class FakeAddressProvider(Func<string, AddressSuggestionResult> respond) : IAddressSuggestionProvider
+    {
+        public List<string> Asked { get; } = [];
+
+        public Task<AddressSuggestionResult> SuggestAsync(string countryCode, string query, CancellationToken cancellationToken)
+        {
+            Asked.Add($"{countryCode}/{query}");
+            return Task.FromResult(respond(query));
+        }
+    }
+
+    private static GeoLookupService Service(IPostalCodeProvider provider, IAddressSuggestionProvider? addresses = null) =>
         new(new HttpClient(new FakeHandler(_ => throw new HttpRequestException("mất mạng"))), provider,
+            addresses ?? new FakeAddressProvider(_ => AddressSuggestionResult.Unavailable),
             new MemoryCache(new MemoryCacheOptions()), NullLogger<GeoLookupService>.Instance);
+
+    private static readonly AddressSuggestion Austin = new("123 Main St, Austin, TX 78701", "123 Main St", "Austin", "Texas", "TX", "78701", "US");
+
+    [Fact]
+    public async Task Goi_y_dia_chi_chuan_hoa_chu_go_va_cache()
+    {
+        var addresses = new FakeAddressProvider(_ => AddressSuggestionResult.Found([Austin]));
+        var geo = Service(new FakeProvider(_ => PostalLookupResult.NotFound), addresses);
+
+        var first = await geo.SuggestAddressesAsync("us", "  123   Main St ", Ct);
+        var second = await geo.SuggestAddressesAsync("US", "123 main st", Ct);
+
+        Assert.Equal([Austin], first);
+        Assert.Equal(first, second);
+        Assert.Equal(["US/123 Main St"], addresses.Asked); // lần 2 (khác hoa thường) lấy từ cache
+    }
+
+    [Theory]
+    [InlineData("USA", "123 Main St")]
+    [InlineData("US", "12")]
+    [InlineData("US", "   ")]
+    public async Task Goi_y_dia_chi_chu_qua_ngan_hoac_sai_nuoc_thi_khong_hoi(string country, string query)
+    {
+        var addresses = new FakeAddressProvider(_ => throw new InvalidOperationException("không được gọi"));
+        Assert.Empty(await Service(new FakeProvider(_ => PostalLookupResult.NotFound), addresses).SuggestAddressesAsync(country, query, Ct));
+        Assert.Empty(addresses.Asked);
+    }
+
+    [Fact]
+    public async Task Goi_y_dia_chi_nguon_loi_thi_khong_cache()
+    {
+        var addresses = new FakeAddressProvider(_ => AddressSuggestionResult.Unavailable);
+        var geo = Service(new FakeProvider(_ => PostalLookupResult.NotFound), addresses);
+
+        Assert.Empty(await geo.SuggestAddressesAsync("US", "123 Main", Ct));
+        Assert.Empty(await geo.SuggestAddressesAsync("US", "123 Main", Ct));
+        Assert.Equal(2, addresses.Asked.Count);
+    }
 
     [Fact]
     public async Task Chuan_hoa_roi_hoi_nguon_va_cache_lai()
@@ -232,4 +284,56 @@ public class GeoLookupServiceTests
     [Fact]
     public async Task Danh_sach_nuoc_loi_thi_tra_rong_khong_nem_loi() =>
         Assert.Empty(await Service(new FakeProvider(_ => PostalLookupResult.NotFound)).GetCountriesAsync(Ct));
+}
+
+public class GeoapifyParserTests
+{
+    [Fact]
+    public void Doc_goi_y_dia_chi_dien_dia_chi_thanh_pho_tinh_ma_buu_chinh()
+    {
+        // Rút gọn đúng định dạng Geoapify autocomplete (format=json)
+        const string json = """
+            { "results": [
+              { "country_code": "us", "housenumber": "123", "street": "Main Street", "city": "Austin", "state": "Texas", "state_code": "TX",
+                "postcode": "78701", "address_line1": "123 Main Street", "formatted": "123 Main Street, Austin, TX 78701, United States of America",
+                "result_type": "building" },
+              { "country_code": "de", "housenumber": "5", "street": "Hauptstraße", "city": "Berlin", "state": "Berlin", "postcode": "10115",
+                "address_line1": "Café Mitte", "formatted": "Café Mitte, Hauptstraße 5, 10115 Berlin, Germany", "result_type": "amenity" },
+              { "country_code": "us", "city": "Austin", "state": "Texas", "state_code": "TX", "postcode": "78701",
+                "address_line1": "Austin", "formatted": "Austin, TX, United States of America", "result_type": "city" },
+              { "country_code": "ca", "city": "Toronto", "formatted": "Toronto, ON, Canada", "result_type": "city" },
+              { "country_code": "us", "street": "Main Street", "city": "Austin", "address_line1": "Main Street",
+                "result_type": "street" }
+            ] }
+            """;
+
+        var us = GeoapifyParser.Suggestions(JsonDocument.Parse(json), "US");
+
+        Assert.Equal(2, us.Count); // bỏ kết quả nước khác và kết quả thiếu formatted
+        Assert.Equal(new AddressSuggestion("123 Main Street, Austin, TX 78701, United States of America", "123 Main Street", "Austin", "Texas", "TX", "78701", "US"), us[0]);
+        Assert.Equal("", us[1].Address1); // gợi ý cấp thành phố không điền ô địa chỉ
+
+        var de = GeoapifyParser.Suggestions(JsonDocument.Parse(json), "de").Single();
+        Assert.Equal("Hauptstraße 5", de.Address1); // địa điểm có tên → ghép đường + số nhà theo thứ tự của nước đó
+    }
+
+    [Fact]
+    public void Dia_chi_Nhat_giu_so_khoi_nha_khi_khong_co_so_nha()
+    {
+        // Geoapify trả địa chỉ Nhật dạng amenity: address_line1 = số khối, không có housenumber.
+        const string json = """
+            { "results": [ { "country_code": "jp", "street": "Atago Hitoikizaka", "address_line1": "2-1-1", "city": "Tama", "state": "Tokyo",
+                             "postcode": "206-0014", "formatted": "2-1-1, Atago Hitoikizaka, Tama, TK 206-0014, Japan", "result_type": "amenity" } ] }
+            """;
+
+        var jp = GeoapifyParser.Suggestions(JsonDocument.Parse(json), "JP").Single();
+
+        Assert.Equal(("2-1-1, Atago Hitoikizaka", "Tama", "Tokyo", "206-0014"), (jp.Address1, jp.City, jp.State, jp.PostalCode));
+    }
+
+    [Theory]
+    [InlineData("{}")]
+    [InlineData("""{ "results": {} }""")]
+    [InlineData("[]")]
+    public void Du_lieu_la_thi_tra_rong(string json) => Assert.Empty(GeoapifyParser.Suggestions(JsonDocument.Parse(json), "US"));
 }

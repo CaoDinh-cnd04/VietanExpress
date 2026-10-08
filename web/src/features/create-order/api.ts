@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { ApiError, http } from '@/shared/api/http';
-import type { Country, PostalInfo } from './lib/geo';
+import type { AddressSuggestion, Country, PostalInfo } from './lib/geo';
 
 /** Nhóm hàng hóa (dbo.NhomHangHoa). */
 export interface Category {
@@ -231,6 +231,21 @@ export function usePostalLookup(countryCode: string | undefined, postal: string 
         }),
     enabled: !!countryCode && !!postal,
     staleTime: ONE_DAY,
+    retry: false
+  });
+}
+
+/** Gợi ý địa chỉ người nhận trong nước đến (backend gọi Geoapify, chưa cấu hình thì trả rỗng). Endpoint mới — API_CONTRACT.md §3. */
+export function useAddressSuggestions(countryCode: string | undefined, query: string | null) {
+  return useQuery({
+    queryKey: ['geo', 'addresses', countryCode, query],
+    queryFn: () =>
+      http
+        .get<{ data: AddressSuggestion[] }>('/geo/addresses', { country: countryCode, q: query })
+        .then(r => r.data),
+    enabled: countryCode?.length === 2 && !!query,
+    staleTime: ONE_DAY,
+    placeholderData: previous => previous,
     retry: false
   });
 }

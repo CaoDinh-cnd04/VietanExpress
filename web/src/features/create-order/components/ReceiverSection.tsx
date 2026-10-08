@@ -1,21 +1,29 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { useFormContext, useWatch } from 'react-hook-form';
 import { ApiError } from '@/shared/api/http';
-import { Button, Card, FormGrid, TextField, useToast } from '@/shared/ui';
+import { Button, Card, FormGrid, TextField, useToast, type TextFieldProps } from '@/shared/ui';
 import { useI18n } from '@/shared/i18n';
 import { useDebouncedCallback } from '@/shared/lib/useDebouncedCallback';
 import { sanitizePhone } from '@/shared/lib/phone';
 import { euCountryCode, isEuCountry } from '@/shared/config/eu';
-import { useCountries, usePostalLookup, useReceivers, useSaveReceiver } from '../api';
+import { useAddressSuggestions, useCountries, usePostalLookup, useReceivers, useSaveReceiver } from '../api';
 import { COUNTRIES, RULES } from '../constants';
 import { useFieldBinder, type FieldName } from '../hooks/useFieldBinder';
 import { splitAddressLines } from '../lib/address';
-import { findCountry, normalizePostal, shouldResetAddress } from '../lib/geo';
+import { addressQuery, findCountry, normalizePostal, shouldResetAddress, suggestionFields, type AddressSuggestion } from '../lib/geo';
 import type { CreateOrderValues } from '../schema';
 import { AddressPickerDialog } from './AddressPickerDialog';
+import { AddressSuggestions, suggestionOptionId } from './AddressSuggestions';
 import styles from './form.module.css';
 
 const MAX = RULES.receiverAddressMax;
+
+/** Thêm vào ô địa chỉ: xử lý gõ / rời ô và thuộc tính của ô nhập (combobox gợi ý ở Địa chỉ 1). */
+interface AddressFieldExtra {
+  onChange?: () => void;
+  onBlur?: () => void;
+  input?: Partial<TextFieldProps>;
+}
 
 export function ReceiverSection() {
   const bind = useFieldBinder();
@@ -56,11 +64,14 @@ export function ReceiverSection() {
   const schedulePostal = useDebouncedCallback((value: string | null) => setPostalQuery(value), 500);
   useEffect(() => schedulePostal(normalizePostal(postalText)), [postalText, schedulePostal]);
   const postal = usePostalLookup(country?.code, postalQuery);
+  /** Mã bưu chính vừa điền từ gợi ý địa chỉ — gợi ý đã có thành phố / tỉnh đúng, không để kết quả tra mã ghi đè. */
+  const pickedPostal = useRef<string | null>(null);
   // Kết quả postal code được ưu tiên hơn địa chỉ đã nhập trước đó.
   useEffect(() => {
     const info = postal.data;
     // Khách đang đổi mã / nước: không điền kết quả của lần tra cũ trong lúc debounce.
     if (!info || info.countryCode !== country?.code || info.postalCode !== normalizePostal(postalText)) return;
+    if (pickedPostal.current === info.postalCode) return;
     const opts = { shouldDirty: true, shouldValidate: true } as const;
     setValue('receiver.city', info.city, opts);
     setValue('receiver.state', info.state ?? '', opts);
@@ -130,16 +141,65 @@ export function ReceiverSection() {
       });
     }
   };
-  const addressField = (name: (typeof ADDR)[number], label: string, value: string, required: boolean) => (
+  const addressField = (name: (typeof ADDR)[number], label: string, value: string, required: boolean, extra?: AddressFieldExtra) => (
     <TextField
       label={label}
       required={required}
       wide
       maxLength={name === 'addr3' ? MAX : undefined}
       aside={`${value.length}/${MAX}`}
-      {...bind(`receiver.${name}`, { onChange: () => onAddressInput(name) })}
+      {...extra?.input}
+      {...bind(`receiver.${name}`, { onChange: () => { onAddressInput(name); extra?.onChange?.(); }, onBlur: extra?.onBlur })}
     />
   );
+
+  // ---------- Gợi ý địa chỉ (Geoapify) khi khách gõ Địa chỉ 1 → điền địa chỉ, thành phố, tỉnh / bang, mã bưu chính ----------
+  const [addrQuery, setAddrQuery] = useState<string | null>(null);
+  const scheduleAddr = useDebouncedCallback((value: string | null) => setAddrQuery(value), 350);
+  const [suggestOpen, setSuggestOpen] = useState(false);
+  const [active, setActive] = useState(-1);
+  const suggestions = useAddressSuggestions(countryCode, addrQuery);
+  const suggestItems = suggestOpen && addrQuery ? suggestions.data ?? [] : [];
+  const listId = useId();
+
+  const pickSuggestion = (s: AddressSuggestion) => {
+    scheduleAddr.cancel();
+    const opts = { shouldDirty: true, shouldValidate: true } as const;
+    suggestionFields(s).forEach(([field, value]) => setValue(`receiver.${field}`, value, opts));
+    pickedPostal.current = normalizePostal(s.postalCode ?? '');
+    setSuggestOpen(false);
+    setActive(-1);
+    setAddrQuery(null);
+  };
+  const onAddr1KeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Escape') return setSuggestOpen(false);
+    if (!suggestItems.length) return;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      const step = e.key === 'ArrowDown' ? 1 : -1;
+      setActive(i => (i + step + suggestItems.length) % suggestItems.length);
+    } else if (e.key === 'Enter' && active >= 0) {
+      e.preventDefault();
+      pickSuggestion(suggestItems[active]!);
+    }
+  };
+  const addr1Extra: AddressFieldExtra = {
+    onChange: () => {
+      scheduleAddr(addressQuery(getValues('receiver.addr1')));
+      setSuggestOpen(true);
+      setActive(-1);
+    },
+    onBlur: () => setSuggestOpen(false),
+    input: {
+      role: 'combobox',
+      autoComplete: 'off',
+      'aria-autocomplete': 'list',
+      'aria-expanded': suggestItems.length > 0,
+      'aria-controls': listId,
+      'aria-activedescendant': active >= 0 && suggestItems.length ? suggestionOptionId(listId, active) : undefined,
+      onKeyDown: onAddr1KeyDown
+    }
+  };
 
   return (
     <Card
@@ -164,7 +224,10 @@ export function ReceiverSection() {
             <TextField label="EORI No" placeholder="DE123456789012345" {...bind('receiver.eoriNo', { onBlur: () => void trigger('receiver.eoriNo') })} />
           </>
         )}
-        {addressField('addr1', 'Địa chỉ 1 (address 1)', addr1, true)}
+        <div className={styles.suggestWrap}>
+          {addressField('addr1', 'Địa chỉ 1 (address 1)', addr1, true, addr1Extra)}
+          {suggestItems.length > 0 && <AddressSuggestions id={listId} items={suggestItems} active={active} onPick={pickSuggestion} />}
+        </div>
         {addressField('addr2', 'Địa chỉ 2 (address 2)', addr2, true)}
         {addressField('addr3', 'Địa chỉ 3 (address 3)', addr3, false)}
       </FormGrid>

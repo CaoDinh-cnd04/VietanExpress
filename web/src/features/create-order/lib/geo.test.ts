@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canAutofill, findCountry, normalizePostal, shouldResetAddress, type Country } from './geo';
+import { addressQuery, canAutofill, findCountry, normalizePostal, shouldResetAddress, suggestionFields, type Country } from './geo';
 
 const countries: Country[] = [
   { code: 'US', name: 'United States', dialCode: '+1' },
@@ -45,5 +45,25 @@ describe('shouldResetAddress', () => {
     expect(shouldResetAddress('US', 'US')).toBe(false);
     expect(shouldResetAddress(undefined, 'US')).toBe(false);
     expect(shouldResetAddress('US', undefined)).toBe(false);
+  });
+});
+
+describe('addressQuery', () => {
+  it('gộp khoảng trắng, đủ 3 ký tự mới gợi ý', () => {
+    expect(addressQuery('  123   Main ')).toBe('123 Main');
+    expect(addressQuery('12')).toBeNull();
+    expect(addressQuery(undefined)).toBeNull();
+    expect(addressQuery('x'.repeat(121))).toBeNull();
+  });
+});
+
+describe('suggestionFields', () => {
+  it('điền địa chỉ, thành phố, tỉnh, mã bưu chính có trong gợi ý', () => {
+    expect(suggestionFields({ label: '123 Main St, Austin', address1: '123 Main St', city: 'Austin', state: 'Texas', postalCode: '78701', countryCode: 'US' }))
+      .toEqual([['addr1', '123 Main St'], ['city', 'Austin'], ['state', 'Texas'], ['postal', '78701']]);
+  });
+  it('gợi ý cấp thành phố không ghi đè ô địa chỉ khách đã gõ', () => {
+    expect(suggestionFields({ label: 'Austin, TX', address1: '', city: 'Austin', state: 'Texas', postalCode: null, countryCode: 'US' }))
+      .toEqual([['city', 'Austin'], ['state', 'Texas']]);
   });
 });

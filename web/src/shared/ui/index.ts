@@ -4,7 +4,7 @@ export { DataTable, type Column } from './DataTable';
 export { DropdownMenu, type MenuItem } from './DropdownMenu';
 export { EmptyState } from './EmptyState';
 export { FileDrop, KeyValueList, Notice, StatCard, StatGrid } from './Feedback';
-export { FormGrid, SelectField, TextAreaField, TextField, type SelectOption } from './Field';
+export { FormGrid, SelectField, TextAreaField, TextField, type SelectOption, type TextFieldProps } from './Field';
 export { Icon, type IconName } from './Icon';
 export { Modal } from './Modal';
 export { PageHeader } from './PageHeader';

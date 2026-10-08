@@ -21,7 +21,8 @@ public static class ShipmentsModule
         services.AddScoped<ILegacyOrderNumberAllocator, LegacyOrderNumberAllocator>();
         services.AddScoped<Application.Orders.OrderAccess>();
 
-        // Tra cứu địa lý qua API ngoài (quốc gia + mã điện thoại: world-countries; mã bưu chính: GeoNames) — có cache, timeout ngắn.
+        // Tra cứu địa lý qua API ngoài (quốc gia + mã điện thoại: world-countries; mã bưu chính: GeoNames; gợi ý địa chỉ: Geoapify)
+        // — có cache, timeout ngắn.
         services.AddGeoLookup(configuration);
         services.Configure<Application.Orders.Documents.CompanyInfo>(configuration.GetSection(Application.Orders.Documents.CompanyInfo.Section));
         services.AddSingleton<IPermissionProvider, ShipmentsPermissionProvider>();
@@ -35,7 +36,7 @@ internal static class GeoRegistration
     private const string UserAgent = "VietAnExpress-Portal/1.0";
 
     /// <summary>
-    /// Tra cứu địa lý: <see cref="Infrastructure.Geo.IGeoLookup"/> (điều phối, cache) + nguồn mã bưu chính GeoNames.
+    /// Tra cứu địa lý: <see cref="Infrastructure.Geo.IGeoLookup"/> (điều phối, cache) + nguồn mã bưu chính GeoNames + gợi ý địa chỉ Geoapify.
     /// Đổi nguồn mã bưu chính: đăng ký cài đặt khác của <see cref="Infrastructure.Geo.IPostalCodeProvider"/> ở đây.
     /// </summary>
     public static IServiceCollection AddGeoLookup(this IServiceCollection services, IConfiguration configuration)
@@ -49,6 +50,17 @@ internal static class GeoRegistration
         services.AddHttpClient<Infrastructure.Geo.IPostalCodeProvider, Infrastructure.Geo.GeoNames.GeoNamesPostalCodeProvider>((sp, c) =>
         {
             var o = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Infrastructure.Geo.GeoNames.GeoNamesOptions>>().Value;
+            c.BaseAddress = new Uri(o.BaseUrl.TrimEnd('/') + "/");
+            c.Timeout = TimeSpan.FromSeconds(o.TimeoutSeconds);
+            c.DefaultRequestHeaders.UserAgent.ParseAdd(UserAgent);
+        });
+        services.AddOptions<Infrastructure.Geo.Geoapify.GeoapifyOptions>()
+            .Bind(configuration.GetSection(Infrastructure.Geo.Geoapify.GeoapifyOptions.Section))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+        services.AddHttpClient<Infrastructure.Geo.IAddressSuggestionProvider, Infrastructure.Geo.Geoapify.GeoapifyAddressProvider>((sp, c) =>
+        {
+            var o = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Infrastructure.Geo.Geoapify.GeoapifyOptions>>().Value;
             c.BaseAddress = new Uri(o.BaseUrl.TrimEnd('/') + "/");
             c.Timeout = TimeSpan.FromSeconds(o.TimeoutSeconds);
             c.DefaultRequestHeaders.UserAgent.ParseAdd(UserAgent);

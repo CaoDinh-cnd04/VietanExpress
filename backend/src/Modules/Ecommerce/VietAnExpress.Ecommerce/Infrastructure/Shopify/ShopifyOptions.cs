@@ -23,7 +23,7 @@ internal sealed class ShopifyOptions
 
     /// <summary>Quyền xin khi ủy quyền (ECOM_INTEGRATION.md §2).</summary>
     [Required]
-    public string Scopes { get; set; } = "read_orders,read_merchant_managed_fulfillment_orders,write_merchant_managed_fulfillment_orders";
+    public string Scopes { get; set; } = "read_orders";
 
     /// <summary>
     /// Đường dẫn callback, ghép sau Company:PortalUrl (Vercel proxy /api sang backend).

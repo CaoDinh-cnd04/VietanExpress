@@ -18,6 +18,9 @@ internal interface IGeoLookup
 
     /// <summary>Null khi không tìm thấy, nước chưa được hỗ trợ hoặc nguồn tạm lỗi.</summary>
     Task<PostalInfo?> LookupPostalAsync(string countryCode, string postalCode, CancellationToken cancellationToken);
+
+    /// <summary>Gợi ý địa chỉ trong 1 nước theo chữ khách gõ. Rỗng khi chữ quá ngắn, chưa cấu hình hoặc nguồn tạm lỗi.</summary>
+    Task<IReadOnlyList<AddressSuggestion>> SuggestAddressesAsync(string countryCode, string query, CancellationToken cancellationToken);
 }
 
 /// <summary>
@@ -26,10 +29,12 @@ internal interface IGeoLookup
 ///   (REST Countries v3.1 đã ngừng, v5 bắt buộc API key.) Ghim phiên bản để dữ liệu không tự đổi.
 /// - Mã bưu chính: chuẩn hóa + kiểm tra đầu vào, cache, rồi hỏi <see cref="IPostalCodeProvider"/> (hiện là GeoNames);
 ///   mã đầy đủ không có dữ liệu thì thử phần đầu của mã. Có kết quả cache 7 ngày, không có cache 6 giờ, nguồn lỗi không cache.
+/// - Gợi ý địa chỉ: <see cref="IAddressSuggestionProvider"/> (hiện là Geoapify), cache 1 ngày theo nước + chữ gõ để tiết kiệm lượt gọi.
 /// API ngoài lỗi / chậm thì trả rỗng, không làm hỏng form tạo đơn.
 /// </summary>
 internal sealed partial class GeoLookupService(
-    HttpClient http, IPostalCodeProvider postalProvider, IMemoryCache cache, ILogger<GeoLookupService> logger) : IGeoLookup
+    HttpClient http, IPostalCodeProvider postalProvider, IAddressSuggestionProvider addressProvider, IMemoryCache cache,
+    ILogger<GeoLookupService> logger) : IGeoLookup
 {
     public const string CountriesUrl = "https://cdn.jsdelivr.net/npm/world-countries@5.1.0/countries.json";
 
@@ -75,6 +80,19 @@ internal sealed partial class GeoLookupService(
         cache.Set(key, info, info is null ? TimeSpan.FromHours(6) : TimeSpan.FromDays(7));
         return info;
     }
+
+    public async Task<IReadOnlyList<AddressSuggestion>> SuggestAddressesAsync(string countryCode, string query, CancellationToken cancellationToken)
+    {
+        if (GeoParsers.NormalizeAddressQuery(countryCode, query) is not { } normalized) return [];
+        var (cc, text) = normalized;
+
+        var key = $"geo:address:{cc}:{text.ToLowerInvariant()}";
+        if (cache.TryGetValue(key, out IReadOnlyList<AddressSuggestion>? cached) && cached is not null) return cached;
+
+        var result = await addressProvider.SuggestAsync(cc, text, cancellationToken);
+        if (result.Available) cache.Set(key, result.Items, TimeSpan.FromDays(1));
+        return result.Items;
+    }
 }
 
 /// <summary>Hàm thuần dùng chung (đọc dữ liệu nước, chuẩn hóa mã bưu chính) — có test.</summary>
@@ -113,6 +131,15 @@ internal static class GeoParsers
         if (cc.Length != 2 || !cc.All(char.IsAsciiLetterUpper)) return null;
         var postal = string.Join(' ', postalCode.Trim().ToUpperInvariant().Split(' ', StringSplitOptions.RemoveEmptyEntries));
         return (cc, postal);
+    }
+
+    /// <summary>Chữ khách gõ để gợi ý địa chỉ: gộp khoảng trắng, 3–120 ký tự. Null nếu mã nước sai hoặc chữ quá ngắn / dài.</summary>
+    public static (string CountryCode, string Query)? NormalizeAddressQuery(string countryCode, string query)
+    {
+        var cc = countryCode.Trim().ToUpperInvariant();
+        if (cc.Length != 2 || !cc.All(char.IsAsciiLetterUpper)) return null;
+        var text = string.Join(' ', query.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+        return text.Length is >= 3 and <= 120 ? (cc, text) : null;
     }
 
     /// <summary>

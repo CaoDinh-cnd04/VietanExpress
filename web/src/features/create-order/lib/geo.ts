@@ -43,3 +43,31 @@ export function canAutofill(current: string | undefined, lastAutofilled: string 
 export function shouldResetAddress(previousCode: string | undefined, nextCode: string | undefined): boolean {
   return !!previousCode && !!nextCode && previousCode !== nextCode;
 }
+
+/** 1 dòng gợi ý của GET /geo/addresses. `address1` rỗng khi gợi ý chỉ tới cấp thành phố / mã bưu chính. */
+export interface AddressSuggestion {
+  label: string;
+  address1: string;
+  city?: string | null;
+  state?: string | null;
+  stateCode?: string | null;
+  postalCode?: string | null;
+  countryCode: string;
+}
+
+/** Chữ khách gõ ở ô Địa chỉ 1 đủ để gợi ý: gộp khoảng trắng, 3–120 ký tự (khớp kiểm tra của backend). */
+export function addressQuery(input: string | undefined): string | null {
+  const text = (input ?? '').trim().replace(/\s+/g, ' ');
+  return text.length >= 3 && text.length <= 120 ? text : null;
+}
+
+/** Ô cần điền khi khách chọn 1 gợi ý — bỏ phần gợi ý không có (không xoá chữ khách đã nhập ở ô đó). */
+export function suggestionFields(s: AddressSuggestion): Array<['addr1' | 'city' | 'state' | 'postal', string]> {
+  const entries: Array<['addr1' | 'city' | 'state' | 'postal', string | null | undefined]> = [
+    ['addr1', s.address1],
+    ['city', s.city],
+    ['state', s.state],
+    ['postal', s.postalCode]
+  ];
+  return entries.filter((e): e is ['addr1' | 'city' | 'state' | 'postal', string] => !!e[1]?.trim());
+}

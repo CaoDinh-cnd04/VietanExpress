@@ -28,7 +28,7 @@ Nguyên tắc: phản hồi webhook nhanh (200 ngay, xử lý nền), chống tr
 | Ủy quyền | Authorization code grant: chuyển tới `https://{shop}.myshopify.com/admin/oauth/authorize?client_id&scope&redirect_uri&state`. Callback trả `code, hmac, shop, state, timestamp` — kiểm `hmac` (HMAC-SHA256 bằng client secret), `state`, và `shop` đúng dạng `*.myshopify.com` |
 | Token | `POST https://{shop}/admin/oauth/access_token` với `client_id, client_secret, code`, thêm **`expiring=1`** để nhận token có hạn + `refresh_token` (90 ngày). Từ 01/04/2026 app public mới bắt buộc token hết hạn; từ 01/01/2027 mọi app public đều bắt buộc. Mỗi lần refresh nhận cặp token mới — lưu cả hai, bỏ cặp cũ |
 | API | **GraphQL Admin API** (REST là legacy, app public mới phải dùng GraphQL). Ghim phiên bản quý, VD `2026-07`; nâng cấp ít nhất mỗi năm |
-| Scope tối thiểu | `read_orders`, `read_merchant_managed_fulfillment_orders`, `write_merchant_managed_fulfillment_orders` (thêm `read_products` nếu cần cân nặng / HS từ sản phẩm). Đơn > 60 ngày cần `read_all_orders` (phải xin) |
+| Scope | Hiện chỉ `read_orders` — phải **trùng** `scopes` trong `shopify.app.toml` và `Shopify:Scopes` của backend. Khi làm đẩy tracking (fulfillment) mới thêm `read_merchant_managed_fulfillment_orders`, `write_merchant_managed_fulfillment_orders` ở cả hai nơi rồi deploy lại app. Đơn > 60 ngày cần `read_all_orders` (phải xin) |
 | Dữ liệu khách | Tên, địa chỉ, SĐT người nhận là **protected customer data** — app phải khai báo và được duyệt quyền truy cập (level 2) |
 | Lấy đơn | Query `orders` lọc `fulfillment_status:unfulfilled`, lấy `shippingAddress`, `lineItems` (sku, qty, giá, `variant.inventoryItem.harmonizedSystemCode`, `countryCodeOfOrigin`, cân nặng) |
 | Đẩy tracking | Lấy `fulfillmentOrders` của đơn → mutation **`fulfillmentCreate`** với `trackingInfo { company, number, url }` (`url` = trang tracking Việt An / MyTracking), `notifyCustomer: true`. Sửa sau bằng `fulfillmentTrackingInfoUpdate` |
@@ -46,6 +46,10 @@ Nguyên tắc: phản hồi webhook nhanh (200 ngay, xử lý nền), chống tr
 
 Trong Shopify Dev Dashboard → app → **Allowed redirection URL(s)** khai `{Company:PortalUrl}{CallbackPath}`, hiện là
 `https://vietan-express.vercel.app/api/v1/ecom/oauth/shopify/callback` (Vercel proxy `/api` sang Render).
+
+Kết nối shop mới chỉ qua cài app từ Shopify (App Store 2.3.1 cấm nhập tay tên shop): `application_url` =
+`/api/v1/ecom/shopify/launch` → OAuth ngay → callback giữ token trong cookie `vae_shopify_install` → portal bắt đăng nhập
+→ `/ecommerce/shopify` gọi `POST /ecom/stores/claim` gắn shop vào tài khoản.
 
 ### Webhook Shopify (đã làm)
 
