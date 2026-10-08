@@ -36,4 +36,19 @@ public class RecentReceiversTests
         Assert.Equal(20, list.Count);
         Assert.Equal(("CTY 1", "0909", "addr"), (list[0].Company, list[0].Phone, list[0].Address1));
     }
+
+    [Fact]
+    public void Don_moi_nhat_trong_ma_buu_chinh_thi_lay_tu_lan_gui_truoc()
+    {
+        var rows = new[]
+        {
+            R("SEE SENG PTE LTD", "83682275", "80 GENTING LANE ,", 3) with { PostalCode = null, Email = "" },
+            R("SEE SENG PTE LTD", "83682275", "80 GENTING LANE ,", 2) with { PostalCode = "349565", Email = "admin@seeseng.sg" },
+            R("SEE SENG PTE LTD", "83682275", "80 GENTING LANE ,", 1) with { PostalCode = "000000" }
+        };
+
+        var merged = RecentReceivers.Distinct(rows, 20).Single();
+
+        Assert.Equal(("349565", "admin@seeseng.sg", new DateOnly(2026, 10, 3)), (merged.PostalCode, merged.Email, merged.LastUsed));
+    }
 }

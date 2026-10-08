@@ -52,15 +52,29 @@ internal sealed class GetRecentReceiversHandler(ShipmentsDbContext db, OrderAcce
 internal static class RecentReceivers
 {
     /// <summary>
-    /// Bỏ dòng trùng (cùng tên công ty + số điện thoại + địa chỉ 1, không phân biệt hoa thường / khoảng trắng), giữ dòng mới nhất
-    /// (danh sách đầu vào đã xếp mới nhất trước), cắt trường trống thừa.
+    /// Gộp dòng trùng (cùng tên công ty + số điện thoại + địa chỉ 1, không phân biệt hoa thường / khoảng trắng) thành 1 dòng
+    /// theo đơn mới nhất (đầu vào đã xếp mới nhất trước); ô nào đơn mới nhất để trống (vd mã bưu chính, tỉnh, email)
+    /// thì lấy từ lần gửi gần nhất có giá trị. Địa chỉ 2 / 3 giữ theo đơn mới nhất.
     /// </summary>
     public static IReadOnlyList<RecentReceiverDto> Distinct(IEnumerable<RecentReceiverDto> rows, int limit) =>
         [.. rows
             .Where(r => !string.IsNullOrWhiteSpace(r.Company))
             .Select(Trim)
-            .DistinctBy(r => (Key(r.Company), Key(r.Phone), Key(r.Address1)))
+            .GroupBy(r => (Key(r.Company), Key(r.Phone), Key(r.Address1)))
+            .Select(Merge)
             .Take(limit)];
+
+    private static RecentReceiverDto Merge(IEnumerable<RecentReceiverDto> sameReceiver)
+    {
+        var all = sameReceiver.ToList();
+        string? First(Func<RecentReceiverDto, string?> field) => all.Select(field).FirstOrDefault(v => v is not null);
+        return all[0] with
+        {
+            Contact = First(r => r.Contact), PhoneCode = First(r => r.PhoneCode), Email = First(r => r.Email), TaxId = First(r => r.TaxId),
+            Country = First(r => r.Country), City = First(r => r.City), State = First(r => r.State), PostalCode = First(r => r.PostalCode),
+            IossNo = First(r => r.IossNo), EoriNo = First(r => r.EoriNo)
+        };
+    }
 
     private static string Key(string? value) =>
         string.Join(' ', (value ?? "").ToUpperInvariant().Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
