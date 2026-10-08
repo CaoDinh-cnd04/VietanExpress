@@ -141,8 +141,9 @@ export function ReceiverSection() {
       label={label}
       required={required}
       wide
-      maxLength={name === 'addr3' ? MAX : undefined}
-      aside={`${value.length}/${MAX}`}
+      // Địa chỉ 3 nhận phần dồn xuống từ địa chỉ 1 / 2: giới hạn theo cột database (250), không hiện bộ đếm.
+      maxLength={name === 'addr3' ? RULES.receiverAddress3Max : undefined}
+      aside={name === 'addr3' ? undefined : `${value.length}/${MAX}`}
       {...extra?.input}
       {...bind(`receiver.${name}`, { onChange: () => { onAddressInput(name); extra?.onChange?.(); }, onBlur: extra?.onBlur })}
     />

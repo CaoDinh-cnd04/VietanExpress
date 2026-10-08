@@ -93,7 +93,7 @@ export const createOrderSchema = z
       state: optional,
       addr1: required().max(RULES.receiverAddressMax, maxLen(RULES.receiverAddressMax)),
       addr2: required().max(RULES.receiverAddressMax, maxLen(RULES.receiverAddressMax)),
-      addr3: optional.max(RULES.receiverAddressMax, maxLen(RULES.receiverAddressMax))
+      addr3: optional.max(RULES.receiverAddress3Max, maxLen(RULES.receiverAddress3Max))
     }),
     goods: z.object({
       category: optional,

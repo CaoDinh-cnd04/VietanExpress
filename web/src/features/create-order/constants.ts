@@ -81,7 +81,9 @@ export const RULES = {
   originalShipperMax: 150,
   /** Tên nhóm hàng — độ dài cột dbo.NhomHangHoa.Ten_Nhom. */
   categoryNameMax: 150,
-  receiverAddressMax: 30
+  receiverAddressMax: 30,
+  /** Địa chỉ 3: không giới hạn 30 như địa chỉ 1 / 2, chỉ chặn ở độ dài cột ConsigneeAddress3 (nvarchar 250) trong dbo.MaVanDon. */
+  receiverAddress3Max: 250
 } as const;
 
 export const WIZARD_STEPS = [
