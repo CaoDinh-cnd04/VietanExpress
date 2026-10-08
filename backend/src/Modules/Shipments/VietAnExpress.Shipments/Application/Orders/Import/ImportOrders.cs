@@ -130,13 +130,16 @@ internal sealed class ImportOrdersHandler(
     {
         var today = VietnamTime.ToVietnam(clock.GetUtcNow()).Date;
         var planned = new List<(ImportedRow Row, long Number)>();
-        foreach (var row in rows) planned.Add((row, await numbers.NextAsync(ct)));
 
         var strategy = db.Database.CreateExecutionStrategy();
         await strategy.ExecuteAsync(async () =>
         {
             db.ChangeTracker.Clear();
             await using var tx = await db.Database.BeginTransactionAsync(ct);
+            // Cấp số trong transaction: khóa dãy số tới khi commit, không trùng với hệ thống cũ.
+            var issued = await numbers.NextAsync(rows.Count, ct);
+            planned.Clear();
+            planned.AddRange(rows.Select((row, i) => (row, issued[i])));
 
             var drafts = new List<OrderDraft>();
             var saved = new List<(Infrastructure.Legacy.LegacyOrder, OrderPayload)>();

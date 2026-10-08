@@ -141,14 +141,16 @@ internal sealed class PrintDraftHandler(
         var writer = await access.WriterAsync(ct);
         if (writer.IsFailure) return writer.Error;
 
-        var number = await numbers.NextAsync(ct);
         var today = VietnamTime.ToVietnam(clock.GetUtcNow()).Date;
+        long number = 0;
 
         // 1 transaction: ghi MaVanDon + chi tiết kiện / dòng hàng và xoá nháp cùng thành công hoặc cùng huỷ.
         await db.Database.CreateExecutionStrategy().ExecuteAsync(async () =>
         {
             db.ChangeTracker.Clear();
             await using var tx = await db.Database.BeginTransactionAsync(ct);
+            // Cấp số trong transaction: khóa dãy số tới khi commit, không trùng với hệ thống cũ.
+            number = (await numbers.NextAsync(1, ct))[0];
             var order = LegacyOrderFactory.FromPayload(payload, writer.Value, number, today);
             db.LegacyOrders.Add(order);
             db.OrderDrafts.Attach(draft);
