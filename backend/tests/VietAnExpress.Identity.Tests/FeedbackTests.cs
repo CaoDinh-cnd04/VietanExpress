@@ -97,8 +97,19 @@ public class FeedbackTests
     [Fact]
     public void So_sao_khong_bat_buoc() => Assert.Null(FeedbackRules.Validate("x", null, null, []));
 
-    [Fact]
-    public void Ten_file_bo_duong_dan() => Assert.Equal("anh.png", FeedbackRules.SafeFileName(@"C:\Users\x\..\anh.png"));
+    [Theory]
+    [InlineData(@"C:\Users\x\..\anh.png", "anh.png")]
+    [InlineData("/home/user/../anh.png", "anh.png")]
+    [InlineData(@"C:\fakepath/anh.png", "anh.png")]
+    [InlineData(@"\\server\share\anh.png", "anh.png")]
+    [InlineData(" anh.png ", "anh.png")]
+    [InlineData(null, "anh")]
+    [InlineData("", "anh")]
+    [InlineData("   ", "anh")]
+    [InlineData(@"C:\fakepath\", "anh")]
+    [InlineData("/home/user/", "anh")]
+    public void Ten_file_bo_duong_dan(string? name, string expected) =>
+        Assert.Equal(expected, FeedbackRules.SafeFileName(name));
 
     [Fact]
     public void Admin_sai_ten_hoac_mat_khau_bi_tu_choi()

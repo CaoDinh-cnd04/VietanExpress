@@ -74,7 +74,8 @@ internal static class FeedbackRules
     /// <summary>Tên file an toàn để lưu / trả về: bỏ đường dẫn, tối đa 255 ký tự.</summary>
     public static string SafeFileName(string? name)
     {
-        var file = Path.GetFileName(name ?? "").Trim();
+        // Tên upload có thể chứa đường dẫn Windows dù server chạy Linux.
+        var file = Path.GetFileName((name ?? "").Replace('\\', '/')).Trim();
         if (file.Length == 0) file = "anh";
         return file.Length <= 255 ? file : file[^255..];
     }
