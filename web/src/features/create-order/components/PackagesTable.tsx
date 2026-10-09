@@ -11,6 +11,7 @@ import { summarizePackages, volumetricWeight } from '../lib/shipment';
 import { emptyPackage, type CreateOrderValues } from '../schema';
 import { CategoryManagerDialog } from './CategoryManagerDialog';
 import { CategoryPicker } from './CategoryPicker';
+import { decimalField, onCellArrows } from '../hooks/cellNavigation';
 import styles from './form.module.css';
 
 const NUM_COLS = [
@@ -77,7 +78,8 @@ export function PackagesTable({ onPackagesInput }: { onPackagesInput: () => void
         </Notice>
       )}
       <div className={cx(styles.tableScroll, qtyMismatch && styles.spaced)}>
-        <table className={cx(styles.table, styles.pkgTable)}>
+        {/* ← → chuyển ô khi con trỏ ở đầu / cuối ô */}
+        <table className={cx(styles.table, styles.pkgTable)} onKeyDown={onCellArrows}>
           <thead>
             <tr>
               <th className={styles.colQty}>{t('SL')} <span className={styles.required}>*</span></th>
@@ -98,12 +100,10 @@ export function PackagesTable({ onPackagesInput }: { onPackagesInput: () => void
               <tr key={f.id}>
                 <td>
                   <input
-                    type="number"
-                    min={1}
                     aria-label={t('Số lượng dòng {n}', { n: i + 1 })}
                     aria-invalid={err(`packages.${i}.qty`) || qtyMismatch ? true : undefined}
                     className={cx(styles.cell, (err(`packages.${i}.qty`) || qtyMismatch) && styles.cellInvalid)}
-                    {...reg(`packages.${i}.qty`)}
+                    {...decimalField(reg(`packages.${i}.qty`), true)}
                   />
                 </td>
                 <td>
@@ -146,13 +146,10 @@ export function PackagesTable({ onPackagesInput }: { onPackagesInput: () => void
                 {NUM_COLS.map(c => (
                   <td key={c.key}>
                     <input
-                      type="number"
-                      min={0}
-                      step="any"
                       aria-label={t('{col} dòng {n}', { col: t(c.label), n: i + 1 })}
                       aria-invalid={err(`packages.${i}.${c.key}`) ? true : undefined}
                       className={cx(styles.cell, err(`packages.${i}.${c.key}`) && styles.cellInvalid)}
-                      {...reg(`packages.${i}.${c.key}`)}
+                      {...decimalField(reg(`packages.${i}.${c.key}`))}
                     />
                   </td>
                 ))}

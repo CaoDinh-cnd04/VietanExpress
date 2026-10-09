@@ -8,6 +8,7 @@ import { invoiceTotal, lineTotal } from '../lib/shipment';
 import { emptyInvoiceItem, type CreateOrderValues } from '../schema';
 import { InvoiceToolbar } from './InvoiceToolbar';
 import { UnitCell } from './UnitCell';
+import { decimalField, onCellArrows } from '../hooks/cellNavigation';
 import styles from './form.module.css';
 
 type ItemKey = keyof ReturnType<typeof emptyInvoiceItem>;
@@ -27,8 +28,13 @@ export function InvoiceSection() {
   const [type, items = [], currency, shippingFee] = useWatch({ control, name: ['shipment.type', 'invoice.items', 'invoice.currency', 'invoice.shippingFee'] });
   const fmt = new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 2 });
   const err = (i: number, key: ItemKey) => get(formState.errors, `invoice.items.${i}.${key}`)?.message as string | undefined;
-  const cell = (i: number, key: ItemKey, props: Record<string, unknown> = {}) => (
-    <input className={cx(styles.cell, err(i, key) && styles.cellInvalid)} title={err(i, key)} {...props} {...register(`invoice.items.${i}.${key}`)} />
+  const cell = (i: number, key: ItemKey, props: Record<string, unknown> = {}, numeric = false) => (
+    <input
+      className={cx(styles.cell, err(i, key) && styles.cellInvalid)}
+      title={err(i, key)}
+      {...props}
+      {...(numeric ? decimalField(register(`invoice.items.${i}.${key}`)) : register(`invoice.items.${i}.${key}`))}
+    />
   );
   // Tên / nhà sản xuất: Enter để xuống dòng (vd "Nhà sản xuất" ↵ "Địa chỉ"); dòng dài tự xuống dòng.
   const area = (i: number, key: ItemKey, props: Record<string, unknown> = {}) => (
@@ -70,7 +76,7 @@ export function InvoiceSection() {
           </FormGrid>
 
           <div className={cx(styles.tableScroll, styles.spaced)}>
-            <table className={cx(styles.table, styles.invoiceTable)}>
+            <table className={cx(styles.table, styles.invoiceTable)} onKeyDown={onCellArrows}>
               <thead>
                 <tr>
                   <th className={styles.colNo}>#</th>
@@ -98,11 +104,11 @@ export function InvoiceSection() {
                     <td>{cell(i, 'hs', { placeholder: '6204.43', 'aria-label': t('Mã HS mặt hàng {n}', { n: i + 1 }) })}</td>
                     <td>
                       <div className={styles.qtyUnit}>
-                        {cell(i, 'qty', { type: 'number', min: 0, step: 'any', 'aria-label': t('Số lượng mặt hàng {n}', { n: i + 1 }) })}
+                        {cell(i, 'qty', { 'aria-label': t('Số lượng mặt hàng {n}', { n: i + 1 }) }, true)}
                         <UnitCell index={i} error={err(i, 'unit')} />
                       </div>
                     </td>
-                    <td>{cell(i, 'price', { type: 'number', min: 0, step: 'any', 'aria-label': t('Đơn giá mặt hàng {n}', { n: i + 1 }) })}</td>
+                    <td>{cell(i, 'price', { 'aria-label': t('Đơn giá mặt hàng {n}', { n: i + 1 }) }, true)}</td>
                     <td className={styles.computed}>{items[i] ? fmt.format(lineTotal(items[i])) : 0}</td>
                     <td>
                       <Button size="sm" iconOnly variant="ghost" aria-label={t('Xóa mặt hàng {n}', { n: i + 1 })} disabled={fields.length <= 1} onClick={() => remove(i)}>

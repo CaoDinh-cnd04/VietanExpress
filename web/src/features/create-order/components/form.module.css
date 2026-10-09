@@ -166,17 +166,9 @@
   text-align: right;
 }
 
-/* Nhập số trực tiếp, không hiện nút tăng / giảm ở bảng invoice. */
-.invoiceTable input[type='number'] {
-  -moz-appearance: textfield;
-  appearance: textfield;
+/* Ô số trong bảng invoice (ô chữ có bàn phím số — cellNavigation.decimalField): canh phải. */
+.invoiceTable input[inputmode] {
   text-align: right;
-}
-
-.invoiceTable input[type='number']::-webkit-inner-spin-button,
-.invoiceTable input[type='number']::-webkit-outer-spin-button {
-  margin: 0;
-  -webkit-appearance: none;
 }
 
 .stack {
@@ -656,17 +648,9 @@
   width: 64px;
 }
 
-/* Ô số trong bảng kiện: bỏ mũi tên tăng/giảm cho đủ chỗ hiện số */
-.pkgTable input[type='number'] {
-  -moz-appearance: textfield;
-  appearance: textfield;
+/* Ô số trong bảng kiện (ô chữ có bàn phím số): canh phải */
+.pkgTable input[inputmode] {
   text-align: right;
-}
-
-.pkgTable input[type='number']::-webkit-inner-spin-button,
-.pkgTable input[type='number']::-webkit-outer-spin-button {
-  margin: 0;
-  -webkit-appearance: none;
 }
 
 /* Tổng kiện chưa bằng số kiện khai */

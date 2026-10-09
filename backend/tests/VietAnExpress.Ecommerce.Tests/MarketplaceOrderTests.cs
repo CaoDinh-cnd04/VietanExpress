@@ -21,6 +21,17 @@ public class MarketplaceOrderTests
     }
 
     [Fact]
+    public void Don_dong_bo_tu_shop_khong_xoa_duoc()
+    {
+        var o = MarketplaceOrder.Import(1, 3, "shopify", Imported(), Now); // StoreConnectionId = 3 (shop đã kết nối)
+        Assert.True(o.IsSynced);
+        Assert.False(o.CanDelete);
+        Assert.False(o.Delete(Now));
+        Assert.Null(o.DeletedAt);
+        Assert.True(MarketplaceOrder.Import(1, null, "shopify", Imported(), Now).CanDelete); // nhập file thì xóa được
+    }
+
+    [Fact]
     public void Nhap_lai_file_khoi_phuc_don_da_xoa()
     {
         var o = MarketplaceOrder.Import(1, null, "shopify", Imported(), Now);

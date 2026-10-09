@@ -193,8 +193,9 @@ export function EcomOrderList({ scope }: { scope: OrderScope }) {
               </>
             )}
             {/* Đơn đã gửi (trang Đơn hàng E-com) không xóa được. */}
-            {scope === 'inbox' && canProcess && (
-              <Button size="sm" onClick={() => setDeleting(selectedOrders)}>
+            {/* Chỉ đơn nhập tay / file chưa gửi xóa được; đơn đồng bộ từ sàn không xóa trong portal. */}
+            {scope === 'inbox' && canProcess && selectedOrders.some(o => o.deletable) && (
+              <Button size="sm" onClick={() => setDeleting(selectedOrders.filter(o => o.deletable))}>
                 <Icon name="trash" size={15} /> {t('Xóa')}
               </Button>
             )}

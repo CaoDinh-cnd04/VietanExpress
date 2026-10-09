@@ -41,6 +41,8 @@ export interface EcomOrder {
   issues?: string[];
   /** Chưa có bill → sửa được */
   editable?: boolean;
+  /** Xóa được: đơn nhập tay / file chưa gửi. Đơn đồng bộ từ shop đã kết nối không xóa trong portal (hủy / hoàn tất trên sàn). */
+  deletable?: boolean;
   /** Đã xác nhận gửi → nằm ở trang "Đơn hàng E-com" */
   confirmed?: boolean;
   /** "dd/MM/yyyy HH:mm" */

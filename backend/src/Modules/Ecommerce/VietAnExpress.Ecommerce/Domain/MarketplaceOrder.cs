@@ -125,18 +125,27 @@ internal sealed class MarketplaceOrder
         return true;
     }
 
-    /// <summary>Khách xóa đơn (xóa mềm). Đơn đã xác nhận gửi hoặc đã có bill thì không xóa được nữa.</summary>
+    /// <summary>Đơn đồng bộ từ shop đã kết nối (Shopify…): phản ánh đơn trên sàn — không xóa trong portal, đồng bộ luôn hiện lại.</summary>
+    public bool IsSynced => StoreConnectionId is not null;
+
+    /// <summary>Xóa được: đơn nhập tay / nhập file, chưa xác nhận gửi, chưa có bill.</summary>
+    public bool CanDelete => !IsSynced && Bill is null && ConfirmedAt is null && DeletedAt is null;
+
+    /// <summary>
+    /// Khách xóa đơn (xóa mềm). Đơn đã xác nhận gửi, đã có bill, hoặc đơn đồng bộ từ shop (muốn bỏ thì hủy / hoàn tất trên sàn)
+    /// thì không xóa được.
+    /// </summary>
     public bool Delete(DateTime now)
     {
-        if (Bill is not null || ConfirmedAt is not null || DeletedAt is not null) return false;
+        if (!CanDelete) return false;
         DeletedAt = now;
         ModifyDate = now;
         return true;
     }
 
     /// <summary>
-    /// Khách nhập lại file có đơn đã xóa → hiện lại với dữ liệu trong file (bỏ cả dữ liệu đã sửa trước khi xóa).
-    /// Đồng bộ tự động không gọi hàm này nên đơn đã xóa không tự quay lại.
+    /// Đơn đã xóa hiện lại với dữ liệu mới (bỏ cả dữ liệu đã sửa trước khi xóa): khách nhập lại file có đơn đó,
+    /// hoặc đồng bộ gặp lại đơn của shop đã kết nối (đơn đồng bộ bị xóa trước khi có quy tắc không xóa đơn đồng bộ).
     /// </summary>
     public bool Restore(ImportedOrder o, DateTime now)
     {

@@ -62,7 +62,12 @@ internal sealed class StoreSyncService(
         var added = 0;
         foreach (var o in imported)
         {
-            if (existing.TryGetValue(o.PlatformOrderId, out var current)) current.UpdateFrom(o, now);
+            // Đơn đồng bộ luôn phản ánh sàn: đơn từng bị xóa (trước khi chặn xóa đơn đồng bộ) thì hiện lại.
+            if (existing.TryGetValue(o.PlatformOrderId, out var current))
+            {
+                if (current.DeletedAt is not null) current.Restore(o, now);
+                else current.UpdateFrom(o, now);
+            }
             else
             {
                 db.MarketplaceOrders.Add(MarketplaceOrder.Import(store.CustomerId, store.Id, SalesChannelCodes.Shopify, o, now));

@@ -60,6 +60,13 @@ internal sealed class OrdersController : ApiControllerBase
         return File(file.Content, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", file.FileName);
     }
 
+    /// <summary>Người gửi đã dùng ở đơn trước, tên công ty / người liên hệ chứa <c>q</c> — gợi ý khi tài khoản con khai người gửi.</summary>
+    [HttpGet("senders")]
+    [HasPermission(ShipmentsPermissions.Create)]
+    [ProducesResponseType<ApiResponse<IReadOnlyList<RecentSenderDto>>>(StatusCodes.Status200OK)]
+    public async Task<IActionResult> Senders([FromQuery] string? q, CancellationToken ct) =>
+        OkData(await Sender.Send(new GetRecentSendersQuery(q), ct));
+
     /// <summary>
     /// Người nhận đã gửi trước đây (mới nhất trước): tên công ty chứa <c>q</c> (tối đa 20) — hoặc không có <c>q</c> thì
     /// là sổ địa chỉ (100 người nhận gần nhất).

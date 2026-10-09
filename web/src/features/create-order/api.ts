@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tansta
 import { http } from '@/shared/api/http';
 import type { AddressSuggestion, Country, PostalSuggestion } from './lib/geo';
 import type { RecentReceiver } from './lib/recent-receivers';
+import type { RecentSender } from './lib/recent-senders';
 import type { RemoteAreaHit } from './lib/remote-area';
 
 /** Nhóm hàng hóa (dbo.NhomHangHoa). */
@@ -236,6 +237,18 @@ export function useRecentReceivers(query: string | null) {
   return useQuery({
     queryKey: ['orders', 'receivers', query],
     queryFn: () => http.get<{ data: RecentReceiver[] }>('/orders/receivers', { q: query }).then(r => r.data),
+    enabled: !!query,
+    staleTime: 60_000,
+    placeholderData: previous => previous,
+    retry: false
+  });
+}
+
+/** Người gửi đã dùng ở đơn trước, tên công ty / người liên hệ chứa `query` (gợi ý cho tài khoản con khai người gửi). */
+export function useRecentSenders(query: string | null) {
+  return useQuery({
+    queryKey: ['orders', 'senders', query],
+    queryFn: () => http.get<{ data: RecentSender[] }>('/orders/senders', { q: query }).then(r => r.data),
     enabled: !!query,
     staleTime: 60_000,
     placeholderData: previous => previous,

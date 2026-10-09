@@ -4,11 +4,16 @@ import { useSession } from '@/features/auth';
 import { BRANCHES } from '@/shared/config/domain';
 import { useI18n } from '@/shared/i18n';
 import { sanitizePhone } from '@/shared/lib/phone';
+import { useDebouncedCallback } from '@/shared/lib/useDebouncedCallback';
 import { cx } from '@/shared/lib/cx';
 import { Button, Card, FormGrid, Icon, SelectField, TextField } from '@/shared/ui';
+import { useRecentSenders } from '../api';
 import { RULES } from '../constants';
+import { useCombobox } from '../hooks/useCombobox';
 import { useFieldBinder } from '../hooks/useFieldBinder';
+import { recentSenderQuery, recentSenderSubtitle, senderFields, type RecentSender } from '../lib/recent-senders';
 import { shipperFromProfile } from '../lib/shipper-profile';
+import { SuggestionList } from './SuggestionList';
 import type { CreateOrderValues } from '../schema';
 import styles from './form.module.css';
 
@@ -34,9 +39,22 @@ export function ShipperSection() {
     if (clean !== value) setValue(name, clean, { shouldDirty: true });
   };
 
-  // Điền sẵn từ hồ sơ khách; tên công ty và địa chỉ lấy hàng chỉ đọc.
+  // Điền sẵn từ hồ sơ khách. Tài khoản chính: tên công ty và địa chỉ lấy hàng chỉ đọc (theo hồ sơ);
+  // tài khoản con (nhân viên) sửa được — gửi hộ người khác / lấy hàng ở địa chỉ khác.
   const session = useSession();
   const profile = session.data?.status === 'authenticated' ? session.data.user : null;
+  const lockCompany = profile?.accountType !== 'staff';
+
+  // Tài khoản con: gõ tên công ty / người gửi → gợi ý người gửi đã dùng ở đơn trước; chọn → điền lại cả người gửi.
+  const [senderQuery, setSenderQuery] = useState<string | null>(null);
+  const scheduleSender = useDebouncedCallback((value: string | null) => setSenderQuery(value), 250);
+  const recentSenders = useRecentSenders(lockCompany ? null : senderQuery);
+  const senderBox = useCombobox(!lockCompany && senderQuery ? recentSenders.data ?? [] : [], (s: RecentSender) => {
+    scheduleSender.cancel();
+    setSenderQuery(null);
+    for (const [key, value] of senderFields(s, RULES.shipperAddressMax))
+      setValue(`shipper.${key}`, value, { shouldDirty: true, shouldValidate: true });
+  });
   useEffect(() => {
     if (!profile) return;
     const fill = shipperFromProfile(getValues('shipper'), profile);
@@ -74,7 +92,30 @@ export function ShipperSection() {
       {/* Ô nhập luôn giữ trong form (chỉ ẩn) để giá trị và kiểm tra lỗi không bị mất khi thu gọn. */}
       <div id="shipper-fields" hidden={!expanded}>
       <FormGrid>
-        <TextField label="Tên công ty / người gửi" required readOnly {...bind('shipper.company')} />
+        <div className={styles.suggestCell}>
+          <TextField
+            label="Tên công ty / người gửi"
+            required
+            readOnly={lockCompany}
+            {...(lockCompany ? {} : senderBox.inputProps)}
+            {...bind('shipper.company', lockCompany ? undefined : {
+              onChange: () => {
+                scheduleSender(recentSenderQuery(getValues('shipper.company')));
+                senderBox.onType();
+              },
+              onBlur: senderBox.close
+            })}
+          />
+          {senderBox.visible.length > 0 && (
+            <SuggestionList
+              id={senderBox.listId}
+              label="Người gửi đã dùng"
+              items={senderBox.visible.map((s, i) => ({ key: `${i}-${s.company}`, title: s.company, subtitle: recentSenderSubtitle(s) }))}
+              active={senderBox.active}
+              onPick={senderBox.pick}
+            />
+          )}
+        </div>
         <TextField
           label="Tên shipper gốc"
           hint="Dành cho đơn vị forwarder gửi hộ khách — không bắt buộc"
@@ -86,7 +127,7 @@ export function ShipperSection() {
         <TextField
           label="Địa chỉ lấy hàng"
           required
-          readOnly
+          readOnly={lockCompany}
           wide
           maxLength={RULES.shipperAddressMax}
           aside={`${address.length}/${RULES.shipperAddressMax}`}

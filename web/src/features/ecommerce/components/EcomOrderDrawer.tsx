@@ -125,7 +125,7 @@ export function EcomOrderDrawer({ order, onClose, onDelete, onConfirm, confirmin
                 <Button size="sm" onClick={() => setEditing(true)}>
                   <Icon name="edit" size={15} /> {t('Sửa đơn')}
                 </Button>
-                {!o.confirmed && (
+                {o.deletable && (
                   <Button size="sm" variant="ghost" onClick={() => onDelete(o)}>
                     <Icon name="trash" size={15} /> {t('Xóa đơn')}
                   </Button>

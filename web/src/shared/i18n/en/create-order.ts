@@ -261,4 +261,5 @@ export const createOrder: Record<string, string> = {
   'Gợi ý mã bưu chính': 'Postal code suggestions',
   'Khu vực VSVX: {carriers}': 'Remote area: {carriers}',
   '· có thể bị hãng thu phụ phí ODA': '· the carrier may charge an ODA surcharge',
+  'Người gửi đã dùng': 'Previous senders',
 };
