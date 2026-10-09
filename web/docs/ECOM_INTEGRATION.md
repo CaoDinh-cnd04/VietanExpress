@@ -43,6 +43,7 @@ Nguyên tắc: phản hồi webhook nhanh (200 ngay, xử lý nền), chống tr
 | `Shopify:ClientId`, `Shopify:ClientSecret` | User Secrets của `VietAnExpress.API` (dev); Render: `Shopify__ClientId`, `Shopify__ClientSecret` |
 | `Ecommerce:TokenEncryptionKey` | Khóa AES-256 base64 mã hóa token trong `dbo.KetNoiTMDT`; Render: `Ecommerce__TokenEncryptionKey` (dùng **cùng khóa** ở mọi môi trường đọc chung database) |
 | `Shopify:ApiVersion` (`2026-07`), `Shopify:Scopes`, `Shopify:CallbackPath` | `appsettings.json` |
+| `VITE_SHOPIFY_APP_STORE_URL` (frontend) | Biến môi trường Vercel lúc build, dạng `https://apps.shopify.com/<tên-app>` (có sau khi Shopify duyệt). Có thì tab Kết nối hiện nút **Kết nối Shopify** dẫn sang trang app; để trống thì chỉ hiện hướng dẫn cài từ Shopify |
 
 Trong Shopify Dev Dashboard → app → **Allowed redirection URL(s)** khai `{Company:PortalUrl}{CallbackPath}`, hiện là
 `https://vietan-express.vercel.app/api/v1/ecom/oauth/shopify/callback` (Vercel proxy `/api` sang Render).

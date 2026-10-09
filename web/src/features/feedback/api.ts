@@ -34,7 +34,7 @@ export function useSendFeedback() {
   });
 }
 
-/** Xóa góp ý của mình (xóa hẳn, kèm ảnh). */
+/** Ẩn góp ý khỏi trang khách; admin vẫn xem được nội dung và ảnh. */
 export function useDeleteFeedback() {
   const qc = useQueryClient();
   const toast = useToast();

@@ -4,7 +4,7 @@ import { isNotImplemented } from '@/shared/api/http';
 import { useI18n } from '@/shared/i18n';
 import { cx } from '@/shared/lib/cx';
 import { useCopyToClipboard } from '@/shared/lib/useCopyToClipboard';
-import { Button, Card, Icon, Modal, Notice, SelectField, StatusPill, TextField, useToast } from '@/shared/ui';
+import { Button, Card, Icon, LinkButton, Modal, Notice, SelectField, StatusPill, TextField, useToast } from '@/shared/ui';
 import {
   useDisconnectStore,
   useEcomSettings,
@@ -16,7 +16,7 @@ import {
   useTestWebhook
 } from '../api';
 import { API_EXAMPLE, STORE_PLATFORMS, STORE_STATUS, TIKTOK_REGIONS, WEBHOOK_EVENTS } from '../constants';
-import { formatSyncTime, readOAuthResult, reconnectAction } from '../lib/store-connection';
+import { formatSyncTime, readOAuthResult, reconnectAction, shopifyAppStoreUrl } from '../lib/store-connection';
 import type { EcomSettings, StoreConnection, TiktokRegion } from '../types';
 import styles from './ecommerce.module.css';
 
@@ -68,15 +68,27 @@ function StoresCard() {
   );
 }
 
-/** Shopify chỉ kết nối bằng cách cài app từ Shopify (App Store 2.3.1: không cho nhập tay tên shop). */
+const SHOPIFY_APP_STORE_URL = shopifyAppStoreUrl(import.meta.env.VITE_SHOPIFY_APP_STORE_URL);
+
+/**
+ * Shopify chỉ kết nối bằng cách cài app từ Shopify (App Store 2.3.1: không cho nhập tay tên shop).
+ * Có link App Store thì nút đưa khách sang trang app; Shopify cài xong chuyển về /ecommerce/shopify, shop tự gắn vào tài khoản.
+ */
 function ShopifyConnect() {
   const { t } = useI18n();
   return (
     <div className={styles.connectRow}>
       <strong className={styles.connectName}>Shopify</strong>
       <p className={styles.sub}>
-        {t('Cài ứng dụng Viet An Express từ Shopify App Store hoặc mở ứng dụng trong Shopify admin. Shopify chuyển về đây, bạn đăng nhập là shop tự kết nối vào tài khoản này.')}
+        {SHOPIFY_APP_STORE_URL
+          ? t('Bấm Kết nối, chọn shop và bấm Install trên Shopify. Shopify chuyển về đây, shop tự kết nối vào tài khoản này.')
+          : t('Cài ứng dụng Viet An Express từ Shopify App Store hoặc mở ứng dụng trong Shopify admin. Shopify chuyển về đây, bạn đăng nhập là shop tự kết nối vào tài khoản này.')}
       </p>
+      {SHOPIFY_APP_STORE_URL && (
+        <LinkButton variant="primary" to={SHOPIFY_APP_STORE_URL}>
+          <Icon name="link" size={15} /> {t('Kết nối')}
+        </LinkButton>
+      )}
     </div>
   );
 }

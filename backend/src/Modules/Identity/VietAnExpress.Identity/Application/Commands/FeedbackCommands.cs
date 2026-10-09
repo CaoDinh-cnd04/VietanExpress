@@ -86,7 +86,7 @@ internal static class FeedbackRules
 
 internal sealed record SendFeedbackCommand(string? Message, string? Contact, int? Rating, IReadOnlyList<FeedbackUpload> Images) : IRequest<Result<FeedbackDto>>;
 
-/// <summary>Khách xóa góp ý của mình (xóa hẳn, kèm ảnh). Tài khoản con chỉ xóa góp ý của chính mình.</summary>
+/// <summary>Khách ẩn góp ý khỏi trang của mình; giữ nội dung và ảnh cho admin. Tài khoản con chỉ ẩn góp ý của chính mình.</summary>
 internal sealed record DeleteFeedbackCommand(long Id) : IRequest<Result<bool>>;
 
 internal sealed record GetMyFeedbackQuery : IRequest<Result<IReadOnlyList<FeedbackDto>>>;
@@ -122,7 +122,7 @@ internal sealed class CustomerFeedbackHandlers(IdentityDbContext db, ICurrentUse
     {
         if (user.CustomerId is not { } customerId) return FeedbackErrors.NotLoggedIn;
         // Tài khoản con chỉ thấy góp ý mình gửi; tài khoản chính thấy mọi góp ý của công ty.
-        var query = db.Feedbacks.AsNoTracking().Where(f => f.CustomerId == customerId);
+        var query = db.Feedbacks.AsNoTracking().Where(f => f.CustomerId == customerId && !f.IsHiddenByCustomer);
         if (user.StaffId is { } staffId) query = query.Where(f => f.StaffId == staffId);
         var rows = await query
             .OrderByDescending(f => f.Id)
@@ -140,11 +140,11 @@ internal sealed class CustomerFeedbackHandlers(IdentityDbContext db, ICurrentUse
     public async Task<Result<bool>> Handle(DeleteFeedbackCommand c, CancellationToken ct)
     {
         if (user.CustomerId is not { } customerId) return FeedbackErrors.NotLoggedIn;
-        var query = db.Feedbacks.Include(f => f.Images).Where(f => f.Id == c.Id && f.CustomerId == customerId);
+        var query = db.Feedbacks.Where(f => f.Id == c.Id && f.CustomerId == customerId);
         if (user.StaffId is { } staffId) query = query.Where(f => f.StaffId == staffId);
         var feedback = await query.FirstOrDefaultAsync(ct);
         if (feedback is null) return FeedbackErrors.NotFound;
-        db.Feedbacks.Remove(feedback);
+        feedback.HideFromCustomer();
         await db.SaveChangesAsync(ct);
         return true;
     }
@@ -156,10 +156,10 @@ internal sealed class CustomerFeedbackHandlers(IdentityDbContext db, ICurrentUse
 
         var image = await db.FeedbackImages.AsNoTracking()
             .Where(i => i.Id == q.ImageId)
-            .Join(db.Feedbacks, i => i.FeedbackId, f => f.Id, (i, f) => new { i.FileName, i.ContentType, i.Data, f.CustomerId, f.StaffId })
+            .Join(db.Feedbacks, i => i.FeedbackId, f => f.Id, (i, f) => new { i.FileName, i.ContentType, i.Data, f.CustomerId, f.StaffId, f.IsHiddenByCustomer })
             .FirstOrDefaultAsync(ct);
         if (image is null) return FeedbackErrors.ImageNotFound;
-        var allowed = isAdmin || (image.CustomerId == user.CustomerId && (user.StaffId is null || image.StaffId == user.StaffId));
+        var allowed = isAdmin || (!image.IsHiddenByCustomer && image.CustomerId == user.CustomerId && (user.StaffId is null || image.StaffId == user.StaffId));
         return allowed ? new FeedbackImageFile(image.FileName, image.ContentType, image.Data) : FeedbackErrors.ImageNotFound;
     }
 

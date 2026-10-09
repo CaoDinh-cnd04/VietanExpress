@@ -61,7 +61,7 @@ export const feedback: Record<string, string> = {
   '{n}/5 sao': '{n}/5 stars',
   'Mức độ hài lòng với Việt An Express (không bắt buộc)': 'How satisfied are you with Viet An Express? (optional)',
   'Xóa góp ý gửi lúc {time}': 'Delete feedback sent at {time}',
-  'Xóa góp ý này? Ảnh đính kèm cũng bị xóa và không khôi phục được.': 'Delete this feedback? Attached images are deleted too and cannot be restored.',
+  'Xóa góp ý khỏi danh sách của bạn? Việt An vẫn lưu nội dung và ảnh đính kèm để tiếp nhận, xử lý.': 'Remove this feedback from your list? Viet An will keep the message and attachments to review and handle your feedback.',
   'Chưa xóa được góp ý': 'Could not delete the feedback',
   '· ★ {avg}/5 ({n} đánh giá)': '· ★ {avg}/5 ({n} ratings)',
   'Không chấm': 'Not rated',

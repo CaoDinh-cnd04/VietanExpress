@@ -48,7 +48,7 @@ internal sealed class FeedbackController : ApiControllerBase
         return FromResult(await Sender.Send(new SendFeedbackCommand(message, contact, rating, uploads), ct), "Đã gửi góp ý — cảm ơn bạn!");
     }
 
-    /// <summary>Xóa góp ý của mình (xóa hẳn, kèm ảnh).</summary>
+    /// <summary>Ẩn góp ý khỏi trang khách; admin vẫn xem được nội dung và ảnh.</summary>
     [HttpDelete("{id:long}")]
     [HasPermission(IdentityPermissions.Feedback)]
     [ProducesResponseType<ApiMessage>(StatusCodes.Status200OK)]

@@ -149,7 +149,7 @@ export default function FeedbackPage() {
                       disabled={remove.isPending}
                       aria-label={t('Xóa góp ý gửi lúc {time}', { time: f.createdAt })}
                       onClick={() => {
-                        if (window.confirm(t('Xóa góp ý này? Ảnh đính kèm cũng bị xóa và không khôi phục được.'))) remove.mutate(f.id);
+                        if (window.confirm(t('Xóa góp ý khỏi danh sách của bạn? Việt An vẫn lưu nội dung và ảnh đính kèm để tiếp nhận, xử lý.'))) remove.mutate(f.id);
                       }}
                     >
                       <Icon name="trash" size={14} /> {t('Xóa')}

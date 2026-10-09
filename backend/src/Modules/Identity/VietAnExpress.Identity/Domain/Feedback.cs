@@ -29,6 +29,7 @@ internal sealed class Feedback
     /// <summary>Khách chấm 1–5 sao (không bắt buộc).</summary>
     public int? Rating { get; private set; }
     public bool IsSeen { get; private set; }
+    public bool IsHiddenByCustomer { get; private set; }
     public DateTime CreateDate { get; private set; }
     public DateTime? SeenAt { get; private set; }
     public List<FeedbackImage> Images { get; private set; } = [];
@@ -47,6 +48,9 @@ internal sealed class Feedback
         CreateDate = now,
         Images = [.. images]
     };
+
+    /// <summary>Ẩn ở trang khách; giữ nội dung và ảnh cho quản trị.</summary>
+    public void HideFromCustomer() => IsHiddenByCustomer = true;
 
     /// <summary>Admin đánh dấu đã xem (lần đầu).</summary>
     public bool MarkSeen(DateTime now)
