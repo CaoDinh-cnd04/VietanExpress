@@ -53,16 +53,24 @@ internal sealed class StoresController(PortalHosts portalHosts, IConfiguration c
         return Redirect(result.Value.RedirectUrl);
     }
 
-    /// <summary>Khách đã đăng nhập: gắn shop vừa cài từ Shopify (cookie do callback đặt) vào tài khoản.</summary>
+    /// <summary>
+    /// Khách đã đăng nhập: gắn shop vừa cài từ Shopify (cookie do callback đặt) vào tài khoản.
+    /// Không có shop đang chờ (mở lại app khi shop đã kết nối) → 200 data null, không phải lỗi.
+    /// </summary>
     [HttpPost("stores/claim")]
     [HasPermission(EcommercePermissions.Connect)]
     [ProducesResponseType<ApiResponse<StoreConnectionDto>>(StatusCodes.Status200OK)]
     public async Task<IActionResult> Claim(CancellationToken ct)
     {
-        var result = await Sender.Send(new ClaimShopifyInstallCommand(Request.Cookies[OAuthState.InstallCookieName]), ct);
+        var pending = Request.Cookies[OAuthState.InstallCookieName];
+        if (string.IsNullOrEmpty(pending)) return OkData<StoreConnectionDto?>(null);
+        var result = await Sender.Send(new ClaimShopifyInstallCommand(pending), ct);
         Response.Cookies.Delete(OAuthState.InstallCookieName, InstallCookie(null));
         return result.IsFailure ? Problem(result.Error) : OkData(result.Value);
     }
+
+    /// <summary>Trang công khai của portal cho người mở app từ Shopify (đăng nhập tại chỗ rồi gắn shop) — web/src/features/ecommerce/pages/ShopifyConnectPage.</summary>
+    public const string ShopifyPortalPath = "/shopify";
 
     /// <summary>Shopify redirect về sau khi chủ shop đồng ý → 302 về /ecommerce?tab=connect&amp;connected=shopify hoặc &amp;error=…</summary>
     [HttpGet("oauth/shopify/callback")]
@@ -78,7 +86,7 @@ internal sealed class StoresController(PortalHosts portalHosts, IConfiguration c
         if (outcome.PendingInstall is { } pending)
         {
             Response.Cookies.Append(OAuthState.InstallCookieName, pending, InstallCookie(DateTimeOffset.UtcNow + OAuthState.InstallLifetime));
-            return Redirect(PortalHosts.Url(host, "/ecommerce/shopify"));
+            return Redirect(PortalHosts.Url(host, ShopifyPortalPath));
         }
         var target = outcome.Error is null
             ? $"/ecommerce?tab=connect&connected={SalesChannelCodes.Shopify}"

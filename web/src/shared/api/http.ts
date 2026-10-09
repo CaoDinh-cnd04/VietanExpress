@@ -5,7 +5,10 @@
  * - Hợp đồng API từng endpoint: xem web/docs/API_CONTRACT.md.
  */
 
+import { isPendingEndpoint } from './pending';
+
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api/v1';
+
 
 export class ApiError extends Error {
   /** Backend chưa có endpoint: 404 / 501 không kèm message (lỗi 404 có message như "Không tìm thấy đơn" là lỗi thật). */
@@ -81,6 +84,8 @@ async function send(path: string, init: RequestInit, params?: QueryParams): Prom
 }
 
 async function request<T>(method: string, path: string, { params, body }: RequestOptions = {}): Promise<T> {
+  // Endpoint backend chưa làm: báo "chưa có" ngay, không gửi request (tránh lỗi 404 trên trình duyệt).
+  if (isPendingEndpoint(path)) throw new ApiError(NOT_READY_MESSAGE, 501, 'NOT_IMPLEMENTED', true);
   const isForm = body instanceof FormData;
   const res = await send(path, {
     method,

@@ -15,6 +15,7 @@ export interface RouteHandle {
 const CreateOrderPage = lazy(() => import('@/features/create-order/pages/CreateOrderPage'));
 const PublicMyTrackingPage = lazy(() => import('@/features/mytracking/pages/PublicMyTrackingPage'));
 const PrivacyPage = lazy(() => import('@/features/landing/pages/PrivacyPage'));
+const ShopifyConnectPage = lazy(() => import('@/features/ecommerce/pages/ShopifyConnectPage'));
 const pages = {
   myTracking: lazy(() => import('@/features/mytracking/pages/MyTrackingPage')),
   staff: lazy(() => import('@/features/staff/pages/StaffPage')),
@@ -25,7 +26,6 @@ const pages = {
   pricing: lazy(() => import('@/features/pricing/pages/PricingPage')),
   ecommerce: lazy(() => import('@/features/ecommerce/pages/EcommercePage')),
   ecomOrders: lazy(() => import('@/features/ecommerce/pages/EcomOrdersPage')),
-  shopifyLaunch: lazy(() => import('@/features/ecommerce/pages/ShopifyLaunchPage')),
   troubles: lazy(() => import('@/features/troubles/pages/TroublesPage')),
   notifications: lazy(() => import('@/features/notifications/pages/NotificationsPage')),
   support: lazy(() => import('@/features/support/pages/SupportPage')),
@@ -57,6 +57,8 @@ const routes: RouteObject[] = [
   { path: '/t/:slug', element: <Suspense fallback={null}><PublicMyTrackingPage /></Suspense> },
   // Chính sách bảo mật app Shopify (link khai trong App Store listing).
   { path: '/privacy', element: <Suspense fallback={null}><PrivacyPage /></Suspense> },
+  // Mở app từ Shopify (backend OAuth xong chuyển về đây): công khai, tự đăng nhập tại chỗ rồi gắn shop vào tài khoản.
+  { path: '/shopify', element: <Suspense fallback={null}><ShopifyConnectPage /></Suspense> },
   // Portal: phải đăng nhập, chưa có phiên thì chuyển về /login?next=...
   {
     element: (
@@ -76,8 +78,8 @@ const routes: RouteObject[] = [
       page('pricing', 'Giá & gợi ý dịch vụ', pages.pricing),
       page('ecommerce', 'E-commerce', pages.ecommerce, PERMISSIONS.ecommerceView),
       page('ecommerce/orders', 'Đơn hàng E-com', pages.ecomOrders, PERMISSIONS.ecommerceView),
-      // application_url của app Shopify (shopify.app.toml): mở app từ Shopify → tự kết nối shop.
-      page('ecommerce/shopify', 'Kết nối Shopify', pages.shopifyLaunch, PERMISSIONS.ecommerceConnect),
+      // Đường cũ của trang mở app từ Shopify — giữ để link cũ vẫn chạy.
+      { path: 'ecommerce/shopify', element: <Navigate to="/shopify" replace /> },
       page('troubles', 'Quản lý sự cố', pages.troubles),
       page('notifications', 'Thông báo', pages.notifications),
       page('help', 'Trợ giúp & Góp ý', pages.support),

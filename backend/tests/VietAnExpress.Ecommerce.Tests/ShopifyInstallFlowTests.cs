@@ -110,7 +110,7 @@ public class ShopifyInstallFlowTests
 
         var result = await f.Handler().Handle(new StartShopifyInstallCommand(Signed(("shop", Shop), ("timestamp", "1")), Host), Ct);
 
-        Assert.Equal(($"https://{Host}/ecommerce", (string?)null), (result.Value.RedirectUrl, result.Value.Nonce));
+        Assert.Equal(($"https://{Host}/shopify", (string?)null), (result.Value.RedirectUrl, result.Value.Nonce));
     }
 
     [Fact]

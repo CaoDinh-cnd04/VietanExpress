@@ -117,7 +117,8 @@ internal sealed class StoreConnectionHandlers(
 
         var connected = await db.StoreConnections.AnyAsync(s => s.ChannelCode == SalesChannelCodes.Shopify && s.ShopId == shop
             && s.DisconnectedAt == null && s.Status == StoreConnection.Active && s.AccessTokenEncrypted != null, ct);
-        if (connected) return new ShopifyLaunch(PortalHosts.Url(c.PortalHost, "/ecommerce"), null);
+        // Shop đã kết nối: vào trang Shopify của portal (chưa đăng nhập thì đăng nhập tại chỗ, không về trang chủ).
+        if (connected) return new ShopifyLaunch(PortalHosts.Url(c.PortalHost, "/shopify"), null);
 
         var started = Authorize(OAuthState.InstallFlow, shop, c.PortalHost);
         return new ShopifyLaunch(started.AuthorizeUrl, started.Nonce);

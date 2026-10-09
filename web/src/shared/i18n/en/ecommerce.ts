@@ -240,7 +240,7 @@ export const ecommerce: Record<string, string> = {
   // Trang Đơn hàng E-com (menu Dịch vụ & Bán hàng)
   'Đơn hàng E-com': 'E-com orders',
   'Đơn từ Shopify, file Excel hoặc nhập tay đã xác nhận gửi — in nhãn, phiếu đóng gói, bảng kê giao cho Việt An.': 'Orders from Shopify, Excel files or manual entry confirmed for shipping — print labels, packing lists and handover manifests for Viet An.',
-  // Mở app từ Shopify (/ecommerce/shopify)
+  // Mở app từ Shopify (/shopify)
   'Kết nối Shopify': 'Connect Shopify',
   'Đang kết nối cửa hàng Shopify…': 'Connecting your Shopify store…',
   'Đang gắn cửa hàng vừa cài vào tài khoản của bạn.': 'Linking the store you just installed to your account.',
@@ -253,4 +253,11 @@ export const ecommerce: Record<string, string> = {
   '{n} SP': '{n} items',
   'Kèm mã nước, vd +81…': 'Include country code, e.g. +81…',
   'Trống: Việt An cân': 'Blank: Viet An weighs',
+  'Kết nối cửa hàng Shopify với Việt An Express': 'Connect your Shopify store to Viet An Express',
+  'Đăng nhập tài khoản Việt An Express để hoàn tất kết nối. Sau đó đơn hàng Shopify tự về mục E-commerce để tạo vận đơn quốc tế.': 'Sign in to your Viet An Express account to finish connecting. Your Shopify orders will then sync to E-commerce, where you create international shipments.',
+  'Đăng nhập tài khoản Việt An Express': 'Sign in to your Viet An Express account',
+  'Cửa hàng vừa cài tự gắn vào tài khoản': 'The store you just installed is linked to your account automatically',
+  'Đơn hàng Shopify mới tự đồng bộ về E-commerce → Đơn hàng': 'New Shopify orders sync to E-commerce → Orders',
+  'Chưa có tài khoản Việt An Express?': 'No Viet An Express account yet?',
+  'Gửi yêu cầu, Việt An tạo tài khoản và gửi thông tin đăng nhập cho bạn trong ngày làm việc.': 'Send us a request and Viet An will create your account and send your login details within one business day.',
 };

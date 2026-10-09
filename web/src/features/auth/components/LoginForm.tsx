@@ -15,15 +15,15 @@ const schema = z.object({
 });
 type FormValues = z.infer<typeof schema>;
 
-/** Form đăng nhập portal (không kèm khung). Đã đăng nhập thì hiện nút vào portal. */
-export function LoginForm({ autoFocus }: { autoFocus?: boolean }) {
+/** Form đăng nhập portal (không kèm khung). Đã đăng nhập thì hiện nút vào portal. `next` = trang quay lại (mặc định lấy ?next=). */
+export function LoginForm({ autoFocus, next: nextPath }: { autoFocus?: boolean; next?: string }) {
   const { t } = useI18n();
   const session = useSession();
   const login = useLogin();
   const logout = useLogout();
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const next = safeNextPath(params.get('next'));
+  const next = safeNextPath(nextPath ?? params.get('next'));
 
   const { register, handleSubmit, formState } = useForm<FormValues>({
     resolver: zodResolver(schema),

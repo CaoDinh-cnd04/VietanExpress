@@ -154,7 +154,8 @@ export function useStartStoreConnection() {
 export function useClaimShopifyInstall() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: () => http.post<{ data: StoreConnection }>('/ecom/stores/claim').then(r => r.data),
+    // data null = không có shop đang chờ gắn (mở lại app khi shop đã kết nối).
+    mutationFn: () => http.post<{ data: StoreConnection | null }>('/ecom/stores/claim').then(r => r.data),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ecomKeys.stores })
   });
 }

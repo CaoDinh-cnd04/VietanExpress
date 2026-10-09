@@ -7,10 +7,11 @@ import type { LoginRequest, Session, SessionUser } from './types';
 export const sessionKey = ['session'] as const;
 
 
+/** Phiên hiện tại: GET /auth/session luôn trả 200 (data null = chưa đăng nhập) nên mở trang khi chưa đăng nhập không sinh lỗi 401. */
 async function fetchSession(): Promise<Session> {
   try {
-    const res = await http.get<{ data: SessionUser }>('/me');
-    return { status: 'authenticated', user: res.data };
+    const res = await http.get<{ data: SessionUser | null }>('/auth/session');
+    return res.data ? { status: 'authenticated', user: res.data } : { status: 'anonymous' };
   } catch (e) {
     if (e instanceof ApiError && e.status === 401) return { status: 'anonymous' };
     if (isNotImplemented(e)) return { status: 'open' };
