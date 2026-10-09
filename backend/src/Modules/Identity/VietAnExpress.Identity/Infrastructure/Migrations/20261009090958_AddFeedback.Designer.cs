@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using VietAnExpress.Identity.Infrastructure;
 
@@ -11,9 +12,11 @@ using VietAnExpress.Identity.Infrastructure;
 namespace VietAnExpress.Identity.Infrastructure.Migrations
 {
     [DbContext(typeof(IdentityDbContext))]
-    partial class IdentityDbContextModelSnapshot : ModelSnapshot
+    [Migration("20261009090958_AddFeedback")]
+    partial class AddFeedback
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -66,10 +69,6 @@ namespace VietAnExpress.Identity.Infrastructure.Migrations
                         .HasMaxLength(4000)
                         .HasColumnType("nvarchar(4000)")
                         .HasColumnName("Noi_Dung");
-
-                    b.Property<byte?>("Rating")
-                        .HasColumnType("tinyint")
-                        .HasColumnName("So_Sao");
 
                     b.Property<DateTime?>("SeenAt")
                         .HasColumnType("datetime")

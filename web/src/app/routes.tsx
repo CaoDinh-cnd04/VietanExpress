@@ -16,6 +16,7 @@ const CreateOrderPage = lazy(() => import('@/features/create-order/pages/CreateO
 const PublicMyTrackingPage = lazy(() => import('@/features/mytracking/pages/PublicMyTrackingPage'));
 const PrivacyPage = lazy(() => import('@/features/landing/pages/PrivacyPage'));
 const ShopifyConnectPage = lazy(() => import('@/features/ecommerce/pages/ShopifyConnectPage'));
+const AdminPage = lazy(() => import('@/features/admin/pages/AdminPage'));
 const pages = {
   myTracking: lazy(() => import('@/features/mytracking/pages/MyTrackingPage')),
   staff: lazy(() => import('@/features/staff/pages/StaffPage')),
@@ -30,7 +31,8 @@ const pages = {
   notifications: lazy(() => import('@/features/notifications/pages/NotificationsPage')),
   support: lazy(() => import('@/features/support/pages/SupportPage')),
   apiTracking: lazy(() => import('@/features/account/pages/ApiTrackingPage')),
-  password: lazy(() => import('@/features/account/pages/ChangePasswordPage'))
+  password: lazy(() => import('@/features/account/pages/ChangePasswordPage')),
+  feedback: lazy(() => import('@/features/feedback/pages/FeedbackPage'))
 } satisfies Record<string, LazyExoticComponent<ComponentType>>;
 
 /**
@@ -59,6 +61,8 @@ const routes: RouteObject[] = [
   { path: '/privacy', element: <Suspense fallback={null}><PrivacyPage /></Suspense> },
   // Mở app từ Shopify (backend OAuth xong chuyển về đây): công khai, tự đăng nhập tại chỗ rồi gắn shop vào tài khoản.
   { path: '/shopify', element: <Suspense fallback={null}><ShopifyConnectPage /></Suspense> },
+  // Trang quản trị Việt An: đăng nhập tài khoản quản trị riêng (không phải tài khoản khách).
+  { path: '/admin', element: <Suspense fallback={null}><AdminPage /></Suspense> },
   // Portal: phải đăng nhập, chưa có phiên thì chuyển về /login?next=...
   {
     element: (
@@ -87,6 +91,7 @@ const routes: RouteObject[] = [
       page('account/mytracking', 'MyTracking cá nhân', pages.myTracking, PERMISSIONS.myTracking),
       page('account/staff', 'Tài khoản nhân viên', pages.staff, PERMISSIONS.manageStaff),
       page('account/password', 'Đổi mật khẩu', pages.password),
+      page('account/feedback', 'Góp ý', pages.feedback, PERMISSIONS.feedback),
       { path: '*', element: <NotFoundPage />, handle: { title: 'Không tìm thấy trang' } satisfies RouteHandle }
     ]
   }

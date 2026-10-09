@@ -54,6 +54,6 @@ export const TOUR_STEPS: readonly TourStep[] = [
   {
     placement: 'center',
     title: 'Sẵn sàng rồi!',
-    body: 'Bắt đầu với đơn đầu tiên của bạn. Cần hỗ trợ, gọi hotline +84 909 805 845.'
+    body: 'Bạn đã sẵn sàng tạo đơn đầu tiên! Sau khi trải nghiệm các chức năng, hãy vào "Tài khoản" → "Góp ý" trên thanh menu bên trái để chia sẻ cảm nhận, báo lỗi hoặc đề xuất cải tiến. Mỗi góp ý của bạn đều giúp Việt An hoàn thiện dịch vụ và mang đến trải nghiệm thuận tiện hơn. Cần hỗ trợ ngay? Liên hệ qua Zalo 0866709826.'
   }
 ];

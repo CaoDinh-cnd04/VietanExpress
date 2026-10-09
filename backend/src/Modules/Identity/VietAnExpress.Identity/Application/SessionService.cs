@@ -63,18 +63,21 @@ internal sealed class SessionService(ITokenService tokens, ICustomersApi custome
     /// <summary>Quyền của tài khoản chính (admin).</summary>
     public IReadOnlyList<string> Permissions => _permissions ??= _customerPermissions.Select(p => p.Code).ToList();
 
-    /// <summary>Quyền admin được cấp cho tài khoản con — mọi quyền của khách trừ <see cref="IdentityPermissions.AdminOnly"/>.</summary>
+    /// <summary>Quyền admin chọn được cho tài khoản con — mọi quyền của khách trừ <see cref="IdentityPermissions.AdminOnly"/> và quyền tài khoản con luôn có.</summary>
     public IReadOnlyList<PermissionDefinition> AssignablePermissions =>
-        _assignable ??= _customerPermissions.Where(p => !IdentityPermissions.AdminOnly.Contains(p.Code)).ToList();
+        _assignable ??= _customerPermissions
+            .Where(p => !IdentityPermissions.AdminOnly.Contains(p.Code) && !IdentityPermissions.StaffAlways.Contains(p.Code)).ToList();
 
     public bool IsAssignable(string code) =>
         (_assignableCodes ??= AssignablePermissions.Select(p => p.Code).ToHashSet(StringComparer.Ordinal)).Contains(code.Trim());
 
-    /// <summary>Quyền thực tế của tài khoản con: quyền đã lưu ∩ quyền được cấp (quyền bị bỏ khỏi code thì tự mất).</summary>
+    /// <summary>Quyền thực tế của tài khoản con: (quyền đã lưu ∩ quyền chọn được) + quyền luôn có (vd gửi góp ý).</summary>
     public IReadOnlyList<string> StaffPermissions(StaffAccount staff)
     {
         var granted = staff.PermissionList.ToHashSet(StringComparer.Ordinal);
-        return AssignablePermissions.Select(p => p.Code).Where(granted.Contains).ToList();
+        return AssignablePermissions.Select(p => p.Code).Where(granted.Contains)
+            .Concat(_customerPermissions.Select(p => p.Code).Where(IdentityPermissions.StaffAlways.Contains))
+            .ToList();
     }
 
     /// <summary>Null nếu tài khoản không còn đăng nhập được (hồ sơ khách không còn / chưa có mật khẩu).</summary>

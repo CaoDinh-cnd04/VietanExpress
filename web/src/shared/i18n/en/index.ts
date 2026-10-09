@@ -7,6 +7,7 @@ import { ecommerce } from './ecommerce';
 import { landing } from './landing';
 import { orders } from './orders';
 import { pricing } from './pricing';
+import { feedback } from './feedback';
 import { support } from './support';
 import { start } from './start';
 import { mytracking } from './mytracking';
@@ -29,5 +30,6 @@ export const EN: Readonly<Record<string, string>> = {
   ...pricing,
   ...ecommerce,
   ...landing,
-  ...categories
+  ...categories,
+  ...feedback
 };

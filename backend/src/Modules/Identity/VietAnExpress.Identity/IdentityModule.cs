@@ -94,6 +94,8 @@ internal sealed class IdentityPermissionProvider : IPermissionProvider
     [
         new(IdentityPermissions.ManageStaff, "Quản lý tài khoản nhân viên", SystemRoles.Customer),
         new(IdentityPermissions.MyTracking, "Cấu hình trang MyTracking", SystemRoles.Customer),
-        new(IdentityPermissions.ChangePassword, "Đổi mật khẩu", SystemRoles.Customer)
+        new(IdentityPermissions.ChangePassword, "Đổi mật khẩu", SystemRoles.Customer),
+        new(IdentityPermissions.Feedback, "Gửi góp ý", SystemRoles.Customer),
+        new(IdentityPermissions.AdminFeedback, "Xem góp ý của khách (quản trị Việt An)", SystemRoles.VietAnAdmin)
     ];
 }

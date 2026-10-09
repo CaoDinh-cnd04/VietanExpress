@@ -343,6 +343,13 @@ Liên hệ để trống thì không hiện nút trong preview. Cấu hình ản
 | Method | Path | Trạng thái | Mô tả |
 |---|---|---|---|
 | POST | `/auth/change-password` | **Mới** | `{ currentPassword, newPassword }` — sai mật khẩu hiện tại trả 400 + `message`. Quy tắc: ≥ 8 ký tự, có chữ và số. Ghi vào `dbo.TCustomer.Login_Password` (dạng như hệ thống cũ); các thiết bị khác phải đăng nhập lại |
+| GET | `/account/feedback` | **Mới** | Góp ý đã gửi (Tài khoản → Góp ý; tài khoản con chỉ thấy góp ý của mình, tối đa 50) → `[{ id, message, contact, rating, createdAt: "dd/MM/yyyy HH:mm", seen, images: [{ id, fileName, size }] }]` (`rating` 1–5 hoặc null). Quyền `account.feedback` (tài khoản con luôn có) |
+| POST | `/account/feedback` | **Mới** | `multipart/form-data`: `message` (bắt buộc, ≤ 4000), `contact?` (≤ 200), `rating?` (1–5 sao), `images` (0–5 ảnh JPG / PNG / WEBP / GIF, mỗi ảnh ≤ 5 MB; backend kiểm đầu file) → `{ data: FeedbackItem, message }`. Lưu dbo.GopY + dbo.GopY_HinhAnh |
+| DELETE | `/account/feedback/:id` | **Mới** | Khách xóa góp ý của mình (xóa hẳn, kèm ảnh; tài khoản con chỉ xóa góp ý mình gửi) → `{ message }` |
+| GET | `/account/feedback/images/:id` | **Mới** | Ảnh góp ý (khách: ảnh của góp ý mình gửi; quản trị: mọi ảnh) |
+| POST | `/admin/login` | **Mới** | Trang quản trị /admin: `{ userName, password }` (tài khoản cố định trong code, chỉ lưu mã băm) → `{ data: { token, expiresAt, userName } }` — gửi lại bằng header `Authorization: Bearer`, không dùng cookie của khách |
+| GET | `/admin/feedback` | **Mới** | Góp ý mọi khách, mới nhất trước (tối đa 500) → `[{ ...FeedbackItem, customerCode, companyName, userName, isStaff }]`. Quyền `admin.feedback` (chỉ vai trò va_admin) |
+| POST | `/admin/feedback/:id/seen` | **Mới** | Đánh dấu đã xem (khách thấy "Việt An đã xem") |
 | POST | `/support/feedback` | **Chưa làm** | `multipart/form-data`: `category, subject, message, contact, attachment?` (≤ 10MB) |
 | POST | `/auth/login` | **Mới** | `{ username, password, remember }` — `username` là tên đăng nhập của khách (`dbo.TCustomer.Login_UserName`), mật khẩu so với `Login_Password`; không khớp thì thử tài khoản con của nhân viên (§7.1). Đúng: đặt cookie phiên (httpOnly; `remember: false` → cookie hết khi đóng trình duyệt) và trả `{ data: SessionUser }`. Sai: 401 + `message` |
 | GET | `/auth/session` | **Mới** | Phiên hiện tại cho web portal, **luôn 200**: đã đăng nhập → `{ data: SessionUser }`; access token hết hạn mà còn refresh cookie → làm mới (đặt lại cookie) rồi trả người dùng; chưa đăng nhập → `{ data: null }`. Frontend dùng thay `/me` để mở trang khi chưa đăng nhập không sinh lỗi 401 (Shopify review) |

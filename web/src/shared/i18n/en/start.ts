@@ -50,8 +50,8 @@ export const start: Record<string, string> = {
   'Đổi mật khẩu, đăng xuất và "Xem hướng dẫn sử dụng" để mở lại phần giới thiệu này.':
     'Change password, sign out, and "View user guide" to replay this tour.',
   'Sẵn sàng rồi!': "You're all set!",
-  'Bắt đầu với đơn đầu tiên của bạn. Cần hỗ trợ, gọi hotline +84 909 805 845.':
-    'Start with your first order. Need help? Call our hotline +84 909 805 845.',
+  'Bạn đã sẵn sàng tạo đơn đầu tiên! Sau khi trải nghiệm các chức năng, hãy vào "Tài khoản" → "Góp ý" trên thanh menu bên trái để chia sẻ cảm nhận, báo lỗi hoặc đề xuất cải tiến. Mỗi góp ý của bạn đều giúp Việt An hoàn thiện dịch vụ và mang đến trải nghiệm thuận tiện hơn. Cần hỗ trợ ngay? Liên hệ qua Zalo 0866709826.':
+    'You are ready to create your first order! After trying the features, go to "Account" → "Feedback" in the left sidebar to share your experience, report issues or suggest improvements. Your feedback helps Viet An improve our service and make the portal easier to use. Need help now? Contact us on Zalo at 0866709826.',
 
   // Hãng / hub
   'Chuyên tuyến': 'Dedicated route',

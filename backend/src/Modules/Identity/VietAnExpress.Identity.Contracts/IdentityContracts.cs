@@ -7,6 +7,13 @@ public static class IdentityPermissions
     public const string MyTracking = "account.mytracking";
     /// <summary>Tự đổi mật khẩu — tài khoản con không có (admin đặt lại ở trang Tài khoản nhân viên).</summary>
     public const string ChangePassword = "account.password";
+    /// <summary>Gửi góp ý (khách và tài khoản con).</summary>
+    public const string Feedback = "account.feedback";
+    /// <summary>Xem góp ý của mọi khách — chỉ quản trị Việt An (vai trò va_admin), khách không bao giờ có.</summary>
+    public const string AdminFeedback = "admin.feedback";
 
     public static readonly IReadOnlySet<string> AdminOnly = new HashSet<string>(StringComparer.Ordinal) { ManageStaff, MyTracking, ChangePassword };
+
+    /// <summary>Tài khoản con luôn có (không cần tài khoản chính chọn, không hiện trong danh sách quyền để chọn).</summary>
+    public static readonly IReadOnlySet<string> StaffAlways = new HashSet<string>(StringComparer.Ordinal) { Feedback };
 }

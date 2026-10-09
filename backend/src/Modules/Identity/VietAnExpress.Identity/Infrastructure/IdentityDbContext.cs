@@ -41,7 +41,7 @@ internal sealed class CustomerLoginConfiguration : IEntityTypeConfiguration<Cust
 }
 
 /// <summary>
-/// dbo.TCustomer (bảng cũ, không migration) + 2 bảng mới người dùng đã đồng ý: dbo.TaiKhoanNhanVien (tạm), dbo.MyTrackingCauHinh.
+/// dbo.TCustomer (bảng cũ, không migration) + bảng mới người dùng đã đồng ý: dbo.TaiKhoanNhanVien (tạm), dbo.MyTrackingCauHinh, dbo.GopY + dbo.GopY_HinhAnh.
 /// Schema "identity" chỉ chứa lịch sử migration.
 /// </summary>
 internal sealed class IdentityDbContext(DbContextOptions<IdentityDbContext> options) : DbContext(options)
@@ -55,6 +55,10 @@ internal sealed class IdentityDbContext(DbContextOptions<IdentityDbContext> opti
 
     /// <summary>Trang MyTracking của khách (dbo.MyTrackingCauHinh).</summary>
     public DbSet<MyTrackingPage> MyTrackingPages => Set<MyTrackingPage>();
+
+    /// <summary>Góp ý khách gửi (dbo.GopY) và ảnh đính kèm (dbo.GopY_HinhAnh).</summary>
+    public DbSet<Feedback> Feedbacks => Set<Feedback>();
+    public DbSet<FeedbackImage> FeedbackImages => Set<FeedbackImage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

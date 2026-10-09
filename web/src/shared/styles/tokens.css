@@ -14,6 +14,8 @@
   --color-hero-to: #2e8b3e;
   --color-on-hero: #ffffff;
   --color-on-hero-muted: rgba(255, 255, 255, 0.78);
+  /* Nút / chữ đặt trên ảnh (vd nút bỏ ảnh) */
+  --color-overlay: rgba(0, 0, 0, 0.55);
 
   /* Nền & chữ */
   /* Tương phản cao cho dễ đọc lâu: chữ phụ vẫn đạt WCAG AA (≥ 4.5:1) trên nền trắng; nền xám nhẹ để bớt chói. */
@@ -40,6 +42,7 @@
   --color-social-whatsapp: #25d366; /* màu thương hiệu WhatsApp */
   --color-info-soft: #e9f1fb;
   --color-warning: #9a6200;
+  --color-rating: #f5a623;
   --color-warning-soft: #fdf3e0;
   --color-danger: #c42e28;
   --color-danger-soft: #fdeceb;
@@ -98,6 +101,7 @@
     --color-input-filled: #8bbcf2;
     --color-info-soft: #132539;
     --color-warning: #e5a93a;
+    --color-rating: #f2b84b;
     --color-warning-soft: #2a2010;
     --color-danger: #f0736c;
     --color-danger-soft: #2c1614;
@@ -126,6 +130,7 @@
   --color-input-filled: #8bbcf2;
   --color-info-soft: #132539;
   --color-warning: #e5a93a;
+  --color-rating: #f2b84b;
   --color-warning-soft: #2a2010;
   --color-danger: #f0736c;
   --color-danger-soft: #2c1614;

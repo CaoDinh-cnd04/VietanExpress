@@ -21,6 +21,8 @@ public static class SystemRoles
 {
     public const string Customer = "customer";
     public const string CustomerStaff = "customer_staff";
+    /// <summary>Quản trị Việt An (trang /admin) — tài khoản cố định trong code, không phải khách.</summary>
+    public const string VietAnAdmin = "va_admin";
 }
 
 /// <summary>1 quyền và các vai trò được cấp quyền này (khai báo trong code, không lưu DB).</summary>

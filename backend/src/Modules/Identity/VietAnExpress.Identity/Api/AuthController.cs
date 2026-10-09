@@ -52,26 +52,28 @@ internal sealed class AuthController(IOptions<JwtOptions> jwt) : ApiControllerBa
     }
 
     /// <summary>
-    /// Phiên hiện tại cho web portal — luôn 200 (không sinh lỗi 401 khi chưa đăng nhập, vd trang mở từ Shopify):
-    /// đã đăng nhập → người dùng; access token hết hạn nhưng còn refresh cookie → làm mới rồi trả người dùng; còn lại → data null.
+    /// Phiên hiện tại cho web portal — luôn 200 (không sinh lỗi 401 khi chưa đăng nhập, vd trang mở từ Shopify).
+    /// Còn refresh cookie → cấp lại token theo quyền hiện tại rồi trả người dùng (thêm / đổi quyền trong code hoặc admin đổi quyền
+    /// tài khoản con thì mở lại trang là có hiệu lực, không phải đăng nhập lại); chỉ có access token → người dùng; còn lại → data null.
     /// </summary>
     [HttpGet("session")]
     [AllowAnonymous]
     [ProducesResponseType<ApiResponse<SessionUserDto>>(StatusCodes.Status200OK)]
     public async Task<IActionResult> Session(CancellationToken ct)
     {
-        if (User.Identity?.IsAuthenticated == true)
-        {
-            var current = await Sender.Send(new GetSessionQuery(), ct);
-            if (current.IsSuccess) return OkData(current.Value);
-        }
-
         var refresh = Request.Cookies[AuthCookies.Refresh];
         if (!string.IsNullOrEmpty(refresh))
         {
             var renewed = await Sender.Send(new RefreshSessionCommand(refresh), ct);
             if (renewed.IsSuccess) return SessionResponse(renewed.Value, useCookies: true, message: null);
             AuthCookies.Clear(Response, jwt.Value);
+            return OkData<SessionUserDto?>(null);
+        }
+
+        if (User.Identity?.IsAuthenticated == true)
+        {
+            var current = await Sender.Send(new GetSessionQuery(), ct);
+            if (current.IsSuccess) return OkData(current.Value);
         }
         return OkData<SessionUserDto?>(null);
     }

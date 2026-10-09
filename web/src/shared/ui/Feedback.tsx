@@ -38,20 +38,25 @@ export function StatGrid({ children }: { children: ReactNode }) {
 
 interface FileDropProps {
   accept: string;
-  onFile: (file: File) => void;
+  /** 1 tệp (tệp đầu tiên). Bỏ qua khi có onFiles. */
+  onFile?: (file: File) => void;
+  /** Nhiều tệp cùng lúc (chọn / kéo thả nhiều). */
+  onFiles?: (files: File[]) => void;
   title?: string;
   hint?: ReactNode;
   disabled?: boolean;
 }
 
 /** Vùng kéo-thả / chọn tệp. */
-export function FileDrop({ accept, onFile, title = 'Kéo & thả tệp vào đây hoặc bấm để chọn', hint, disabled }: FileDropProps) {
+export function FileDrop({ accept, onFile, onFiles, title = 'Kéo & thả tệp vào đây hoặc bấm để chọn', hint, disabled }: FileDropProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [over, setOver] = useState(false);
   const tr = useTranslateNode();
   const take = (files: FileList | null) => {
-    const f = files?.[0];
-    if (f) onFile(f);
+    const list = files ? [...files] : [];
+    if (!list.length) return;
+    if (onFiles) onFiles(list);
+    else onFile?.(list[0]!);
   };
 
   return (
@@ -79,6 +84,7 @@ export function FileDrop({ accept, onFile, title = 'Kéo & thả tệp vào đâ
         ref={inputRef}
         type="file"
         accept={accept}
+        multiple={!!onFiles}
         className="visually-hidden"
         tabIndex={-1}
         onChange={e => {

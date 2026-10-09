@@ -45,6 +45,9 @@ export function toError(status: number, message?: string, code?: string): ApiErr
 
 export type QueryParams = Record<string, string | number | boolean | null | undefined>;
 
+/** URL đầy đủ của 1 API (vd làm src cho ảnh, hoặc gọi fetch riêng). */
+export const apiUrl = (path: string, params?: QueryParams): string => buildUrl(path, params);
+
 function buildUrl(path: string, params?: QueryParams): string {
   const url = new URL(BASE_URL + path, window.location.origin);
   Object.entries(params ?? {}).forEach(([key, value]) => {
