@@ -267,7 +267,11 @@
   gap: var(--space-4);
 }
 
+/* Khung tổng chỉ rộng vừa nội dung, nằm góc phải hàng */
 .feeRow .invoiceTotal {
+  justify-self: end;
+  flex: none;
+  gap: var(--space-6);
   min-height: var(--control-h);
   padding-block: 4px;
 }
@@ -704,13 +708,68 @@
   gap: var(--space-2);
   width: 100%;
   min-height: var(--control-h);
-  padding: 4px var(--space-3);
+  padding: 3px 4px 3px var(--space-3);
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-sm);
   background: var(--color-surface);
-  text-align: left;
-  font: inherit;
   color: var(--color-text);
+  cursor: pointer;
+}
+
+/* Dịch vụ đã chọn: thẻ có viền + nút × */
+.addonChips {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-width: 0;
+}
+
+.addonChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  padding: 1px 3px 1px var(--space-2);
+  border: 1px solid var(--color-brand);
+  border-radius: 999px;
+  background: var(--color-brand-soft);
+  color: var(--color-brand-strong);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  line-height: 18px;
+  cursor: default;
+}
+
+.addonChipRemove {
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--color-brand-strong);
+  cursor: pointer;
+}
+
+.addonChipRemove:hover {
+  background: var(--color-brand);
+  color: var(--color-on-hero);
+}
+
+.addonToggle {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 24px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
 }
 
 .addonTrigger:hover,
@@ -722,28 +781,8 @@
   box-shadow: var(--focus-ring);
 }
 
-.addonSummary {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .addonNone {
   color: var(--color-text-muted);
-}
-
-.addonCount {
-  flex: none;
-  min-width: 20px;
-  padding: 0 6px;
-  border-radius: 999px;
-  background: var(--color-brand);
-  color: #fff;
-  font-size: var(--text-xs);
-  font-weight: 700;
-  text-align: center;
 }
 
 .addonMenu {

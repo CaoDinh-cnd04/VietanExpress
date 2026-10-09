@@ -255,5 +255,6 @@ export const createOrder: Record<string, string> = {
   '(Chưa đặt tên)': '(Unnamed)',
   '{pcs} kiện · {kg} kg': '{pcs} pcs · {kg} kg',
   'Hàng hóa': 'Parcel',
-  'Chứng từ': 'Documents'
+  'Chứng từ': 'Documents',
+  'Bỏ dịch vụ {name}': 'Remove service {name}',
 };

@@ -1,5 +1,5 @@
 import { Suspense, useEffect, useRef, useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import { useLocalStorage } from '@/shared/lib/useLocalStorage';
 import { cx } from '@/shared/lib/cx';
 import { useSession } from '@/features/auth';
@@ -16,13 +16,37 @@ const MOBILE_QUERY = '(max-width: 1040px)';
 export function AppShell() {
   const [collapsed, setCollapsed] = useLocalStorage('va.nav.collapsed', false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  // Khách bắt đầu gõ ở bất kỳ trang nào → thu gọn tạm menu (không ghi đè lựa chọn đã lưu); rê chuột vào menu thì mở đè lên nội dung.
+  const [autoCollapsed, setAutoCollapsed] = useState(false);
+  const [peek, setPeek] = useState(false);
+  const { pathname } = useLocation();
   const { t } = useI18n();
   const session = useSession();
   const customerCode = session.data?.status === 'authenticated' ? session.data.user.customerCode : undefined;
   const tour = useOnboardingTour(customerCode);
 
+  const menuCollapsed = collapsed || autoCollapsed;
+
+  // Sang trang khác → menu trở lại như khách đã chọn.
+  useEffect(() => {
+    setAutoCollapsed(false);
+    setPeek(false);
+  }, [pathname]);
+
+  const onContentInput = () => {
+    if (menuCollapsed || window.matchMedia(MOBILE_QUERY).matches) return;
+    setAutoCollapsed(true);
+  };
+
+  const expandMenu = () => {
+    setCollapsed(false);
+    setAutoCollapsed(false);
+    setPeek(false);
+  };
+
   const toggleMenu = () => {
     if (window.matchMedia(MOBILE_QUERY).matches) setMobileOpen(o => !o);
+    else if (autoCollapsed) expandMenu();
     else setCollapsed(c => !c);
   };
 
@@ -42,12 +66,19 @@ export function AppShell() {
   }, []);
 
   return (
-    <div className={cx(styles.shell, collapsed && styles.collapsed)}>
-      <Sidebar collapsed={collapsed} mobileOpen={mobileOpen} onNavigate={() => setMobileOpen(false)} onExpand={() => setCollapsed(false)} />
+    <div className={cx(styles.shell, menuCollapsed && styles.collapsed)}>
+      <Sidebar
+        collapsed={menuCollapsed && !peek}
+        peek={peek}
+        mobileOpen={mobileOpen}
+        onNavigate={() => setMobileOpen(false)}
+        onExpand={expandMenu}
+        onHover={hovering => setPeek(autoCollapsed && hovering)}
+      />
       {mobileOpen && <div className={styles.scrim} onClick={() => setMobileOpen(false)} />}
       <div className={styles.main}>
-        <Topbar onMenu={toggleMenu} menuCollapsed={collapsed} onStartTour={tour.start} />
-        <main className={styles.content}>
+        <Topbar onMenu={toggleMenu} menuCollapsed={menuCollapsed} onStartTour={tour.start} />
+        <main className={styles.content} onInput={onContentInput}>
           <Suspense fallback={<p className={styles.loading}>{t('Đang tải…')}</p>}>
             <Outlet />
           </Suspense>

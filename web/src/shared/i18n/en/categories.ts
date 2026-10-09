@@ -65,7 +65,6 @@ export const categories: Record<string, string> = {
   'Chọn hình thức chịu thuế': 'Select duty terms',
   'DDU — người nhận chịu thuế': 'DDU — receiver pays duties',
   'DDP — người gửi chịu thuế': 'DDP — shipper pays duties',
-  'DDP: người gửi chịu thuế · DDU: người nhận chịu thuế': 'DDP: shipper pays duties · DDU: receiver pays duties',
   'Tên tiếng Việt (bắt buộc)': 'Vietnamese name (required)',
   'Nhập tên hàng (VN)': 'Enter the item name (VN)',
   'Nhà sản xuất ↵ địa chỉ (Enter để xuống dòng)': 'Manufacturer ↵ address (Enter for a new line)',
@@ -87,9 +86,6 @@ export const categories: Record<string, string> = {
   'Bấm để sửa thông tin người gửi': 'Click to edit shipper details',
   // Thông tin đơn hàng: mô tả tổng quan (PACK), chứng từ mặc định Documents
   'Mô tả tổng quan hàng hóa (content)': 'Goods content (general description)',
-  'Ghi bằng tiếng Anh — tên chung của hàng trong lô, in lên bill (vd: Clothes, Dried food, Electronic parts).':
-    'Write in English — a general name for the goods in this shipment, printed on the bill (e.g. Clothes, Dried food, Electronic parts).',
-  'Số kiện và cân nặng khai theo từng dòng ở "Chi tiết kiện hàng".': 'Pieces and weight are declared per row in "Package details".',
   'Chứng từ không cần khai thêm — nội dung mặc định là Documents. Trên {kg}kg sẽ tự chuyển sang hàng hóa (PACK).':
     'Documents need nothing more — the content defaults to "Documents". Over {kg}kg they are switched to parcel (PACK) automatically.',
   'Nhập mô tả tổng quan hàng hóa': 'Enter the goods content',
@@ -141,4 +137,5 @@ export const categories: Record<string, string> = {
   'Xóa khỏi thư viện': 'Remove from library',
   'Tìm nhóm hàng…': 'Search categories…',
   'Không có nhóm phù hợp.': 'No matching categories.',
+  'Ghi bằng tiếng Anh (vd: Clothes, Dried food, Cosmetics)': 'Write in English (e.g. Clothes, Dried food, Cosmetics)',
 };

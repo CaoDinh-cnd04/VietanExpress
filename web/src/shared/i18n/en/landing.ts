@@ -73,7 +73,7 @@ export const landing: Record<string, string> = {
   'Nước khác?': 'Another country?',
   'Gửi đi hầu hết quốc gia qua DHL, FedEx, UPS, TNT': 'Ship to almost any country via DHL, FedEx, UPS, TNT',
   'Hỏi giá ngay': 'Get a quote',
-  'Máy bay chở hàng Việt An tới {place}': 'Viet An cargo plane flying to {place}',
+  'Ảnh: {author}': 'Photo: {author}',
   'Mỹ': 'USA',
   'Úc': 'Australia',
   'Đài Loan': 'Taiwan',

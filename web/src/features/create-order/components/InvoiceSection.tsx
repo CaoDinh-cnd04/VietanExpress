@@ -63,7 +63,6 @@ export function InvoiceSection() {
               label="Hình thức chịu thuế"
               required
               placeholder="Chọn hình thức chịu thuế"
-              hint="DDP: người gửi chịu thuế · DDU: người nhận chịu thuế"
               options={DUTY_TERMS}
               {...bind('invoice.dutyTerms')}
             />

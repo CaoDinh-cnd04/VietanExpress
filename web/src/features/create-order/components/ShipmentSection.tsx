@@ -57,12 +57,10 @@ export function ShipmentSection({ onShipmentInput, onTypeChange, docConverted }:
               required
               wide
               maxLength={RULES.contentMax}
-              placeholder="e.g. Clothes, shoes and cosmetics"
-              hint="Ghi bằng tiếng Anh — tên chung của hàng trong lô, in lên bill (vd: Clothes, Dried food, Electronic parts)."
+              placeholder="Ghi bằng tiếng Anh (vd: Clothes, Dried food, Cosmetics)"
               {...bind('goods.description')}
             />
           </FormGrid>
-          <p className={styles.hint}>{t('Số kiện và cân nặng khai theo từng dòng ở "Chi tiết kiện hàng".')}</p>
         </>
       )}
       {docConverted && type === 'PACK' && (

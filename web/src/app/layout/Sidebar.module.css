@@ -9,6 +9,15 @@
   overflow: hidden;
 }
 
+/* Thu gọn tạm + rê chuột: mở rộng đè lên nội dung (cột menu vẫn hẹp nên form không bị xô) */
+.peek {
+  position: fixed;
+  left: 0;
+  z-index: 70;
+  width: var(--sidebar-w);
+  box-shadow: var(--shadow-lg);
+}
+
 .brand {
   display: flex;
   align-items: center;

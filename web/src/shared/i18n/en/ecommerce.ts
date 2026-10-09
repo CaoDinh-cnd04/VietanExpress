@@ -246,8 +246,11 @@ export const ecommerce: Record<string, string> = {
   'Đang gắn cửa hàng vừa cài vào tài khoản của bạn.': 'Linking the store you just installed to your account.',
   'Cài ứng dụng Viet An Express từ Shopify App Store hoặc mở ứng dụng trong Shopify admin. Shopify chuyển về đây, bạn đăng nhập là shop tự kết nối vào tài khoản này.': 'Install the Viet An Express app from the Shopify App Store or open it from your Shopify admin. Shopify sends you back here; after you log in, the store connects to this account automatically.',
   'Cài lại ứng dụng từ Shopify để kết nối lại': 'Reinstall the app from Shopify to reconnect',
+  'Bấm Kết nối, chọn shop và bấm Install trên Shopify. Shopify chuyển về đây, shop tự kết nối vào tài khoản này.': 'Click Connect, choose your store and click Install on Shopify. Shopify sends you back here and the store connects to this account automatically.',
   'Việt An sẽ ngừng nhận đơn từ {shop} và gỡ ứng dụng khỏi shop. Đơn đã nhận vẫn giữ nguyên.': 'Viet An will stop receiving orders from {shop} and uninstall the app from the store. Orders already received are kept.',
   'Chưa kết nối được cửa hàng Shopify': 'Could not connect your Shopify store',
   'Mở trang Kết nối': 'Open the Connect tab',
   '{n} SP': '{n} items',
+  'Kèm mã nước, vd +81…': 'Include country code, e.g. +81…',
+  'Trống: Việt An cân': 'Blank: Viet An weighs',
 };

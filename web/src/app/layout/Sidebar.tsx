@@ -10,12 +10,15 @@ import styles from './Sidebar.module.css';
 
 interface SidebarProps {
   collapsed: boolean;
+  /** Menu đang thu gọn tạm nhưng khách rê chuột vào: mở rộng đè lên nội dung, không đẩy trang. */
+  peek?: boolean;
   mobileOpen: boolean;
   onNavigate: () => void;
   onExpand: () => void;
+  onHover?: (hovering: boolean) => void;
 }
 
-export function Sidebar({ collapsed, mobileOpen, onNavigate, onExpand }: SidebarProps) {
+export function Sidebar({ collapsed, peek, mobileOpen, onNavigate, onExpand, onHover }: SidebarProps) {
   const { pathname } = useLocation();
   const { t } = useI18n();
   const badges = useNavBadges();
@@ -26,7 +29,12 @@ export function Sidebar({ collapsed, mobileOpen, onNavigate, onExpand }: Sidebar
   const count = (key?: BadgeKey) => (key ? badges[key] : 0);
 
   return (
-    <aside className={cx(styles.sidebar, collapsed && styles.collapsed, mobileOpen && styles.mobileOpen)} aria-label={t('Menu chính')}>
+    <aside
+      className={cx(styles.sidebar, collapsed && styles.collapsed, peek && styles.peek, mobileOpen && styles.mobileOpen)}
+      aria-label={t('Menu chính')}
+      onMouseEnter={() => onHover?.(true)}
+      onMouseLeave={() => onHover?.(false)}
+    >
       <div className={styles.brand}>
         <img src="/logo.webp" alt="" className={styles.logo} />
         <div className={styles.brandText}>

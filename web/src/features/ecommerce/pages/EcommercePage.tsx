@@ -1,11 +1,13 @@
 import { Navigate, useSearchParams } from 'react-router-dom';
 import { PERMISSIONS, useCan } from '@/features/auth';
 import { useI18n } from '@/shared/i18n';
+import { cx } from '@/shared/lib/cx';
 import { Card, PageHeader, Tabs } from '@/shared/ui';
 import { EcomAddOrder } from '../components/EcomAddOrder';
 import { EcomConnect } from '../components/EcomConnect';
 import { EcomOrderList } from '../components/EcomOrderList';
 import { ECOM_ORDERS_PATH, resolveEcomTab, type EcomTab } from '../lib/store-connection';
+import styles from '../components/ecommerce.module.css';
 
 const TABS: ReadonlyArray<{ key: EcomTab; label: string; permission?: string }> = [
   { key: 'orders', label: 'Đơn hàng' },
@@ -28,7 +30,7 @@ export default function EcommercePage() {
   return (
     <>
       <PageHeader title="E-commerce" description="Kết nối Shopify, TikTok Shop để đơn tự về, hoặc thêm đơn bằng file Excel." />
-      <div className="page-stack">
+      <div className={cx('page-stack', styles.compactPage)}>
         <Card flush>
           <Tabs ariaLabel={t('Chức năng E-commerce')} items={tabs} value={tab} onChange={k => setParams({ tab: k }, { replace: true })} />
         </Card>

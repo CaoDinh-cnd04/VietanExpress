@@ -70,24 +70,49 @@ function AddonPicker({ value, onChange, onShowFees }: { value: string[]; onChang
 
   const none = value.length === 0;
   const toggle = (name: string) => onChange(value.includes(name) ? value.filter(x => x !== name) : [...value, name]);
-  const summary = none
-    ? t(NO_ADDON)
-    : ADDONS.filter(a => value.includes(a.name)).map(a => t(a.name)).join(', ');
+  const selected = ADDONS.filter(a => value.includes(a.name));
 
   return (
     <div ref={root} className={styles.addonPicker}>
-      <button
-        type="button"
-        className={cx(styles.addonTrigger, open && styles.addonTriggerOpen)}
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        aria-controls={listId}
-        onClick={() => setOpen(o => !o)}
-      >
-        <span className={cx(styles.addonSummary, none && styles.addonNone)}>{summary}</span>
-        {!none && <span className={styles.addonCount}>{value.length}</span>}
-        <Icon name="chevronDown" size={15} className={cx(styles.chevron, open && styles.chevronOpen)} />
-      </button>
+      {/* Bấm vùng trống của ô để mở danh sách; mỗi dịch vụ đã chọn là 1 thẻ có nút × bỏ ngay, không cần mở danh sách */}
+      <div className={cx(styles.addonTrigger, open && styles.addonTriggerOpen)} onClick={() => setOpen(o => !o)}>
+        <div className={styles.addonChips}>
+          {none ? (
+            <span className={styles.addonNone}>{t(NO_ADDON)}</span>
+          ) : (
+            selected.map(a => (
+              <span key={a.name} className={styles.addonChip}>
+                {t(a.name)}
+                <button
+                  type="button"
+                  className={styles.addonChipRemove}
+                  aria-label={t('Bỏ dịch vụ {name}', { name: t(a.name) })}
+                  onClick={e => {
+                    e.stopPropagation();
+                    toggle(a.name);
+                  }}
+                >
+                  <Icon name="close" size={11} />
+                </button>
+              </span>
+            ))
+          )}
+        </div>
+        <button
+          type="button"
+          className={styles.addonToggle}
+          aria-haspopup="listbox"
+          aria-expanded={open}
+          aria-controls={listId}
+          aria-label={t('Chọn dịch vụ')}
+          onClick={e => {
+            e.stopPropagation();
+            setOpen(o => !o);
+          }}
+        >
+          <Icon name="chevronDown" size={15} className={cx(styles.chevron, open && styles.chevronOpen)} />
+        </button>
+      </div>
 
       {open && (
         <div id={listId} role="listbox" aria-multiselectable="true" aria-label={t('Tùy chọn dịch vụ')} className={styles.addonMenu}>

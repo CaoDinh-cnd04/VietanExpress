@@ -1,15 +1,17 @@
 /* Trang tạo đơn nhiều ô nhập: thu gọn chữ, ô nhập, khoảng cách (chỉ trong form này, trang khác giữ nguyên). */
 .form {
-  --text-xs: 11.5px;
-  --text-sm: 12px;
-  --text-md: 12.5px;
-  --text-lg: 14px;
-  --control-h: 30px;
-  --control-h-sm: 27px;
-  --space-3: 8px;
-  --space-4: 11px;
-  --space-5: 14px;
-  --space-6: 18px;
+  /* Form tạo đơn gọn hơn phần còn lại của portal (nhiều ô trên 1 màn hình) */
+  --text-xs: 11px;
+  --text-sm: 11.5px;
+  --text-md: 12px;
+  --text-lg: 13.5px;
+  --control-h: 28px;
+  --control-h-sm: 26px;
+  --space-2: 6px;
+  --space-3: 7px;
+  --space-4: 10px;
+  --space-5: 12px;
+  --space-6: 16px;
   font-size: var(--text-sm);
   display: flex;
   flex-direction: column;

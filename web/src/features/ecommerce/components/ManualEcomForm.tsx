@@ -137,20 +137,14 @@ export function ManualEcomForm() {
   return (
     <Card title="Thêm 1 đơn" subtitle="· 1–5 sản phẩm, lưu vào Đơn hàng E-com">
       <form onSubmit={ev => void submit(ev)} noValidate className={styles.formSections}>
-        <section>
-          <h3 className={styles.subTitle}>{t('Đơn hàng')}</h3>
-          <FormGrid columns={2}>
-            <TextField label="Mã đơn của shop (REF)" required error={e.ref?.message} {...register('ref')} />
-            <SelectField label="Bán trên" options={SOURCE_OPTIONS} {...register('source')} />
-          </FormGrid>
-        </section>
-
+        {/* Bố cục dọc: người nhận → đơn hàng → sản phẩm; lưới 4 cột để cả form nằm gọn trong 1 màn hình */}
         <section>
           <h3 className={styles.subTitle}>{t('Người nhận')}</h3>
-          <FormGrid columns={3}>
+          <FormGrid columns={4}>
             <TextField label="Tên người nhận" required error={e.cnee?.message} {...register('cnee')} />
-            <TextField label="Điện thoại" type="tel" required hint="Kèm mã nước, vd +81…; số nội địa sẽ tự thêm mã nước" error={e.phone?.message} {...register('phone')} />
-            <TextField label="Email" type="email" {...register('email')} />
+            <TextField label="Điện thoại" type="tel" required placeholder="Kèm mã nước, vd +81…" error={e.phone?.message} {...register('phone')} />
+            {/* Hàng 1: tên · điện thoại · email; hàng 2: nước · mã bưu chính · thành phố · tỉnh; hàng 3: địa chỉ */}
+            <TextField label="Email" type="email" className={styles.span2} {...register('email')} />
             <TextField
               label="Nước đến"
               required
@@ -166,6 +160,15 @@ export function ManualEcomForm() {
             <TextField label="Địa chỉ người nhận" required className={styles.fullRow} error={e.address?.message} {...register('address')} />
           </FormGrid>
           <datalist id="va-ecom-countries">{countryList.map(c => <option key={c.code} value={c.name} />)}</datalist>
+        </section>
+
+        <section>
+          <h3 className={styles.subTitle}>{t('Đơn hàng')}</h3>
+          <FormGrid columns={4}>
+            <TextField label="Mã đơn của shop (REF)" required error={e.ref?.message} {...register('ref')} />
+            <SelectField label="Bán trên" options={SOURCE_OPTIONS} {...register('source')} />
+            <TextField label="Cân nặng" type="number" min={0} step="any" suffix="kg" placeholder="Trống: Việt An cân" {...register('kg')} />
+          </FormGrid>
         </section>
 
         <section>
@@ -189,11 +192,6 @@ export function ManualEcomForm() {
           <Button size="sm" disabled={fields.length >= MAX_PRODUCTS} onClick={() => append(emptyProduct())}>
             <Icon name="plus" size={15} /> {t('Thêm sản phẩm')}
           </Button>
-          <div className={styles.spaced}>
-            <FormGrid columns={3}>
-              <TextField label="Cân nặng" type="number" min={0} step="any" suffix="kg" hint="Để trống nếu Việt An cân" {...register('kg')} />
-            </FormGrid>
-          </div>
         </section>
 
         <div className={styles.formActions}>

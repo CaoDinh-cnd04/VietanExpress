@@ -9,6 +9,8 @@
 }
 
 .main {
+  /* Luôn ở cột cuối: menu mở đè (position fixed) rời khỏi lưới thì nội dung không bị xếp vào cột menu */
+  grid-column: -2 / -1;
   min-width: 0;
 }
 

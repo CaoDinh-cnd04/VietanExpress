@@ -27,15 +27,26 @@ export const SERVICES: ReadonlyArray<{ icon: IconName; title: string; desc: stri
   { icon: 'warehouse', title: 'Kho bãi & vận chuyển từ cảng', desc: 'Lưu kho, gom hàng; nhận hàng từ cảng, sân bay về kho và ngược lại.' }
 ];
 
-/** Tuyến chuyên — `code` là mã ISO, cờ ở public/flags/<code>.svg (bộ flag-icons, MIT). */
-export const LANES: ReadonlyArray<{ code: string; country: string; landmark: string }> = [
-  { code: 'US', country: 'Mỹ', landmark: 'Tượng Nữ thần Tự do' },
-  { code: 'AU', country: 'Úc', landmark: 'Nhà hát Opera Sydney' },
-  { code: 'CA', country: 'Canada', landmark: 'Tháp CN, Toronto' },
-  { code: 'SG', country: 'Singapore', landmark: 'Marina Bay Sands' },
-  { code: 'MY', country: 'Malaysia', landmark: 'Tháp đôi Petronas' },
-  { code: 'TW', country: 'Đài Loan', landmark: 'Tòa tháp Taipei 101' },
-  { code: 'AE', country: 'Dubai', landmark: 'Tháp Burj Khalifa' }
+/** Ảnh tuyến: ảnh thật giấy phép tự do từ Wikimedia Commons — giấy phép CC bắt buộc ghi tác giả + giấy phép + nguồn. */
+export interface LanePhoto {
+  author: string;
+  license: string;
+  /** Trang ảnh trên Wikimedia Commons (có đủ thông tin giấy phép). */
+  source: string;
+}
+
+/**
+ * Tuyến chuyên — `code` là mã ISO, cờ ở public/flags/<code>.svg (bộ flag-icons, MIT),
+ * ảnh ở public/landing/lanes/<code>.jpg (bản 960px tải từ Wikimedia Commons, không chỉnh sửa).
+ */
+export const LANES: ReadonlyArray<{ code: string; country: string; landmark: string; photo: LanePhoto }> = [
+  { code: 'US', country: 'Mỹ', landmark: 'Tượng Nữ thần Tự do', photo: { author: 'VillageHero', license: 'CC BY-SA 2.0', source: 'https://commons.wikimedia.org/wiki/File:Statue_of_Liberty_and_Manhattan_3_(New_York)_(43429358880).jpg' } },
+  { code: 'AU', country: 'Úc', landmark: 'Nhà hát Opera Sydney', photo: { author: 'Diliff', license: 'CC BY-SA 3.0', source: 'https://commons.wikimedia.org/wiki/File:Sydney_Opera_House_-_Dec_2008.jpg' } },
+  { code: 'CA', country: 'Canada', landmark: 'Tháp CN, Toronto', photo: { author: 'Maksim Sokolov', license: 'CC BY-SA 4.0', source: 'https://commons.wikimedia.org/wiki/File:Toronto_skyline_viewed_from_Trillium_Park.jpg' } },
+  { code: 'SG', country: 'Singapore', landmark: 'Marina Bay Sands', photo: { author: 'Basile Morin', license: 'CC BY-SA 4.0', source: 'https://commons.wikimedia.org/wiki/File:Marina_Bay_Sands_and_illuminated_polyhedral_building_Louis_Vuitton_over_the_water_at_blue_hour_with_pink_clouds_in_Singapore.jpg' } },
+  { code: 'MY', country: 'Malaysia', landmark: 'Tháp đôi Petronas', photo: { author: 'James Kerwin', license: 'CC BY 2.0', source: 'https://commons.wikimedia.org/wiki/File:The_Twins_SE_Asia_2019_(49171985716).jpg' } },
+  { code: 'TW', country: 'Đài Loan', landmark: 'Tòa tháp Taipei 101', photo: { author: 'Andrew Van Ova', license: 'CC BY 2.0', source: 'https://commons.wikimedia.org/wiki/File:Taipei_skyline_2014.jpg' } },
+  { code: 'AE', country: 'Dubai', landmark: 'Tháp Burj Khalifa', photo: { author: 'Jpbowen', license: 'CC BY-SA 4.0', source: 'https://commons.wikimedia.org/wiki/File:Burj_Khalifa_from_the_sea,_Dubai.jpg' } }
 ];
 
 /** Phương châm "Nhanh chóng – Chính xác – An toàn – Tiết kiệm". */
