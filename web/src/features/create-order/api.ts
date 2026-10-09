@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
-import { ApiError, http } from '@/shared/api/http';
-import type { AddressSuggestion, Country, PostalInfo } from './lib/geo';
+import { http } from '@/shared/api/http';
+import type { AddressSuggestion, Country, PostalSuggestion } from './lib/geo';
 import type { RecentReceiver } from './lib/recent-receivers';
 
 /** Nhóm hàng hóa (dbo.NhomHangHoa). */
@@ -189,19 +189,15 @@ export function useCountries() {
   });
 }
 
-/** Tra mã bưu chính → thành phố, tỉnh / bang qua backend (backend gọi GeoNames; frontend không giữ tài khoản GeoNames). Không tìm thấy trả null. */
-export function usePostalLookup(countryCode: string | undefined, postal: string | null) {
+/** Gợi ý mã bưu chính khi khách gõ (backend gọi GeoNames, frontend không giữ tài khoản GeoNames). Nguồn lỗi → []. */
+export function usePostalSearch(countryCode: string | undefined, query: string | null) {
   return useQuery({
-    queryKey: ['geo', 'postal', countryCode, postal],
+    queryKey: ['geo', 'postal-search', countryCode, query],
     queryFn: () =>
       http
-        .get<{ data: PostalInfo }>(`/geo/postal/${encodeURIComponent(countryCode ?? '')}/${encodeURIComponent(postal ?? '')}`)
-        .then(r => r.data)
-        .catch((e: unknown) => {
-          if (e instanceof ApiError && e.status === 404) return null;
-          throw e;
-        }),
-    enabled: !!countryCode && !!postal,
+        .get<{ data: PostalSuggestion[] }>('/geo/postal-search', { country: countryCode, q: query })
+        .then(r => r.data),
+    enabled: !!countryCode && countryCode.length === 2 && !!query,
     staleTime: ONE_DAY,
     retry: false
   });

@@ -39,6 +39,11 @@
   flex: 1;
 }
 
+.cardActions {
+  display: flex;
+  gap: var(--space-2);
+}
+
 .inlineActions {
   display: flex;
   align-items: center;
@@ -943,6 +948,11 @@
 .suggestWrap {
   position: relative;
   grid-column: 1 / -1;
+}
+
+/* Ô 1 cột có danh sách sổ xuống (mã bưu chính) */
+.suggestCell {
+  position: relative;
 }
 
 .suggestPanel {

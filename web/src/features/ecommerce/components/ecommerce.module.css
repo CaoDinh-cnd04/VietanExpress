@@ -29,6 +29,10 @@
   grid-column: 1 / -1;
 }
 
+.suggestWrap {
+  position: relative;
+}
+
 .span2 {
   grid-column: span 2;
 }

@@ -29,6 +29,12 @@ internal sealed class GeoController(IGeoLookup geo) : ApiControllerBase
             ? OkData(info)
             : Problem(Error.NotFound("POSTAL_NOT_FOUND", "Không tìm thấy mã bưu chính"));
 
+    /// <summary>Gợi ý mã bưu chính khi khách đang gõ (<c>q</c> ≥ 2 ký tự): mã bắt đầu bằng <c>q</c> trong nước <c>country</c>, tối đa 15 dòng.</summary>
+    [HttpGet("postal-search")]
+    [ProducesResponseType<ApiResponse<IReadOnlyList<PostalSuggestion>>>(StatusCodes.Status200OK)]
+    public async Task<IActionResult> PostalSearch([FromQuery] string? country, [FromQuery] string? q, CancellationToken ct) =>
+        OkData(await geo.SearchPostalAsync(country ?? "", q ?? "", ct));
+
     /// <summary>Gợi ý địa chỉ trong nước <c>country</c> theo chữ khách gõ (<c>q</c> ≥ 3 ký tự) — tối đa 6 dòng, rỗng khi không có.</summary>
     [HttpGet("addresses")]
     [ProducesResponseType<ApiResponse<IReadOnlyList<AddressSuggestion>>>(StatusCodes.Status200OK)]

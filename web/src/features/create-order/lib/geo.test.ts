@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addressQuery, canAutofill, findCountry, normalizePostal, shouldResetAddress, suggestionFields, type Country } from './geo';
+import { addressQuery, canAutofill, findCountry, normalizePostal, postalOptions, shouldResetAddress, suggestionFields, type Country, type PostalSuggestion } from './geo';
 
 const countries: Country[] = [
   { code: 'US', name: 'United States', dialCode: '+1' },
@@ -65,5 +65,34 @@ describe('suggestionFields', () => {
   it('gợi ý cấp thành phố không ghi đè ô địa chỉ khách đã gõ', () => {
     expect(suggestionFields({ label: 'Austin, TX', address1: '', city: 'Austin', state: 'Texas', postalCode: null, countryCode: 'US' }))
       .toEqual([['city', 'Austin'], ['state', 'Texas']]);
+  });
+});
+
+describe('postalOptions', () => {
+  it('MX: các khu "khu-thành phố" rồi thành phố, theo từng mã', () => {
+    const items: PostalSuggestion[] = [
+      { postalCode: '16090', city: 'Xochimilco', state: 'Distrito Federal', area: 'Barrio San Pedro' },
+      { postalCode: '16090', city: 'Xochimilco', state: 'Distrito Federal', area: 'Caltongo' },
+      { postalCode: '16095', city: 'Xochimilco', state: 'Distrito Federal', area: 'Delegación Política Xochimilco' }
+    ];
+    expect(postalOptions(items)).toEqual([
+      { postalCode: '16090', city: 'Barrio San Pedro-Xochimilco' },
+      { postalCode: '16090', city: 'Caltongo-Xochimilco' },
+      { postalCode: '16090', city: 'Xochimilco' },
+      { postalCode: '16095', city: 'Delegación Política Xochimilco-Xochimilco' },
+      { postalCode: '16095', city: 'Xochimilco' }
+    ]);
+  });
+
+  it('nước không có khu vực → mỗi mã 1 dòng thành phố, xếp tăng dần, bỏ trùng', () => {
+    const items: PostalSuggestion[] = [
+      { postalCode: '10002', city: 'New York', state: 'New York' },
+      { postalCode: '10001', city: 'New York', state: 'New York' },
+      { postalCode: '10001', city: 'New York', state: 'New York' }
+    ];
+    expect(postalOptions(items)).toEqual([
+      { postalCode: '10001', city: 'New York' },
+      { postalCode: '10002', city: 'New York' }
+    ]);
   });
 });

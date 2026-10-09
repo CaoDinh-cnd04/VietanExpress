@@ -1,18 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useFormContext, useWatch } from 'react-hook-form';
-import { Button, Card, FormGrid, TextField, type TextFieldProps } from '@/shared/ui';
+import { Button, Card, FormGrid, Icon, TextField, type TextFieldProps } from '@/shared/ui';
 import { useI18n } from '@/shared/i18n';
 import { useDebouncedCallback } from '@/shared/lib/useDebouncedCallback';
 import { sanitizePhone } from '@/shared/lib/phone';
 import { euCountryCode, isEuCountry } from '@/shared/config/eu';
-import { useAddressSuggestions, useCountries, usePostalLookup, useReceiverBook, useRecentReceivers } from '../api';
+import { useAddressSuggestions, useCountries, usePostalSearch, useReceiverBook, useRecentReceivers } from '../api';
 import { COUNTRIES, RULES } from '../constants';
 import { useCombobox } from '../hooks/useCombobox';
+import { usePostalPlaceBox } from '../hooks/usePostalPlaceBox';
 import { useFieldBinder } from '../hooks/useFieldBinder';
 import { splitAddressLines } from '../lib/address';
 import { receiverFields, recentReceiverQuery, recentReceiverSubtitle, type RecentReceiver } from '../lib/recent-receivers';
 import { addressQuery, findCountry, normalizePostal, shouldResetAddress, suggestionFields, type AddressSuggestion } from '../lib/geo';
-import type { CreateOrderValues } from '../schema';
+import { defaultValues, type CreateOrderValues } from '../schema';
 import { AddressPickerDialog } from './AddressPickerDialog';
 import { SuggestionList } from './SuggestionList';
 import styles from './form.module.css';
@@ -59,23 +60,18 @@ export function ReceiverSection() {
     if ((getValues('receiver.phoneCode') ?? '') !== dialCode) setValue('receiver.phoneCode', dialCode, { shouldDirty: true });
   }, [dialCode, getValues, setValue]);
 
-  // ---------- Mã bưu chính → thành phố, tỉnh / bang (tra khi khách ngừng gõ) ----------
+  // ---------- Mã bưu chính: khách gõ → gợi ý mã + thành phố (GeoNames), chọn → điền mã + thành phố ----------
   const [postalQuery, setPostalQuery] = useState<string | null>(null);
-  const schedulePostal = useDebouncedCallback((value: string | null) => setPostalQuery(value), 500);
+  const schedulePostal = useDebouncedCallback((value: string | null) => setPostalQuery(value), 400);
   useEffect(() => schedulePostal(normalizePostal(postalText)), [postalText, schedulePostal]);
-  const postal = usePostalLookup(country?.code, postalQuery);
-  /** Mã bưu chính vừa điền từ gợi ý địa chỉ — gợi ý đã có thành phố / tỉnh đúng, không để kết quả tra mã ghi đè. */
+  const postal = usePostalSearch(country?.code, postalQuery);
+  /** Mã bưu chính vừa điền từ gợi ý địa chỉ / sổ địa chỉ (để biết đơn cũ đã có thành phố đúng). */
   const pickedPostal = useRef<string | null>(null);
-  // Kết quả postal code được ưu tiên hơn địa chỉ đã nhập trước đó.
-  useEffect(() => {
-    const info = postal.data;
-    // Khách đang đổi mã / nước: không điền kết quả của lần tra cũ trong lúc debounce.
-    if (!info || info.countryCode !== country?.code || info.postalCode !== normalizePostal(postalText)) return;
-    if (pickedPostal.current === info.postalCode) return;
+  const postalBox = usePostalPlaceBox(postal.data, o => {
     const opts = { shouldDirty: true, shouldValidate: true } as const;
-    setValue('receiver.city', info.city, opts);
-    setValue('receiver.state', info.state ?? '', opts);
-  }, [postal.data, country?.code, postalText, setValue]);
+    setValue('receiver.postal', o.postalCode, opts);
+    setValue('receiver.city', o.city, opts);
+  });
 
   // ---------- Khách đổi sang nước khác → xoá mã bưu chính, thành phố, tỉnh / bang của nước cũ ----------
   /** Nước nhận ra gần nhất (cả khi điền bằng code: sổ địa chỉ, mở nháp) — chỉ để so sánh, không tự xoá. */
@@ -98,15 +94,21 @@ export function ReceiverSection() {
     if (next) lastCountryCode.current = next;
   };
 
-  const postalHint = !country || !postalQuery
-    ? undefined
-    : postal.isFetching
-      ? 'Đang tra mã bưu chính…'
-      : postal.data
-        ? `→ ${[postal.data.city, postal.data.state].filter(Boolean).join(', ')}`
-        : postal.data === null
-          ? 'Không tìm thấy mã này — vui lòng tự nhập thành phố, tỉnh / bang'
-          : undefined;
+  const postalHint = country && postalQuery && !postal.isFetching && postal.data?.length === 0
+    ? 'Không tìm thấy mã này — vui lòng tự nhập thành phố, tỉnh / bang'
+    : undefined;
+
+  /** Xoá toàn bộ thông tin người nhận để nhập lại từ đầu (hỏi lại khi đã có dữ liệu). */
+  const clearReceiver = () => {
+    const current = getValues('receiver');
+    const filled = Object.entries(current).some(([k, v]) => k !== 'phoneCode' && k !== 'countryCode' && typeof v === 'string' && v.trim() !== '');
+    if (filled && !window.confirm(t('Xóa toàn bộ thông tin người nhận để nhập lại?'))) return;
+    setValue('receiver', defaultValues().receiver, { shouldDirty: true });
+    clearErrors('receiver');
+    setPostalQuery(null);
+    lastCountryCode.current = undefined;
+    pickedPostal.current = null;
+  };
 
   /** Chọn 1 người nhận cũ (ô gợi ý tên công ty hoặc sổ địa chỉ) → điền lại toàn bộ thông tin người nhận. */
   const applyReceiver = (r: RecentReceiver) => {
@@ -184,11 +186,21 @@ export function ReceiverSection() {
       title="Thông tin người nhận"
       subtitle={lang === 'vi' ? '(Receiver)' : undefined}
       className={styles.fill}
-      actions={<Button size="sm" onClick={() => setPicking(true)}>{t('Sổ địa chỉ')}</Button>}
+      actions={
+        <div className={styles.cardActions}>
+          <Button size="sm" onClick={clearReceiver} title={t('Xóa toàn bộ thông tin người nhận')}>
+            <Icon name="refresh" size={14} /> {t('Làm mới')}
+          </Button>
+          <Button size="sm" onClick={() => setPicking(true)}>{t('Sổ địa chỉ')}</Button>
+        </div>
+      }
     >
       <FormGrid>
         <TextField label="Nước đến (country)" required list="va-countries" autoComplete="country-name" {...bind('receiver.country', { onChange: onCountryInput })} />
-        <TextField label="Mã bưu chính (postal code)" hint={postalHint} autoComplete="postal-code" {...bind('receiver.postal')} />
+        <div className={styles.suggestCell}>
+          <TextField label="Mã bưu chính (postal code)" hint={postalHint} {...postalBox.inputProps} {...bind('receiver.postal', { onChange: postalBox.onType, onBlur: postalBox.onBlur })} />
+          {postalBox.list}
+        </div>
         <TextField label="Thành phố (city)" required {...bind('receiver.city')} />
         <TextField label="Tỉnh / bang (state)" {...bind('receiver.state')} />
         <div className={styles.suggestWrap}>

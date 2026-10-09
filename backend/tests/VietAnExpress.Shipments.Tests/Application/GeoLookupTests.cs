@@ -67,16 +67,90 @@ public class GeoNamesParserTests
                                  "countryCode": "US", "postalcode": "10002", "adminName1": "New York", "placeName": "New York", "lat": 40.71 } ] }
             """;
 
-        Assert.Equal(new PostalInfo("US", "10002", "New York", "New York", "NY"), GeoNamesParser.Postal(JsonDocument.Parse(json), "US", "10002"));
+        var info = GeoNamesParser.Postal(JsonDocument.Parse(json), "US", "10002")!;
+        Assert.Equal(new PostalInfo("US", "10002", "New York", "New York", "NY") { Places = info.Places }, info);
+        Assert.Equal([new PostalPlace("New York", "New York", "NY", null)], info.Places);
         Assert.Null(GeoNamesParser.Postal(JsonDocument.Parse("""{ "postalcodes": [] }"""), "US", "00000"));
         Assert.Null(GeoNamesParser.Postal(JsonDocument.Parse("[]"), "US", "00000"));
     }
 
     [Fact]
-    public void Singapore_khong_co_bang_van_doc_duoc() =>
+    public void Singapore_khong_co_bang_van_doc_duoc()
+    {
+        var info = GeoNamesParser.Postal(JsonDocument.Parse("""{ "postalcodes": [ { "countryCode": "SG", "postalcode": "238859", "placeName": "Orchard Road" } ] }"""), "SG", "238859")!;
+        Assert.Equal(("Orchard Road", (string?)null, (string?)null), (info.City, info.State, info.StateCode));
+    }
+
+    [Fact]
+    public void Mexico_lay_dung_truong_GeoNames_colonia_va_quan_thanh_khu_vuc()
+    {
+        // Rút gọn phản hồi thật của GeoNames cho MX/16090: 4 colonia cùng thuộc Ciudad de México (quận Xochimilco)
+        const string json = """
+            { "postalcodes": [
+              { "placeName": "Barrio San Pedro", "adminName1": "Distrito Federal", "adminCode1": "DIF", "adminName2": "Xochimilco", "adminName3": "Ciudad de México" },
+              { "placeName": "Barrio Xaltocan", "adminName1": "Distrito Federal", "adminCode1": "DIF", "adminName2": "Xochimilco", "adminName3": "Ciudad de México" },
+              { "placeName": "Caltongo", "adminName1": "Distrito Federal", "adminCode1": "DIF", "adminName2": "Xochimilco", "adminName3": "Ciudad de México" } ] }
+            """;
+        var info = GeoNamesParser.Postal(JsonDocument.Parse(json), "MX", "16090")!;
+
+        // Đúng nguyên trường GeoNames: adminName2 (municipio) / adminName1 / placeName (colonia)
+        Assert.Equal(("Xochimilco", "Distrito Federal"), (info.City, info.State));
+        Assert.Equal(["Barrio San Pedro", "Barrio Xaltocan", "Caltongo"], info.Places.Select(p => p.Area));
+        Assert.All(info.Places, p => Assert.Equal("Xochimilco", p.City));
+    }
+
+    [Fact]
+    public void Mexico_bang_khac_giu_thanh_pho_kem_quan_vao_khu_vuc()
+    {
+        const string json = """
+            { "postalcodes": [ { "placeName": "Ciudad Granja", "adminName1": "Jalisco", "adminName2": "Zapopan", "adminName3": "Zapopan" },
+                               { "placeName": "Americana", "adminName1": "Jalisco", "adminName2": "Guadalajara", "adminName3": "Guadalajara" } ] }
+            """;
+        var info = GeoNamesParser.Postal(JsonDocument.Parse(json), "MX", "45010")!;
+        Assert.Equal(["Zapopan", "Guadalajara"], info.Places.Select(p => p.City));
+        Assert.Equal(["Ciudad Granja", "Americana"], info.Places.Select(p => p.Area));
+    }
+
+    [Fact]
+    public void An_Do_khong_co_adminName3_thi_lay_adminName2()
+    {
+        const string json = """
+            { "postalcodes": [ { "placeName": "Connaught Place", "adminName1": "Delhi", "adminName2": "Central Delhi" } ] }
+            """;
+        Assert.Equal(new PostalPlace("Central Delhi", "Delhi", null, "Connaught Place"), GeoNamesParser.Postal(JsonDocument.Parse(json), "IN", "110001")!.Places.Single());
+    }
+
+    [Fact]
+    public void Ma_gom_nhieu_thanh_pho_tra_du_danh_sach_bo_dong_trung()
+    {
+        // FR/01000 gồm 2 xã khác nhau; GeoNames hay trả trùng dòng (CA/M5V: 30 dòng "Toronto")
+        const string json = """
+            { "postalcodes": [
+              { "placeName": "Bourg-en-Bresse", "adminName1": "Auvergne-Rhône-Alpes", "adminCode1": "84" },
+              { "placeName": "Saint-Denis-lès-Bourg", "adminName1": "Auvergne-Rhône-Alpes", "adminCode1": "84" },
+              { "placeName": "Bourg-en-Bresse", "adminName1": "Auvergne-Rhône-Alpes", "adminCode1": "84" } ] }
+            """;
+        var info = GeoNamesParser.Postal(JsonDocument.Parse(json), "FR", "01000")!;
+
+        Assert.Equal("Bourg-en-Bresse", info.City);
+        Assert.Equal(["Bourg-en-Bresse", "Saint-Denis-lès-Bourg"], info.Places.Select(p => p.City));
+        Assert.All(info.Places, p => Assert.Null(p.Area));
+    }
+
+    [Fact]
+    public void Doc_goi_y_postalCodeSearchJSON()
+    {
+        const string json = """
+            { "postalCodes": [
+              { "postalCode": "16090", "placeName": "Caltongo", "adminName1": "Distrito Federal", "adminName2": "Xochimilco", "adminName3": "Ciudad de México" },
+              { "postalCode": "16095", "placeName": "Delegación Política Xochimilco", "adminName1": "Distrito Federal", "adminName2": "Xochimilco", "adminName3": "Ciudad de México" },
+              { "postalCode": "16090", "placeName": "Caltongo", "adminName1": "Distrito Federal", "adminName2": "Xochimilco", "adminName3": "Ciudad de México" } ] }
+            """;
         Assert.Equal(
-            new PostalInfo("SG", "238859", "Orchard Road", null, null),
-            GeoNamesParser.Postal(JsonDocument.Parse("""{ "postalcodes": [ { "countryCode": "SG", "postalcode": "238859", "placeName": "Orchard Road" } ] }"""), "SG", "238859"));
+            [new PostalSuggestion("16090", "Xochimilco", "Distrito Federal", null, "Caltongo"),
+             new PostalSuggestion("16095", "Xochimilco", "Distrito Federal", null, "Delegación Política Xochimilco")],
+            GeoNamesParser.Suggestions(JsonDocument.Parse(json), "MX"));
+    }
 
     [Fact]
     public void Doc_loi_GeoNames()
@@ -113,7 +187,7 @@ public class GeoNamesPostalCodeProviderTests
     {
         var handler = new FakeHandler(req =>
         {
-            Assert.Equal("https://secure.geonames.org/postalCodeLookupJSON?postalcode=SW1A%201AA&country=GB&maxRows=1&username=vietanexpress",
+            Assert.Equal("https://secure.geonames.org/postalCodeLookupJSON?postalcode=SW1A%201AA&country=GB&maxRows=30&username=vietanexpress",
                 req.RequestUri!.AbsoluteUri);
             return FakeHandler.Json("""{ "postalcodes": [ { "placeName": "London", "adminName1": "England", "adminCode1": "ENG" } ] }""");
         });
@@ -152,14 +226,21 @@ public class GeoLookupServiceTests
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     /// <summary>Nguồn mã bưu chính giả: trả theo bảng, ghi lại các mã đã hỏi.</summary>
-    private sealed class FakeProvider(Func<string, PostalLookupResult> respond) : IPostalCodeProvider
+    private sealed class FakeProvider(Func<string, PostalLookupResult> respond, Func<string, PostalSearchResult>? search = null) : IPostalCodeProvider
     {
         public List<string> Asked { get; } = [];
+        public List<string> Searched { get; } = [];
 
         public Task<PostalLookupResult> LookupAsync(string countryCode, string postalCode, CancellationToken cancellationToken)
         {
             Asked.Add($"{countryCode}/{postalCode}");
             return Task.FromResult(respond(postalCode));
+        }
+
+        public Task<PostalSearchResult> SearchAsync(string countryCode, string prefix, CancellationToken cancellationToken)
+        {
+            Searched.Add($"{countryCode}/{prefix}");
+            return Task.FromResult(search?.Invoke(prefix) ?? new PostalSearchResult(true, []));
         }
     }
 
@@ -181,6 +262,40 @@ public class GeoLookupServiceTests
         new(new HttpClient(new FakeHandler(_ => throw new HttpRequestException("mất mạng"))), provider,
             addresses ?? new FakeAddressProvider(_ => AddressSuggestionResult.Unavailable),
             new MemoryCache(new MemoryCacheOptions()), NullLogger<GeoLookupService>.Instance);
+
+    [Fact]
+    public async Task Goi_y_ma_buu_chinh_chuan_hoa_va_cache()
+    {
+        var hit = new PostalSuggestion("16090", "Xochimilco", "Distrito Federal", "09", "Caltongo");
+        var provider = new FakeProvider(_ => PostalLookupResult.NotFound, _ => new PostalSearchResult(true, [hit]));
+        var geo = Service(provider);
+
+        Assert.Equal([hit], await geo.SearchPostalAsync("mx", " 1609 ", Ct));
+        Assert.Equal([hit], await geo.SearchPostalAsync("MX", "1609", Ct));
+        Assert.Equal(["MX/1609"], provider.Searched); // lần 2 lấy từ cache
+        Assert.Empty(await geo.SearchPostalAsync("MX", "1", Ct)); // quá ngắn
+    }
+
+    [Fact]
+    public async Task Goi_y_khong_co_ma_bat_dau_nhu_vay_thi_tra_dung_ma()
+    {
+        var info = new PostalInfo("GB", "SW1A", "London", "England", "ENG") { Places = [new PostalPlace("London", "England", "ENG", null)] };
+        var provider = new FakeProvider(postal => postal == "SW1A" ? PostalLookupResult.Found(info) : PostalLookupResult.NotFound);
+
+        var items = await Service(provider).SearchPostalAsync("GB", "SW1A 1AA", Ct);
+
+        Assert.Equal([new PostalSuggestion("SW1A 1AA", "London", "England", "ENG", null)], items);
+    }
+
+    [Fact]
+    public async Task Goi_y_nguon_loi_thi_rong_khong_cache()
+    {
+        var provider = new FakeProvider(_ => PostalLookupResult.NotFound, _ => PostalSearchResult.Unavailable);
+        var geo = Service(provider);
+        Assert.Empty(await geo.SearchPostalAsync("US", "1000", Ct));
+        Assert.Empty(await geo.SearchPostalAsync("US", "1000", Ct));
+        Assert.Equal(2, provider.Searched.Count);
+    }
 
     private static readonly AddressSuggestion Austin = new("123 Main St, Austin, TX 78701", "123 Main St", "Austin", "Texas", "TX", "78701", "US");
 

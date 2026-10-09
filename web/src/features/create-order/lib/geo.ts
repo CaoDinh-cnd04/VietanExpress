@@ -5,13 +5,42 @@ export interface Country {
   dialCode?: string | null;
 }
 
-/** Kết quả GET /geo/postal/{country}/{postal}. */
-export interface PostalInfo {
-  countryCode: string;
+/** 1 gợi ý của GET /geo/postal-search. `area` = khu phố nhỏ hơn thành phố (colonia Mexico, locality Ấn Độ), null ở nước khác. */
+export interface PostalSuggestion {
   postalCode: string;
   city: string;
   state?: string | null;
   stateCode?: string | null;
+  area?: string | null;
+}
+
+/** 1 lựa chọn trong danh sách sổ dưới ô mã bưu chính: chọn → điền mã + ô Thành phố (tỉnh / bang không điền). */
+export interface PostalOption {
+  postalCode: string;
+  city: string;
+}
+
+/**
+ * Lựa chọn cho danh sách gợi ý, như hệ thống cũ / FedEx: mỗi khu "khu vực-thành phố"
+ * (16090 → "Barrio San Pedro-Xochimilco"), sau các khu của 1 mã là thành phố không kèm khu ("Xochimilco"). Mã xếp tăng dần, bỏ trùng.
+ */
+export function postalOptions(items: readonly PostalSuggestion[]): PostalOption[] {
+  const codes = [...new Set(items.map(i => i.postalCode))].sort((x, y) => x.localeCompare(y, 'en', { numeric: true }));
+  const seen = new Set<string>();
+  const out: PostalOption[] = [];
+  const add = (postalCode: string, city: string) => {
+    const key = `${postalCode}|${city}`.toLowerCase();
+    if (!seen.has(key)) {
+      seen.add(key);
+      out.push({ postalCode, city });
+    }
+  };
+  for (const code of codes) {
+    const rows = items.filter(i => i.postalCode === code);
+    rows.filter(r => r.area).forEach(r => add(code, `${r.area}-${r.city}`));
+    rows.forEach(r => add(code, r.city));
+  }
+  return out;
 }
 
 /** Tìm nước theo chữ khách gõ: khớp tên (không phân biệt hoa thường, bỏ khoảng trắng thừa) hoặc mã ISO 2 ký tự. */

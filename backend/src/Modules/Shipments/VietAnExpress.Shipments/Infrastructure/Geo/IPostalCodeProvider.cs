@@ -26,4 +26,13 @@ internal sealed record PostalLookupResult(PostalLookupStatus Status, PostalInfo?
 internal interface IPostalCodeProvider
 {
     Task<PostalLookupResult> LookupAsync(string countryCode, string postalCode, CancellationToken cancellationToken);
+
+    /// <summary>Các mã bắt đầu bằng <paramref name="prefix"/> (gợi ý khi gõ).</summary>
+    Task<PostalSearchResult> SearchAsync(string countryCode, string prefix, CancellationToken cancellationToken);
+}
+
+/// <summary>Kết quả gợi ý mã bưu chính. Available = false khi nguồn lỗi / chưa cấu hình (không cache).</summary>
+internal sealed record PostalSearchResult(bool Available, IReadOnlyList<PostalSuggestion> Items)
+{
+    public static readonly PostalSearchResult Unavailable = new(false, []);
 }

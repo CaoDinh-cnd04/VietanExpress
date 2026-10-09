@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useFieldArray, useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 import { COUNTRIES } from '@/shared/config/domain';
-import { findCountry, normalizePostal, shouldResetAddress, useCountries, usePostalLookup } from '@/features/create-order';
+import { findCountry, normalizePostal, shouldResetAddress, useCountries, usePostalSearch, usePostalPlaceBox } from '@/features/create-order';
 import { useI18n } from '@/shared/i18n';
 import { useDebouncedCallback } from '@/shared/lib/useDebouncedCallback';
 import { Button, Card, FormGrid, Icon, SelectField, TextField } from '@/shared/ui';
@@ -68,13 +68,12 @@ export function ManualEcomForm() {
   const [postalQuery, setPostalQuery] = useState<string | null>(null);
   const schedulePostal = useDebouncedCallback((value: string | null) => setPostalQuery(value), 500);
   useEffect(() => schedulePostal(normalizePostal(postalText)), [postalText, schedulePostal]);
-  const postal = usePostalLookup(isoCode, postalQuery);
-  useEffect(() => {
-    const info = postal.data;
-    if (!info || info.countryCode !== isoCode || info.postalCode !== normalizePostal(postalText)) return;
-    setValue('city', info.city, { shouldDirty: true });
-    setValue('state', info.state ?? '', { shouldDirty: true });
-  }, [postal.data, isoCode, postalText, setValue]);
+  const postal = usePostalSearch(isoCode, postalQuery);
+  // Khách gõ mã → gợi ý mã + thành phố (GeoNames); chọn → điền mã + thành phố.
+  const postalBox = usePostalPlaceBox(postal.data, o => {
+    setValue('postal', o.postalCode, { shouldDirty: true });
+    setValue('city', o.city, { shouldDirty: true });
+  });
 
   // Đổi sang nước khác → xoá mã bưu chính, thành phố, bang của nước cũ.
   const lastCountry = useRef<string | undefined>(undefined);
@@ -90,15 +89,9 @@ export function ManualEcomForm() {
     }
   };
 
-  const postalHint = !isoCode || !postalQuery
-    ? undefined
-    : postal.isFetching
-      ? 'Đang tra mã bưu chính…'
-      : postal.data
-        ? `→ ${[postal.data.city, postal.data.state].filter(Boolean).join(', ')}`
-        : postal.data === null
-          ? 'Không tìm thấy mã này — vui lòng tự nhập thành phố, tỉnh / bang'
-          : undefined;
+  const postalHint = isoCode && postalQuery && !postal.isFetching && postal.data?.length === 0
+    ? 'Không tìm thấy mã này — vui lòng tự nhập thành phố, tỉnh / bang'
+    : undefined;
 
   const submit = handleSubmit(v => {
     const picked = findCountry(countryList, v.ct);
@@ -154,7 +147,10 @@ export function ManualEcomForm() {
               error={e.ct?.message}
               {...register('ct', { onChange: onCountryInput })}
             />
-            <TextField label="Mã bưu chính" autoComplete="postal-code" hint={postalHint} {...register('postal')} />
+            <div className={styles.suggestWrap}>
+              <TextField label="Mã bưu chính" hint={postalHint} {...postalBox.inputProps} {...register('postal', { onChange: postalBox.onType, onBlur: postalBox.onBlur })} />
+              {postalBox.list}
+            </div>
             <TextField label="Thành phố" {...register('city')} />
             <TextField label="Tỉnh / bang" {...register('state')} />
             <TextField label="Địa chỉ người nhận" required className={styles.fullRow} error={e.address?.message} {...register('address')} />

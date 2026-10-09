@@ -69,7 +69,6 @@ export const createOrder: Record<string, string> = {
   'Địa chỉ 1 (address 1)': 'Address line 1',
   'Địa chỉ 2 (address 2)': 'Address line 2',
   'Địa chỉ 3 (address 3)': 'Address line 3',
-  'Đang tra mã bưu chính…': 'Looking up postal code…',
   'Không tìm thấy mã này — vui lòng tự nhập thành phố, tỉnh / bang': 'Postal code not found — please enter city and state yourself',
   'Hệ thống kiểm tra VSVX chỉ mang tính chất tham khảo. Vui lòng tự kiểm tra VSVX với hãng trước khi gửi hàng.':
     'The remote-area check is for reference only. Please confirm remote areas with the carrier before shipping.',
@@ -257,4 +256,7 @@ export const createOrder: Record<string, string> = {
   'Hàng hóa': 'Parcel',
   'Chứng từ': 'Documents',
   'Bỏ dịch vụ {name}': 'Remove service {name}',
+  'Xóa toàn bộ thông tin người nhận để nhập lại?': 'Clear all receiver details and start over?',
+  'Xóa toàn bộ thông tin người nhận': 'Clear all receiver details',
+  'Gợi ý mã bưu chính': 'Postal code suggestions',
 };
