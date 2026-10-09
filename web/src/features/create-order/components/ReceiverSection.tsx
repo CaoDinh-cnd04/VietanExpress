@@ -5,12 +5,13 @@ import { useI18n } from '@/shared/i18n';
 import { useDebouncedCallback } from '@/shared/lib/useDebouncedCallback';
 import { sanitizePhone } from '@/shared/lib/phone';
 import { euCountryCode, isEuCountry } from '@/shared/config/eu';
-import { useAddressSuggestions, useCountries, usePostalSearch, useReceiverBook, useRecentReceivers } from '../api';
+import { useAddressSuggestions, useCountries, usePostalSearch, useReceiverBook, useRecentReceivers, useRemoteAreas } from '../api';
 import { COUNTRIES, RULES } from '../constants';
 import { useCombobox } from '../hooks/useCombobox';
 import { usePostalPlaceBox } from '../hooks/usePostalPlaceBox';
 import { useFieldBinder } from '../hooks/useFieldBinder';
 import { splitAddressLines } from '../lib/address';
+import { remoteAreaCarriers } from '../lib/remote-area';
 import { receiverFields, recentReceiverQuery, recentReceiverSubtitle, type RecentReceiver } from '../lib/recent-receivers';
 import { addressQuery, findCountry, normalizePostal, shouldResetAddress, suggestionFields, type AddressSuggestion } from '../lib/geo';
 import { defaultValues, type CreateOrderValues } from '../schema';
@@ -38,7 +39,7 @@ export function ReceiverSection() {
 
   // ---------- Nước đến → mã điện thoại ----------
   const countries = useCountries();
-  const [countryText = '', postalText = ''] = useWatch({ control, name: ['receiver.country', 'receiver.postal'] });
+  const [countryText = '', postalText = '', cityText = ''] = useWatch({ control, name: ['receiver.country', 'receiver.postal', 'receiver.city'] });
   // API lỗi → dùng danh sách tĩnh (không có mã điện thoại) để vẫn nhận ra nước, tự xoá địa chỉ khi đổi nước.
   const countryList = useMemo(
     () => (countries.data?.length ? countries.data : COUNTRIES.map(name => ({ code: name, name }))),
@@ -72,6 +73,16 @@ export function ReceiverSection() {
     setValue('receiver.postal', o.postalCode, opts);
     setValue('receiver.city', o.city, opts);
   });
+
+  // ---------- VSVX: mã bưu chính + thành phố thuộc vùng phụ phí của hãng nào (tra khi khách ngừng gõ) ----------
+  const [remoteQuery, setRemoteQuery] = useState<{ postal: string; city: string } | null>(null);
+  const scheduleRemote = useDebouncedCallback((value: { postal: string; city: string } | null) => setRemoteQuery(value), 500);
+  useEffect(() => {
+    const p = normalizePostal(postalText);
+    scheduleRemote(p ? { postal: p, city: cityText.trim() } : null);
+  }, [postalText, cityText, scheduleRemote]);
+  const remote = useRemoteAreas(country?.code, remoteQuery?.postal ?? null, remoteQuery?.city ?? '');
+  const remoteHits = remoteQuery && normalizePostal(postalText) === remoteQuery.postal ? remote.data ?? [] : [];
 
   // ---------- Khách đổi sang nước khác → xoá mã bưu chính, thành phố, tỉnh / bang của nước cũ ----------
   /** Nước nhận ra gần nhất (cả khi điền bằng code: sổ địa chỉ, mở nháp) — chỉ để so sánh, không tự xoá. */
@@ -257,6 +268,13 @@ export function ReceiverSection() {
         {countryList.map(c => <option key={c.code} value={c.name} />)}
       </datalist>
 
+      {remoteHits.length > 0 && remoteQuery && (
+        <div className={styles.remoteArea} role="alert">
+          <span>
+            <strong>{t('Khu vực VSVX: {carriers}', { carriers: remoteAreaCarriers(remoteHits) })}</strong> {t('· có thể bị hãng thu phụ phí ODA')}
+          </span>
+        </div>
+      )}
       <p className={styles.warning}>{t('Hệ thống kiểm tra VSVX chỉ mang tính chất tham khảo. Vui lòng tự kiểm tra VSVX với hãng trước khi gửi hàng.')}</p>
 
       <AddressPickerDialog

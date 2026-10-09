@@ -13,7 +13,7 @@ namespace VietAnExpress.Shipments.Api;
 [Route("api/v{version:apiVersion}/geo")]
 [Tags("Địa lý")]
 [Authorize]
-internal sealed class GeoController(IGeoLookup geo) : ApiControllerBase
+internal sealed class GeoController(IGeoLookup geo, IRemoteAreaLookup remoteAreas) : ApiControllerBase
 {
     /// <summary>Danh sách quốc gia (tên tiếng Anh, mã ISO, mã điện thoại).</summary>
     [HttpGet("countries")]
@@ -34,6 +34,15 @@ internal sealed class GeoController(IGeoLookup geo) : ApiControllerBase
     [ProducesResponseType<ApiResponse<IReadOnlyList<PostalSuggestion>>>(StatusCodes.Status200OK)]
     public async Task<IActionResult> PostalSearch([FromQuery] string? country, [FromQuery] string? q, CancellationToken ct) =>
         OkData(await geo.SearchPostalAsync(country ?? "", q ?? "", ct));
+
+    /// <summary>
+    /// Hãng tính phụ phí vùng sâu vùng xa (VSVX / ODA) ở địa chỉ người nhận — tra bảng dbo.VungXauVungXa của hệ thống cũ
+    /// theo nước (mã ISO) + mã bưu chính + thành phố. Rỗng khi không thuộc vùng nào.
+    /// </summary>
+    [HttpGet("remote-areas")]
+    [ProducesResponseType<ApiResponse<IReadOnlyList<RemoteAreaHit>>>(StatusCodes.Status200OK)]
+    public async Task<IActionResult> RemoteAreas([FromQuery] string? country, [FromQuery] string? postal, [FromQuery] string? city, CancellationToken ct) =>
+        OkData(await remoteAreas.FindAsync(country ?? "", postal, city, ct));
 
     /// <summary>Gợi ý địa chỉ trong nước <c>country</c> theo chữ khách gõ (<c>q</c> ≥ 3 ký tự) — tối đa 6 dòng, rỗng khi không có.</summary>
     [HttpGet("addresses")]

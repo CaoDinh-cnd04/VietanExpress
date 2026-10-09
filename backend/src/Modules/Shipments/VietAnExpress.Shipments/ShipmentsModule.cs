@@ -36,7 +36,8 @@ internal static class GeoRegistration
     private const string UserAgent = "VietAnExpress-Portal/1.0";
 
     /// <summary>
-    /// Tra cứu địa lý: <see cref="Infrastructure.Geo.IGeoLookup"/> (điều phối, cache) + nguồn mã bưu chính GeoNames + gợi ý địa chỉ Geoapify.
+    /// Tra cứu địa lý: <see cref="Infrastructure.Geo.IGeoLookup"/> (điều phối, cache) + nguồn mã bưu chính GeoNames + gợi ý địa chỉ Geoapify
+    /// + vùng sâu vùng xa <see cref="Infrastructure.Geo.IRemoteAreaLookup"/>.
     /// Đổi nguồn mã bưu chính: đăng ký cài đặt khác của <see cref="Infrastructure.Geo.IPostalCodeProvider"/> ở đây.
     /// </summary>
     public static IServiceCollection AddGeoLookup(this IServiceCollection services, IConfiguration configuration)
@@ -70,6 +71,8 @@ internal static class GeoRegistration
             c.Timeout = TimeSpan.FromSeconds(6);
             c.DefaultRequestHeaders.UserAgent.ParseAdd(UserAgent);
         });
+        // VSVX: bảng dbo.VungXauVungXa của hệ thống cũ (dùng DbContext → scoped).
+        services.AddScoped<Infrastructure.Geo.IRemoteAreaLookup, Infrastructure.Geo.RemoteAreaLookup>();
         return services;
     }
 }

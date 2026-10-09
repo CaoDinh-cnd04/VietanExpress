@@ -259,4 +259,6 @@ export const createOrder: Record<string, string> = {
   'Xóa toàn bộ thông tin người nhận để nhập lại?': 'Clear all receiver details and start over?',
   'Xóa toàn bộ thông tin người nhận': 'Clear all receiver details',
   'Gợi ý mã bưu chính': 'Postal code suggestions',
+  'Khu vực VSVX: {carriers}': 'Remote area: {carriers}',
+  '· có thể bị hãng thu phụ phí ODA': '· the carrier may charge an ODA surcharge',
 };

@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tansta
 import { http } from '@/shared/api/http';
 import type { AddressSuggestion, Country, PostalSuggestion } from './lib/geo';
 import type { RecentReceiver } from './lib/recent-receivers';
+import type { RemoteAreaHit } from './lib/remote-area';
 
 /** Nhóm hàng hóa (dbo.NhomHangHoa). */
 export interface Category {
@@ -198,6 +199,18 @@ export function usePostalSearch(countryCode: string | undefined, query: string |
         .get<{ data: PostalSuggestion[] }>('/geo/postal-search', { country: countryCode, q: query })
         .then(r => r.data),
     enabled: !!countryCode && countryCode.length === 2 && !!query,
+    staleTime: ONE_DAY,
+    retry: false
+  });
+}
+
+/** Hãng tính phụ phí vùng sâu vùng xa ở địa chỉ người nhận (backend tra bảng VSVX của hệ thống cũ). Lỗi → không cảnh báo. */
+export function useRemoteAreas(countryCode: string | undefined, postal: string | null, city: string) {
+  return useQuery({
+    queryKey: ['geo', 'remote-areas', countryCode, postal, city],
+    queryFn: () =>
+      http.get<{ data: RemoteAreaHit[] }>('/geo/remote-areas', { country: countryCode, postal, city }).then(r => r.data),
+    enabled: countryCode?.length === 2 && !!postal,
     staleTime: ONE_DAY,
     retry: false
   });
