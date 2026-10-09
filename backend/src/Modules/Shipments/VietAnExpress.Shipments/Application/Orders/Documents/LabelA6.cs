@@ -72,7 +72,7 @@ internal static class LabelA6
         return $"""
             <section class="page a6">
               <div class="box">
-                {Head(m, c, art.HeadBarcode, H(m.Bill))}
+                {Head(m, c, art.HeadBarcode, Code128.FitText(m.Bill, m.Bill))}
                 <div class="bar">1. <i>(Sender's information)</i>:</div>
                 <div class="sender">
                   <div class="qr"><div class="qr-frame">{art.Qr}</div><div class="qr-cap">{H(qrCaption)}</div></div>
@@ -142,7 +142,7 @@ internal static class LabelA6
         return $"""
             <section class="page a6 mark">
               <div class="box">
-                {Head(m, c, Code128.Svg(pieceNo, 36), $"{H(m.Bill)} <small>/{index}</small>")}
+                {Head(m, c, Code128.Svg(pieceNo, 36), $"<div class=\"awb-no\">{H(m.Bill)} <small>/{index}</small></div>")}
                 <div class="m-title"><span>SHIPPING MARK<br><i>HAWB:</i></span><b>{H(m.Bill)}</b></div>
                 <div class="bar center"><i>Ref no.:</i> {H(o.CustomerBill)}</div>
                 <div class="m-dest">
@@ -181,7 +181,7 @@ internal static class LabelA6
             <div><b class="k">Hotline</b> : <b>{H(c.Hotline)}</b></div>
             <div><b class="k">Website</b> : <i>{H(c.Website)}</i></div>
           </div>
-          <div class="awb">{barcodeSvg}<div class="awb-no">{awbHtml}</div><div class="route">{H(RouteLabel(m.Order.ServiceName))}</div></div>
+          <div class="awb">{barcodeSvg}{awbHtml}<div class="route">{H(RouteLabel(m.Order.ServiceName))}</div></div>
         </div>
         """;
 
@@ -213,7 +213,8 @@ internal static class LabelA6
         .brand .k { display: inline-block; min-width: 7mm; font-size: 8px; }
         .awb { text-align: center; line-height: 1.1; }
         .awb .barcode { display: block; width: 100%; height: 7mm; }
-        .awb-no { font-size: 14px; font-weight: 700; }
+        .awb .awb-text { display: block; width: 100%; height: 3.2mm; margin-top: .5mm; }
+        .awb-no { font-size: 9px; font-weight: 700; white-space: nowrap; }
         .awb-no small { font-size: 9px; }
         .route { font-size: 8px; font-weight: 700; }
         .bar { background: none; font-weight: 700; padding: .3mm 1.5mm; border-top: 1px solid #000; border-bottom: 1px solid #000; }

@@ -213,7 +213,7 @@ internal static class BillA4
                     <div><b class="k">Hotline</b> : <b>{H(c.Hotline)}</b></div>
                     <div><b class="k">Website</b> : <i>{H(c.Website)}</i></div>
                   </div>
-                  <div class="awb">{Code128.Svg(m.Bill, 40)}<div class="awb-no">{bill}</div><div class="route">{H(RouteCode(o.ServiceName))}</div></div>
+                  <div class="awb">{Code128.Svg(m.Bill, 40)}{Code128.FitText(m.Bill, m.Bill)}<div class="route">{H(RouteCode(o.ServiceName))}</div></div>
                 </div>
 
                 <div class="bar">1. Thông tin người gửi <i>(Sender's information)</i>:</div>
@@ -402,7 +402,10 @@ internal static class BillA4
         .brand .k { display: inline-block; min-width: 9mm; font-size: 11px; }
         .awb { text-align: center; }
         .awb .barcode { display: block; width: 100%; height: 8mm; }
-        .awb-no { font-size: 20px; line-height: 1.1; }
+        /* Mã bill dàn đúng bằng mã vạch (Code128.FitText) */
+        .awb .awb-text { display: block; width: 100%; height: 4mm; margin-top: .6mm; }
+        /* Mã VA bill 14 ký tự (VAHCM6010840NZ) vừa cột 42mm */
+        .awb-no { font-size: 12px; font-weight: 700; line-height: 1.2; white-space: nowrap; }
         .route { font-size: 11px; font-weight: 700; }
         .bar { background: #92d050; font-weight: 700; padding: .4mm 1.5mm; border-top: 1px solid #000; border-bottom: 1px solid #000; }
         .sender { display: grid; grid-template-columns: 50mm 1fr; padding: 1mm 3mm 0 0; }

@@ -250,4 +250,5 @@ export const orders: Record<string, string> = {
   'Thêm từ khóa…': 'Add keyword…',
   'Xóa hết': 'Clear all',
   '{n} từ khóa · cùng loại: khớp bất kỳ · khác loại: phải khớp tất cả': '{n} keywords · same type: match any · different types: must match all',
+  'Không': 'No',
 };

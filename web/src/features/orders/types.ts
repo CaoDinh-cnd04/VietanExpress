@@ -33,6 +33,8 @@ export interface Order {
   /** Ngày giao dự kiến do hệ thống cũ ghi (POD_Est), 'dd/mm/yyyy'. */
   podEstimate?: string | null;
   photos: number;
+  /** Vùng sâu vùng xa ghi lúc cấp bill, vd "Fedex (Tier B)"; null khi không thuộc vùng. */
+  remoteArea?: string | null;
   /** Người nhận đầy đủ (người liên hệ, SĐT, địa chỉ) — bảng xổ chi tiết. Backend cũ có thể chưa trả. */
   receiver?: OrderReceiver | null;
 }

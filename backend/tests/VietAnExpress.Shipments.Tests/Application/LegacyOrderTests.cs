@@ -29,6 +29,7 @@ public class LegacyOrderFactoryTests
 
         Assert.Equal(201008, o.CustomerId);
         Assert.Equal(90000001, o.OrderNumber);
+        Assert.Equal(231, o.SenderCountryId); // Việt Nam theo danh mục nước của hệ thống cũ, không để NULL
         Assert.Equal("DHL|Singapore", o.ServiceName);
         Assert.Equal("Jason Teo", o.ConsigneeName);
         Assert.Equal("", o.ConsigneeEmail); // cột NOT NULL

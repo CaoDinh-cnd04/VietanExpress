@@ -10,7 +10,7 @@ internal static class LegacyTrackingMapper
 {
     /// <summary>Mã người dùng nhập có khớp dòng này không (so với số VA, mã hãng, AWB, bill khách).</summary>
     public static bool Matches(LegacyOrder o, string bill) =>
-        string.Equals(o.OrderNumber?.ToString(CultureInfo.InvariantCulture), bill, StringComparison.OrdinalIgnoreCase)
+        (o.OrderNumber is { } number && Orders.VaBillCode.Number(bill) == number)
         || string.Equals(o.BillConnect?.Trim(), bill, StringComparison.OrdinalIgnoreCase)
         || string.Equals(o.Awb?.Trim(), bill, StringComparison.OrdinalIgnoreCase)
         || string.Equals(o.CustomerBill?.Trim(), bill, StringComparison.OrdinalIgnoreCase);
@@ -37,17 +37,15 @@ internal static class LegacyTrackingMapper
             CarrierBill: CarrierBill(o));
     }
 
-    /// <summary>ID quốc gia của hệ thống cũ: 231 = Việt Nam (theo dữ liệu hiện có). Chưa có bảng danh mục quốc gia nên chỉ nhận diện Việt Nam.</summary>
-    private const int LegacyVietnamCountryId = 231;
 
     /// <summary>Nơi gửi: Việt An chỉ nhận hàng xuất đi từ Việt Nam; mã quốc gia khác thì chưa có danh mục để đổi tên → bỏ trống.</summary>
     private static string? Origin(LegacyOrder o) =>
-        o.SenderCountryId is null or LegacyVietnamCountryId ? "Việt Nam" : null;
+        o.SenderCountryId is null or Orders.LegacyOrderFactory.LegacyVietnamCountryId ? "Việt Nam" : null;
 
     private static string? CarrierBill(LegacyOrder o)
     {
         var connect = o.BillConnect?.Trim();
-        return string.IsNullOrEmpty(connect) || connect == o.OrderNumber?.ToString(CultureInfo.InvariantCulture) ? null : connect;
+        return string.IsNullOrEmpty(connect) || connect == o.OrderNumber?.ToString(CultureInfo.InvariantCulture) || connect == o.VaBill ? null : connect;
     }
 
     private static string? Date(DateTime? value) => value?.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture);

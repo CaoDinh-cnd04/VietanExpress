@@ -30,7 +30,9 @@ internal sealed record OrderDto(
     OrderShipperDto? Shipper = null,
     OrderReceiverDto? Receiver = null,
     IReadOnlyList<OrderPackageDto>? Packages = null,
-    OrderInvoiceDto? Invoice = null);
+    OrderInvoiceDto? Invoice = null,
+    /// <summary>VSVX ghi lúc cấp bill (Remote_Area_FedEx), vd "Fedex (Tier B)"; null khi không thuộc vùng.</summary>
+    string? RemoteArea = null);
 
 /// <summary>1 dòng kiện (dbo.MaVanDon_PCS_DIM) — chỉ trả ở GET /orders/{bill}. <c>WeightKg</c> là cân 1 kiện.</summary>
 internal sealed record OrderPackageDto(int Qty, string PackType, int Length, int Width, int Height, decimal WeightKg);

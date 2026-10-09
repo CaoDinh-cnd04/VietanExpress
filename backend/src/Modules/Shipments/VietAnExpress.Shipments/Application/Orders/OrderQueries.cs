@@ -157,10 +157,12 @@ internal static class OrderListFilter
         {
             "cnee" => o => EF.Functions.Like(o.ConsigneeName!.ToUpper(), like) || EF.Functions.Like(o.ConsigneeContactName!.ToUpper(), like),
             "bill" => o => (digits && o.OrderNumber != null && EF.Functions.Like(o.OrderNumber.Value.ToString(), like))
+                || EF.Functions.Like(o.VaBill!.ToUpper(), like)
                 || EF.Functions.Like(o.BillConnect!.ToUpper(), like),
             "ref" => o => EF.Functions.Like(o.CustomerBill!.ToUpper(), like),
             "ct" => o => EF.Functions.Like(o.ConsigneeCountry!.ToUpper(), like),
             _ => o => (digits && o.OrderNumber != null && EF.Functions.Like(o.OrderNumber.Value.ToString(), like))
+                || EF.Functions.Like(o.VaBill!.ToUpper(), like)
                 || EF.Functions.Like(o.BillConnect!.ToUpper(), like)
                 || EF.Functions.Like(o.CustomerBill!.ToUpper(), like)
                 || EF.Functions.Like(o.ConsigneeName!.ToUpper(), like)
@@ -244,7 +246,7 @@ internal sealed class GetOrderHandlers(ShipmentsDbContext db, OrderAccess access
     private async Task<LegacyOrder?> FindAsync(string bill, CancellationToken ct, bool eventsOnly = false)
     {
         var code = bill.Trim();
-        long? number = long.TryParse(code, NumberStyles.None, CultureInfo.InvariantCulture, out var n) ? n : null;
+        var number = VaBillCode.Number(code);
         var query = access.Apply(db.LegacyOrders.AsNoTracking(), await access.ScopeAsync(ct));
         // Mã hãng không phải số không được khớp nhầm tất cả dòng OrderNumber NULL.
         query = number is { } parsed

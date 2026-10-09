@@ -47,7 +47,8 @@ internal static class ImportErrors
 }
 
 internal sealed class ImportOrdersHandler(
-    ShipmentsDbContext db, OrderAccess access, ILegacyOrderNumberAllocator numbers, IGeoLookup geo, TimeProvider clock)
+    ShipmentsDbContext db, OrderAccess access, ILegacyOrderNumberAllocator numbers, IGeoLookup geo, IRemoteAreaLookup remoteAreas,
+    TimeProvider clock)
     : IRequestHandler<ImportOrdersCommand, Result<ImportResultDto>>
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
@@ -110,13 +111,13 @@ internal sealed class ImportOrdersHandler(
         {
             var existing = await db.LegacyOrders.AsNoTracking()
                 .Where(o => o.CustomerId == legacyCustomerId && o.CustomerBill != null && distinct.Contains(o.CustomerBill))
-                .Select(o => new { o.CustomerBill, o.OrderNumber, o.BillConnect })
+                .Select(o => new { o.CustomerBill, o.OrderNumber, o.VaBill, o.BillConnect })
                 .ToListAsync(ct);
             foreach (var (line, reference) in refs)
             {
                 var hit = existing.FirstOrDefault(e => string.Equals(e.CustomerBill, reference, StringComparison.OrdinalIgnoreCase));
                 if (hit is not null)
-                    Add(line, $"Ref_No \"{reference}\" đã có ở vận đơn {hit.OrderNumber?.ToString(CultureInfo.InvariantCulture) ?? hit.BillConnect}");
+                    Add(line, $"Ref_No \"{reference}\" đã có ở vận đơn {hit.VaBill ?? hit.OrderNumber?.ToString(CultureInfo.InvariantCulture) ?? hit.BillConnect}");
             }
         }
         return result;
@@ -131,7 +132,14 @@ internal sealed class ImportOrdersHandler(
         var today = VietnamTime.ToVietnam(clock.GetUtcNow()).Date;
         var planned = new List<(ImportedRow Row, long Number)>();
 
+        // VSVX từng dòng, tra trước transaction (bảng tĩnh, cache theo nước) để ghi vào đơn như hệ thống cũ.
+        var remote = new Dictionary<int, IReadOnlyList<RemoteAreaHit>>();
+        var countryList = await geo.GetCountriesAsync(ct);
+        foreach (var row in rows)
+            remote[row.Line] = await remoteAreas.FindAsync(RemoteAreaColumns.CountryCode(row.Payload, countryList), row.Payload.Receiver.Postal, row.Payload.Receiver.City, ct);
+
         var strategy = db.Database.CreateExecutionStrategy();
+        var codes = new Dictionary<int, string>();
         await strategy.ExecuteAsync(async () =>
         {
             db.ChangeTracker.Clear();
@@ -139,6 +147,7 @@ internal sealed class ImportOrdersHandler(
             // Cấp số trong transaction: khóa dãy số tới khi commit, không trùng với hệ thống cũ.
             var issued = await numbers.NextAsync(rows.Count, ct);
             planned.Clear();
+            codes.Clear(); // chạy lại khi lỗi tạm thời: cấp lại số từ đầu
             planned.AddRange(rows.Select((row, i) => (row, issued[i])));
 
             var drafts = new List<OrderDraft>();
@@ -146,6 +155,8 @@ internal sealed class ImportOrdersHandler(
             foreach (var (row, number) in planned)
             {
                 var order = LegacyOrderFactory.FromPayload(row.Payload, customer, number, today);
+                codes[row.Line] = order.VaBill ?? number.ToString(CultureInfo.InvariantCulture);
+                RemoteAreaColumns.Apply(order, remote[row.Line]);
                 db.LegacyOrders.Add(order);
                 saved.Add((order, row.Payload));
                 var draft = new OrderDraft(customer.LegacyCustomerId, Summary(row, order, branch), JsonSerializer.Serialize(row.Payload, Json),
@@ -166,7 +177,7 @@ internal sealed class ImportOrdersHandler(
             await tx.CommitAsync(ct);
         });
 
-        return planned.ToDictionary(p => p.Row.Line, p => p.Number.ToString(CultureInfo.InvariantCulture));
+        return codes;
     }
 
     private static OrderDraftSummary Summary(ImportedRow row, Infrastructure.Legacy.LegacyOrder order, string branch) => new(

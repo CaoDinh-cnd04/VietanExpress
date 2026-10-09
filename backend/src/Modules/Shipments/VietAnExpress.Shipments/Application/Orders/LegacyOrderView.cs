@@ -50,8 +50,10 @@ internal static partial class LegacyOrderView
     [GeneratedRegex(@"^(delivered|signed for by:?)[\s,:]*", RegexOptions.IgnoreCase)]
     private static partial Regex PodPrefix();
 
+    /// <summary>Mã bill hiển thị: VA_Bill (vd VAHCM6003585US) nếu có, đơn cũ → 7 số.</summary>
     public static string BillOf(LegacyOrder o) =>
-        o.OrderNumber?.ToString(CultureInfo.InvariantCulture) ?? o.Id.ToString(CultureInfo.InvariantCulture);
+        o.VaBill?.Trim() is { Length: > 0 } code ? code
+        : o.OrderNumber?.ToString(CultureInfo.InvariantCulture) ?? o.Id.ToString(CultureInfo.InvariantCulture);
 
     public static OrderDto ToDto(LegacyOrder o, DateTime today)
     {
@@ -66,7 +68,7 @@ internal static partial class LegacyOrderView
             Cnee: o.ConsigneeName?.Trim() ?? "",
             Ct: o.ConsigneeCountry?.Trim() ?? "",
             Route: o.ServiceName?.Replace("|", " - ").Trim() ?? "",
-            Branch: "",
+            Branch: VaBillCode.BranchOf(o.VaBill) ?? "",
             Created: Date(o.CreateDate) ?? "",
             Sent: Date(o.SentDate),
             Type: IsDocument(o.GoodsName) ? "DOC" : "PACK",
@@ -75,7 +77,8 @@ internal static partial class LegacyOrderView
             Content: o.GoodsName?.Trim() ?? "",
             Pod: ParsePod(o.Pod),
             Photos: 0,
-            PodEstimate: Date(o.PodEstimate));
+            PodEstimate: Date(o.PodEstimate),
+            RemoteArea: string.IsNullOrWhiteSpace(o.RemoteAreaFedEx) ? null : o.RemoteAreaFedEx.Trim());
     }
 
     /// <summary>Danh sách "Đơn hàng của tôi": kèm người nhận đầy đủ để bảng xổ chi tiết (người liên hệ, SĐT, địa chỉ) — cùng dòng đã đọc, không truy vấn thêm.</summary>
@@ -92,7 +95,7 @@ internal static partial class LegacyOrderView
         new(S(o.ConsigneeName), S(o.ConsigneeContactName), S(o.ConsigneePhone), S(o.ConsigneeCountry),
             S(o.ConsigneeCity), S(o.ConsigneePostalCode), S(o.ConsigneeState), S(o.ConsigneeAddress1), S(o.ConsigneeAddress2),
             S(o.ConsigneeAddress3), S(o.ConsigneeVatTax), S(o.ConsigneeEmail),
-            S(o.ConsigneeIossNo), S(o.ConsigneeEoriNo), Domain.EuCountries.CodeOf(o.ConsigneeCountry) ?? "");
+            S(o.ConsigneeIossNo), S(o.ConsigneeEoriNo), VaBillCode.CountryOf(o.VaBill) ?? Domain.EuCountries.CodeOf(o.ConsigneeCountry) ?? "");
 
     /// <summary>Chi tiết đầy đủ kèm kiện + invoice (đọc từ 2 bảng chi tiết).</summary>
     public static OrderDto ToDetailDto(LegacyOrder o, DateTime today, IEnumerable<LegacyPackageLine> packages, IEnumerable<LegacyInvoiceLine> items) =>

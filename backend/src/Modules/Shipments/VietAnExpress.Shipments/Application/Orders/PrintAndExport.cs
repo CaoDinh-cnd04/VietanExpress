@@ -30,7 +30,7 @@ internal sealed class PrintOrdersHandler(
     {
         var bills = q.Bills.Select(b => b.Trim()).Where(b => b.Length > 0).Distinct().ToList();
         var numbers = bills
-            .Select(b => long.TryParse(b, NumberStyles.None, CultureInfo.InvariantCulture, out var n) ? n : (long?)null)
+            .Select(VaBillCode.Number)
             .OfType<long>()
             .ToList();
 
@@ -44,7 +44,7 @@ internal sealed class PrintOrdersHandler(
         var details = await LoadDraftDetailsAsync(orders.Where(o => !lines.ContainsKey(o.Id)).ToList(), ct);
         // Giữ đúng thứ tự khách chọn.
         var models = bills
-            .Select(b => orders.FirstOrDefault(o => LegacyOrderView.BillOf(o) == b || o.BillConnect == b))
+            .Select(b => orders.FirstOrDefault(o => LegacyOrderView.BillOf(o) == b || (o.OrderNumber is { } n && VaBillCode.Number(b) == n) || o.BillConnect == b))
             .OfType<LegacyOrder>()
             .DistinctBy(o => o.Id)
             .Select(o => lines.TryGetValue(o.Id, out var l) ? new OrderPrintModel(o, l.Items, l.Packages)

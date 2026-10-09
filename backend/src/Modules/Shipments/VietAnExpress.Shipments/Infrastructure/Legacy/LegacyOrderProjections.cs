@@ -7,7 +7,7 @@ internal static class LegacyOrderProjections
 {
     public static readonly Expression<Func<LegacyOrder, LegacyOrder>> List = o => new LegacyOrder
     {
-        Id = o.Id, OrderNumber = o.OrderNumber, CustomerBill = o.CustomerBill, BillConnect = o.BillConnect,
+        Id = o.Id, OrderNumber = o.OrderNumber, VaBill = o.VaBill, CustomerBill = o.CustomerBill, BillConnect = o.BillConnect,
         ConsigneeName = o.ConsigneeName, ConsigneeContactName = o.ConsigneeContactName,
         ConsigneePhone = o.ConsigneePhone, ConsigneeCountry = o.ConsigneeCountry,
         ConsigneeCity = o.ConsigneeCity, ConsigneePostalCode = o.ConsigneePostalCode,
@@ -16,12 +16,13 @@ internal static class LegacyOrderProjections
         ConsigneeVatTax = o.ConsigneeVatTax, ConsigneeEmail = o.ConsigneeEmail,
         ConsigneeIossNo = o.ConsigneeIossNo, ConsigneeEoriNo = o.ConsigneeEoriNo,
         ServiceName = o.ServiceName, CreateDate = o.CreateDate, SentDate = o.SentDate,
-        GoodsName = o.GoodsName, Pieces = o.Pieces, WeightKg = o.WeightKg, Pod = o.Pod, PodEstimate = o.PodEstimate
+        GoodsName = o.GoodsName, Pieces = o.Pieces, WeightKg = o.WeightKg, Pod = o.Pod, PodEstimate = o.PodEstimate,
+        RemoteAreaFedEx = o.RemoteAreaFedEx
     };
 
     public static readonly Expression<Func<LegacyOrder, LegacyOrder>> Tracking = o => new LegacyOrder
     {
-        Id = o.Id, OrderNumber = o.OrderNumber, BillConnect = o.BillConnect, Awb = o.Awb, CustomerBill = o.CustomerBill,
+        Id = o.Id, OrderNumber = o.OrderNumber, VaBill = o.VaBill, BillConnect = o.BillConnect, Awb = o.Awb, CustomerBill = o.CustomerBill,
         ConsigneeCity = o.ConsigneeCity, ConsigneeCountry = o.ConsigneeCountry, ServiceName = o.ServiceName,
         Pod = o.Pod, PodEstimate = o.PodEstimate, SentDate = o.SentDate, CreateDate = o.CreateDate,
         Pieces = o.Pieces, WeightKg = o.WeightKg, SenderCountryId = o.SenderCountryId
@@ -34,6 +35,6 @@ internal static class LegacyOrderProjections
 
     public static readonly Expression<Func<LegacyOrder, LegacyOrder>> InvoiceHeader = o => new LegacyOrder
     {
-        Id = o.Id, OrderNumber = o.OrderNumber, ConsigneeName = o.ConsigneeName, CreateDate = o.CreateDate, Currency = o.Currency
+        Id = o.Id, OrderNumber = o.OrderNumber, VaBill = o.VaBill, ConsigneeName = o.ConsigneeName, CreateDate = o.CreateDate, Currency = o.Currency
     };
 }

@@ -98,7 +98,9 @@ export function OrderDrawer({ order, onClose, actions }: OrderDrawerProps) {
                 columns={3}
                 items={[
                   ['Dịch vụ', t(o.route)],
+                  ['Chi nhánh', o.branch ? t(o.branch) : ''],
                   ['Nước đến', o.ct],
+                  ['VSVX', o.remoteArea ?? t('Không')],
                   ['Loại hàng', o.type],
                   ['Kiện / cân', t(o.pcs)],
                   ['Ngày tạo', o.created],

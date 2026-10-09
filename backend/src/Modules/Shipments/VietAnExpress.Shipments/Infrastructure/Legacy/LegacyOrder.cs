@@ -59,6 +59,14 @@ internal sealed class LegacyOrder
     public decimal? GoodsValue { get; set; }
     /// <summary>Số vận đơn Việt An (VA bill) — khách tra cứu bằng số này.</summary>
     public long? OrderNumber { get; set; }
+
+    /// <summary>Mã VA bill hiển thị (chi nhánh + 7 số + mã nước, vd VAHCM6003585US) — cột VA_Bill do portal thêm; NULL ở đơn cũ.</summary>
+    public string? VaBill { get; set; }
+
+    /// <summary>Vùng sâu vùng xa ghi lúc cấp bill (như hệ thống cũ): hãng khác / FedEx "Fedex (Tier B)" / UPS.</summary>
+    public string? RemoteArea { get; set; }
+    public string? RemoteAreaFedEx { get; set; }
+    public string? RemoteAreaUps { get; set; }
     public string? CustomerName { get; set; }
     /// <summary>Mã vận đơn của hãng / đối tác chặng cuối (Bill_Connect).</summary>
     public string? BillConnect { get; set; }
@@ -113,6 +121,10 @@ internal sealed class LegacyOrderConfiguration : IEntityTypeConfiguration<Legacy
         b.Property(x => x.ConsigneeEmail).HasMaxLength(150).IsRequired();
         b.Property(x => x.ConsigneeVatTax).HasColumnName("CONSIGNEE_VAT_Tax").HasMaxLength(100);
         b.Property(x => x.ConsigneePhoneCode).HasMaxLength(50);
+        b.Property(x => x.RemoteArea).HasColumnName("Remote_Area").HasMaxLength(50);
+        b.Property(x => x.RemoteAreaFedEx).HasColumnName("Remote_Area_FedEx").HasMaxLength(200);
+        b.Property(x => x.RemoteAreaUps).HasColumnName("Remote_Area_UPS").HasMaxLength(200);
+        b.Property(x => x.VaBill).HasColumnName("VA_Bill").HasMaxLength(Application.Orders.VaBillCode.MaxLength);
         b.Property(x => x.ConsigneeIossNo).HasMaxLength(12);
         b.Property(x => x.ConsigneeEoriNo).HasMaxLength(17);
 

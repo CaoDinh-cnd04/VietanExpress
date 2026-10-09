@@ -17,6 +17,9 @@ internal static class LegacyOrderFactory
     private const int NewService = 1;
     private const int NewStatus = 1;
 
+    /// <summary>ID quốc gia Việt Nam trong danh mục nước của hệ thống cũ (SenderCountryID của đơn cũ đều là 231).</summary>
+    public const int LegacyVietnamCountryId = 231;
+
     /// <summary>Nhóm "nhiều loại hàng trong 1 kiện" — khớp MULTI_CATEGORY của frontend.</summary>
     public const string MultiCategory = "Nhiều loại hàng";
 
@@ -56,8 +59,11 @@ internal static class LegacyOrderFactory
             CustomerId = customer.LegacyCustomerId,
             CustomerName = Clip(customer.CompanyName, 250),
             OrderNumber = orderNumber,
+            VaBill = VaBillCode.Format(p.Shipper.Branch, orderNumber, p.Receiver.CountryCode),
             Awb = "",
 
+            // Việt An chỉ nhận hàng xuất đi từ Việt Nam: điền ID nước như hệ thống cũ, không để NULL.
+            SenderCountryId = LegacyVietnamCountryId,
             SenderName = Clip(p.Shipper.Company, 250),
             SenderAddress = Clip(p.Shipper.Address, 500),
             SenderContactName = Clip(p.Shipper.Contact, 100),

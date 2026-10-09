@@ -9,6 +9,7 @@ using VietAnExpress.SharedKernel.Results;
 using VietAnExpress.Shipments.Application.Dtos;
 using VietAnExpress.Shipments.Domain;
 using VietAnExpress.Shipments.Infrastructure;
+using VietAnExpress.Shipments.Infrastructure.Geo;
 
 namespace VietAnExpress.Shipments.Application.Orders;
 
@@ -119,7 +120,8 @@ internal sealed class DraftHandlers(ShipmentsDbContext db, ICurrentUser user) :
 internal sealed record PrintDraftCommand(Guid Id) : IRequest<Result<PrintDraftResponse>>;
 
 internal sealed class PrintDraftHandler(
-    ShipmentsDbContext db, ICurrentUser user, OrderAccess access, ILegacyOrderNumberAllocator numbers, TimeProvider clock)
+    ShipmentsDbContext db, ICurrentUser user, OrderAccess access, ILegacyOrderNumberAllocator numbers, IRemoteAreaLookup remoteAreas,
+    IGeoLookup geo, TimeProvider clock)
     : IRequestHandler<PrintDraftCommand, Result<PrintDraftResponse>>
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
@@ -143,8 +145,12 @@ internal sealed class PrintDraftHandler(
 
         var today = VietnamTime.ToVietnam(clock.GetUtcNow()).Date;
         long number = 0;
+        // VSVX tra trước transaction (đọc bảng tĩnh, có cache) để ghi vào đơn như hệ thống cũ.
+        var countryCode = RemoteAreaColumns.CountryCode(payload, await geo.GetCountriesAsync(ct));
+        var remote = await remoteAreas.FindAsync(countryCode, payload.Receiver.Postal, payload.Receiver.City, ct);
 
         // 1 transaction: ghi MaVanDon + chi tiết kiện / dòng hàng và xoá nháp cùng thành công hoặc cùng huỷ.
+        string? code = null;
         await db.Database.CreateExecutionStrategy().ExecuteAsync(async () =>
         {
             db.ChangeTracker.Clear();
@@ -152,6 +158,8 @@ internal sealed class PrintDraftHandler(
             // Cấp số trong transaction: khóa dãy số tới khi commit, không trùng với hệ thống cũ.
             number = (await numbers.NextAsync(1, ct))[0];
             var order = LegacyOrderFactory.FromPayload(payload, writer.Value, number, today);
+            code = order.VaBill;
+            RemoteAreaColumns.Apply(order, remote);
             db.LegacyOrders.Add(order);
             db.OrderDrafts.Attach(draft);
             draft.MarkPrinted(number);
@@ -162,7 +170,7 @@ internal sealed class PrintDraftHandler(
             await LegacyOrderLinesWriter.AddAsync(db, [(order, payload)], ct);
             await tx.CommitAsync(ct);
         });
-        var bill = number.ToString(CultureInfo.InvariantCulture);
+        var bill = code ?? number.ToString(CultureInfo.InvariantCulture);
         return new PrintDraftResponse($"Đã cấp mã vận đơn {bill}", bill);
     }
 }

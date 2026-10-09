@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using VietAnExpress.Shipments.Infrastructure;
 
@@ -11,9 +12,11 @@ using VietAnExpress.Shipments.Infrastructure;
 namespace VietAnExpress.Shipments.Infrastructure.Migrations
 {
     [DbContext(typeof(ShipmentsDbContext))]
-    partial class ShipmentsDbContextModelSnapshot : ModelSnapshot
+    [Migration("20261009063942_AddVaBillCode")]
+    partial class AddVaBillCode
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -482,21 +485,6 @@ namespace VietAnExpress.Shipments.Infrastructure.Migrations
                     b.Property<DateTime?>("PodEstimate")
                         .HasColumnType("datetime")
                         .HasColumnName("POD_Est");
-
-                    b.Property<string>("RemoteArea")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
-                        .HasColumnName("Remote_Area");
-
-                    b.Property<string>("RemoteAreaFedEx")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)")
-                        .HasColumnName("Remote_Area_FedEx");
-
-                    b.Property<string>("RemoteAreaUps")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)")
-                        .HasColumnName("Remote_Area_UPS");
 
                     b.Property<string>("SenderAddress")
                         .HasMaxLength(500)

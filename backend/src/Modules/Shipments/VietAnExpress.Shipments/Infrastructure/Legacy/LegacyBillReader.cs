@@ -21,7 +21,7 @@ internal sealed class LegacyBillReader(ShipmentsDbContext db, ILogger<LegacyBill
         if (bills.Count == 0) return [];
 
         var numbers = bills
-            .Select(b => long.TryParse(b, NumberStyles.None, CultureInfo.InvariantCulture, out var n) ? n : (long?)null)
+            .Select(b => Application.Orders.VaBillCode.Number(b))
             .OfType<long>()
             .ToList();
         try

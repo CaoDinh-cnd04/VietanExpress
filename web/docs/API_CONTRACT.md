@@ -25,6 +25,9 @@ Backend mới (SQL Server) chỉ cần làm đúng các hợp đồng này là f
 
 ## 1. Đơn hàng — `features/orders`, `features/order-import`
 
+> **Mã VA bill:** đơn cấp bill trên portal có mã `VA + chi nhánh + 7 số (OrderNumber, MAX+1) + mã nước ISO 2 chữ`, vd `VAHCM6003585US` (TP.HCM = VAHCM, Hà Nội = VAHN, Huế = VAHUE, Bảo Lộc = VABL, Cần Thơ = VACT), lưu ở cột mới `dbo.MaVanDon.VA_Bill`. `Order.branch` (vd "TP.HCM") và `receiver.countryCode` đọc lại từ mã này; `Order.remoteArea` = cột `Remote_Area_FedEx` ghi lúc cấp bill (vd "Fedex (Tier B)", null khi không thuộc VSVX). Mọi trường `bill` / `billCode` trả về mã này; đơn cũ (VA_Bill NULL) trả 7 số. Mọi API nhận mã bill (chi tiết, in, tra cứu) nhận cả `VAHCM6003585US` lẫn `6003585`.
+
+
 | Method | Path | Trạng thái | Mô tả |
 |---|---|---|---|
 | GET | `/orders` | Có sẵn | Danh sách có lọc, sắp xếp, phân trang |
