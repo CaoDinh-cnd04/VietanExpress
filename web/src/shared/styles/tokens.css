@@ -14,8 +14,6 @@
   --color-hero-to: #2e8b3e;
   --color-on-hero: #ffffff;
   --color-on-hero-muted: rgba(255, 255, 255, 0.78);
-  /* Nền chữ ghi nguồn đặt trên ảnh */
-  --color-photo-credit-bg: rgba(0, 0, 0, 0.5);
 
   /* Nền & chữ */
   /* Tương phản cao cho dễ đọc lâu: chữ phụ vẫn đạt WCAG AA (≥ 4.5:1) trên nền trắng; nền xám nhẹ để bớt chói. */

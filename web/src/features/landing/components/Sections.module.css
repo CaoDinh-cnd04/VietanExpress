@@ -142,28 +142,6 @@
   object-fit: cover;
 }
 
-/* Ghi nguồn ảnh theo giấy phép Creative Commons */
-.laneCredit {
-  position: absolute;
-  right: var(--space-2);
-  bottom: var(--space-2);
-  max-width: calc(100% - 2 * var(--space-2));
-  padding: 1px 6px;
-  border-radius: 4px;
-  background: var(--color-photo-credit-bg);
-  color: var(--color-on-hero);
-  font-size: 10px;
-  line-height: 1.5;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.laneCredit:hover {
-  color: var(--color-on-hero);
-  text-decoration: underline;
-}
-
 /* Huy hiệu cờ góc trên trái */
 .laneFlag {
   position: absolute;

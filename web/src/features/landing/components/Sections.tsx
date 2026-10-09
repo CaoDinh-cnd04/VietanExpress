@@ -79,9 +79,6 @@ export function LanesSection() {
               <article className={styles.lane}>
                 <div className={styles.laneArt}>
                   <img className={styles.lanePhoto} src={`/landing/lanes/${l.code.toLowerCase()}.jpg`} alt={t(l.landmark)} loading="lazy" width={960} height={549} />
-                  <a className={styles.laneCredit} href={l.photo.source} target="_blank" rel="noreferrer" title={t(l.landmark)}>
-                    {t('Ảnh: {author}', { author: l.photo.author })} · {l.photo.license}
-                  </a>
                   <img className={styles.laneFlag} src={`/flags/${l.code.toLowerCase()}.svg`} alt={t('Cờ {country}', { country: t(l.country) })} loading="lazy" />
                 </div>
                 <div className={styles.laneBody}>
