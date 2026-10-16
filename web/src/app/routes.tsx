@@ -25,7 +25,6 @@ const PrivacyPage = lazy(() => import('@/features/landing/pages/PrivacyPage'));
 const ShopifyConnectPage = lazy(() => import('@/features/ecommerce/pages/ShopifyConnectPage'));
 const AdminPage = lazy(() => import('@/features/admin/pages/AdminPage'));
 const pages = {
-  senderInfo: lazy(() => import('@/features/sender-info/pages/SenderInfoPage')),
   myTracking: lazy(() => import('@/features/mytracking/pages/MyTrackingPage')),
   staff: lazy(() => import('@/features/staff/pages/StaffPage')),
   orderImport: lazy(() => import('@/features/order-import/pages/OrderImportPage')),
@@ -36,10 +35,8 @@ const pages = {
   ecomOrders: lazy(() => import('@/features/ecommerce/pages/EcomOrdersPage')),
   troubles: lazy(() => import('@/features/troubles/pages/TroublesPage')),
   notifications: lazy(() => import('@/features/notifications/pages/NotificationsPage')),
-  support: lazy(() => import('@/features/support/pages/SupportPage')),
   apiTracking: lazy(() => import('@/features/account/pages/ApiTrackingPage')),
-  password: lazy(() => import('@/features/account/pages/ChangePasswordPage')),
-  feedback: lazy(() => import('@/features/feedback/pages/FeedbackPage'))
+  password: lazy(() => import('@/features/account/pages/ChangePasswordPage'))
 } satisfies Record<string, LazyExoticComponent<ComponentType>>;
 
 /**
@@ -93,15 +90,17 @@ const routes: RouteObject[] = [
       page('ecommerce/orders', 'Đơn hàng E-com', pages.ecomOrders, PERMISSIONS.ecommerceView),
       // Đường cũ của trang mở app từ Shopify — giữ để link cũ vẫn chạy.
       { path: 'ecommerce/shopify', element: <Navigate to="/shopify" replace /> },
-      page('troubles', 'Quản lý sự cố', pages.troubles),
+      page('troubles', 'Hỗ trợ & sự cố', pages.troubles),
       page('notifications', 'Thông báo', pages.notifications),
-      page('help', 'Trợ giúp & Góp ý', pages.support),
+      // Trang Trợ giúp & Góp ý cũ đã gộp vào Hỗ trợ & sự cố.
+      { path: 'help', element: <RedirectKeepQuery to="/troubles" /> },
+      { path: 'account/feedback', element: <RedirectKeepQuery to="/troubles" /> },
       page('account/api-tracking', 'API Tracking', pages.apiTracking),
       page('account/mytracking', 'MyTracking cá nhân', pages.myTracking, PERMISSIONS.myTracking),
       page('account/staff', 'Tài khoản nhân viên', pages.staff, PERMISSIONS.manageStaff),
       page('account/password', 'Đổi mật khẩu', pages.password),
-      page('account/sender-info', 'Thông tin người gửi', pages.senderInfo, PERMISSIONS.senderInfo),
-      page('account/feedback', 'Góp ý', pages.feedback, PERMISSIONS.feedback),
+      // Sửa thông tin người gửi nay gửi bằng yêu cầu hỗ trợ.
+      { path: 'account/sender-info', element: <Navigate to="/troubles?new=sender-info" replace /> },
       { path: '*', element: <NotFoundPage />, handle: { title: 'Không tìm thấy trang' } satisfies RouteHandle }
     ]
   }

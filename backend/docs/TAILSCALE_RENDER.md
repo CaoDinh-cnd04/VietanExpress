@@ -1,7 +1,7 @@
 # Render kết nối SQL Server trên Windows qua Tailscale
 
 ```text
-Vercel → Render API → 127.0.0.1:14330 → tailscale nc → IP Tailscale của Windows:1433 → vietan_app
+Vercel → Render API → 127.0.0.1:14330 → tailscale nc → IP Tailscale của Windows:1433 → vietanexpress
 ```
 
 Không cần cấu hình router hoặc IP public. Windows phải bật, không ngủ và có Internet. SQL Server vẫn lưu dữ liệu tại Windows. Tailscale chạy cùng container API trong userspace bằng user không phải root; không yêu cầu `/dev/net/tun`. Cổng chuyển tiếp 14330 chỉ nghe loopback trong container.
@@ -10,7 +10,7 @@ Không cần cấu hình router hoặc IP public. Windows phải bật, không n
 
 1. Cài Tailscale, đăng nhập. Trên Machines, máy SQL phải hiển thị Connected.
 2. Lấy IP: `& "C:\Program Files\Tailscale\tailscale.exe" ip -4`. Ví dụ máy đã kiểm tra: `100.112.14.17`.
-3. SQL Server đã bật TCP 1433 và SQL login `vietan_portal`. Kiểm tra SSMS bằng SQL authentication tới `tcp:100.112.14.17,1433`, database `vietan_app`.
+3. SQL Server đã bật TCP 1433 và SQL login `vietan_portal`. Kiểm tra SSMS bằng SQL authentication tới `tcp:100.112.14.17,1433`, database `vietanexpress`.
 4. Cho phép SQL trên đúng IP Tailscale. PowerShell **Run as administrator**, thay IP nếu máy khác:
 
    ```powershell
@@ -49,7 +49,7 @@ Dockerfile mặc định đã hỗ trợ Tailscale. Không đặt Docker Command
 | `ConnectionStrings__Default` | Chuỗi kết nối dưới đây |
 
 ```text
-Server=tcp:127.0.0.1,14330;Database=vietan_app;User ID=vietan_portal;Password=<MAT_KHAU_SQL>;Encrypt=True;TrustServerCertificate=True;Connect Timeout=30
+Server=tcp:127.0.0.1,14330;Database=vietanexpress;User ID=vietan_portal;Password=<MAT_KHAU_SQL>;Encrypt=True;TrustServerCertificate=True;Connect Timeout=30
 ```
 
 **Server là loopback của container, cổng 14330**, vì SQL client được đưa qua TCP relay; đích thực nằm trong `TS_SQL_HOST`. `TrustServerCertificate=True` dùng cho chứng chỉ SQL tự ký trong đường kết nối này: SQL vẫn mã hóa, nhưng không kiểm tra chứng chỉ SQL; kết nối giữa hai node được xác thực và mã hóa bởi Tailscale. Không dùng mẫu này để mở SQL ra Internet. Khi SQL có chứng chỉ tin cậy, dùng `TrustServerCertificate=False` cùng `HostNameInCertificate` khớp tên trên chứng chỉ.

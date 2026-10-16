@@ -1,7 +1,7 @@
 # Triển khai backend trên Render, frontend trên Vercel
 
 ```text
-Trình duyệt → Vercel (web + /api/proxy) → Render (.NET API) → SQL Server vietan_app
+Trình duyệt → Vercel (web + /api/proxy) → Render (.NET API) → SQL Server vietanexpress
 ```
 
 Giữ `VITE_API_BASE_URL=/api/v1`. Proxy `web/api/proxy.ts` chuyển tiếp API đến `BACKEND_URL`; cookie HttpOnly được trả trên domain Vercel, phù hợp với phiên đăng nhập hiện tại. Không cần sửa SameSite sang None hoặc đưa token vào JavaScript.
@@ -16,7 +16,7 @@ Backend hiện dùng SQL Server và các bảng của hệ thống cũ (`dbo.TCu
 - Ví dụ cấu trúc connection string (thay giá trị; không commit bí mật):
 
   ```text
-  Server=tcp:<sql-host>,1433;Database=vietan_app;User ID=<sql-user>;Password=<sql-password>;Encrypt=True;TrustServerCertificate=False
+  Server=tcp:<sql-host>,1433;Database=vietanexpress;User ID=<sql-user>;Password=<sql-password>;Encrypt=True;TrustServerCertificate=False
   ```
 
 - Database phải có sẵn dữ liệu/bảng cũ và migration portal cần thiết. Giữ `Database__MigrateOnStartup=false` khi deploy. Nếu cần migration, chạy `backend/scripts/update-database.ps1` từ máy quản trị sau khi kiểm tra và sao lưu database; script áp migration của repository.

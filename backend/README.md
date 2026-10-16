@@ -1,8 +1,8 @@
 # Việt An Express — Backend (.NET 10)
 
-ASP.NET Core Web API, kiến trúc **modular monolith**: mỗi module là 1 project, dùng chung database SQL Server `vietan_app`.
+ASP.NET Core Web API, kiến trúc **modular monolith**: mỗi module là 1 project, dùng chung database SQL Server `vietanexpress`.
 
-> **Portal không tự tạo bảng.** Dữ liệu đọc / ghi thẳng các bảng có sẵn của hệ thống cũ (`dbo.TCustomer`, `dbo.MaVanDon`, `dbo.MaVanDon_PCS_DIM`, `dbo.MaVanDon_ChiTietHang`). Ngoại lệ duy nhất đang tạm giữ: `shipments.OrderDrafts` (đơn nháp). Chức năng mới cần bảng thì hỏi trước.
+> **Portal không tự tạo bảng.** Dữ liệu đọc / ghi thẳng các bảng có sẵn của hệ thống cũ (`dbo.TCustomer`, `dbo.MaVanDon`, `dbo.MaVanDon_PCS_DIM`, `dbo.MaVanDon_ChiTietHang`). Đơn nháp & chưa in cũng nằm trong `dbo.MaVanDon` (`Status = 0`). Chức năng mới cần bảng thì hỏi trước.
 
 | Thành phần | Công nghệ |
 |---|---|
@@ -17,19 +17,19 @@ ASP.NET Core Web API, kiến trúc **modular monolith**: mỗi module là 1 proj
 
 ## 1. Chạy lần đầu
 
-Yêu cầu: .NET SDK 10, SQL Server (máy dev: `LAPTOP-K91T0OHE\SQLEXPRESS01`, database `vietan_app`), `dotnet tool install -g dotnet-ef`.
+Yêu cầu: .NET SDK 10, SQL Server (máy dev: `LAPTOP-K91T0OHE\SQLEXPRESS01`, database `vietanexpress`), `dotnet tool install -g dotnet-ef`.
 
 ```powershell
 cd backend/src/VietAnExpress.API
 
 # Bí mật KHÔNG để trong appsettings — dùng user-secrets khi dev
-dotnet user-secrets set "ConnectionStrings:Default" "Server=LAPTOP-K91T0OHE\SQLEXPRESS01;Database=vietan_app;Trusted_Connection=True;TrustServerCertificate=True;Encrypt=True"
+dotnet user-secrets set "ConnectionStrings:Default" "Server=LAPTOP-K91T0OHE\SQLEXPRESS01;Database=vietanexpress;Trusted_Connection=True;TrustServerCertificate=True;Encrypt=True"
 dotnet user-secrets set "Jwt:Secret" "<chuỗi ngẫu nhiên ≥ 32 ký tự>"
 
 dotnet run --launch-profile http     # http://localhost:3000/swagger
 ```
 
-Khi chạy ở môi trường Development, API tự áp migration của `shipments.OrderDrafts` (`Database:MigrateOnStartup`). Đăng nhập bằng tài khoản khách có sẵn trong `dbo.TCustomer` (`Login_UserName` / `Login_Password`).
+Khi chạy ở môi trường Development, API tự áp migration các module (`Database:MigrateOnStartup`) — tạo migration xong phải viết xong nội dung trước khi khởi động lại API. Đăng nhập bằng tài khoản khách có sẵn trong `dbo.TCustomer` (`Login_UserName` / `Login_Password`).
 
 Frontend (`web/`, `npm run dev`) proxy `/api` sang `http://localhost:3000`, nên chạy cả hai là dùng được ngay.
 
@@ -52,10 +52,10 @@ backend/
 │   └── Modules/
 │       ├── Identity/   VietAnExpress.Identity (+ .Contracts)    đăng nhập khách: dbo.TCustomer
 │       ├── Customers/  VietAnExpress.Customers (+ .Contracts)   hồ sơ khách: dbo.TCustomer (chỉ đọc)
-│       ├── Shipments/  VietAnExpress.Shipments (+ .Contracts)   dbo.MaVanDon (+ 2 bảng chi tiết), shipments.OrderDrafts
+│       ├── Shipments/  VietAnExpress.Shipments (+ .Contracts)   dbo.MaVanDon (+ 2 bảng chi tiết; đơn chưa in Status = 0)
 │       └── Ecommerce/  VietAnExpress.Ecommerce (+ .Contracts)   kênh bán, shop đã kết nối, đơn e-com: dbo.KenhTMDT, dbo.KetNoiTMDT, dbo.DonTMDT
 ├── tests/  Shipments.Tests, Identity.Tests, Architecture.Tests
-└── scripts/ add-migration.ps1, update-database.ps1, drop-portal-tables.sql, install-service.ps1…
+└── scripts/ add-migration.ps1, update-database.ps1, legacy-tables.sql, setup-portal-current.sql, install-service.ps1…
 ```
 
 Bên trong mỗi module: `Domain/`, `Application/` (`Commands/`, `Queries/`, `Dtos/`, `Validators/`, `EventHandlers/`), `Infrastructure/` (`<Module>DbContext`, `Configurations/`, `Migrations/`), `Api/` (controller), `<Module>Module.cs` (đăng ký DI).
@@ -66,7 +66,7 @@ Bên trong mỗi module: `Domain/`, `Application/` (`Commands/`, `Queries/`, `Dt
 2. Mọi class trong module là `internal`; chỉ `<Module>Module` là `public`. Contracts là `public`.
 3. **Không tạo bảng mới.** Bảng của hệ thống cũ map bằng `ToTable(..., t => t.ExcludeFromMigrations())`; module chỉ dùng bảng cũ đăng ký DbContext bằng `AddLegacyDbContext` (không migration, không bảng lịch sử). Mã khách ở mọi nơi là `dbo.TCustomer.CustomerID` (`long`); cần hồ sơ khách thì gọi `ICustomersApi`.
 4. Giao tiếp giữa các module: đồng bộ, qua interface trong Contracts.
-5. `shipments.OrderDrafts` kế thừa `BaseEntity`: interceptor tự điền `CreatedAt`, `UpdatedAt`; lệnh xoá được đổi thành xoá mềm.
+5. Entity kế thừa `BaseEntity`: interceptor tự điền `CreatedAt`, `UpdatedAt`; lệnh xoá được đổi thành xoá mềm.
 6. Controller không kiểm tra theo tên vai trò. Luôn dùng `[HasPermission(ShipmentsPermissions.Create)]`. Quyền khai báo trong code (`IPermissionProvider` của từng module, vai trò `customer`) và được cấp vào token khi đăng nhập — không lưu DB.
 7. Mọi lỗi trả về dạng **ProblemDetails**, kèm `error` (mã lỗi) và `message` (câu tiếng Việt) — đúng hai trường frontend đang đọc.
 
@@ -151,7 +151,7 @@ Hệ thống cũ (kho, vận hành) vẫn chạy song song trên cùng database.
 | Hồ sơ khách (tên công ty, người liên hệ, SĐT, email) | `dbo.TCustomer` (chỉ đọc) |
 | Đơn hàng, tra cứu công khai | `dbo.MaVanDon` |
 | Chi tiết kiện / dòng hàng invoice | `dbo.MaVanDon_PCS_DIM`, `dbo.MaVanDon_ChiTietHang` |
-| Đơn nháp & chưa in (tạm giữ) | `shipments.OrderDrafts` |
+| Đơn nháp & chưa in | `dbo.MaVanDon` với `Status = 0` (+ 2 bảng chi tiết) |
 | Kênh bán e-com (Shopify, TikTok Shop, Amazon…) — bảng mới | `dbo.KenhTMDT` (danh mục, seed trong migration) |
 | Shop của khách đã kết nối — bảng mới | `dbo.KetNoiTMDT` |
 | Đơn e-com (kéo từ sàn; sau này cả nhập tay / Excel) — bảng mới | `dbo.DonTMDT` |
@@ -165,10 +165,14 @@ Hệ thống cũ (kho, vận hành) vẫn chạy song song trên cùng database.
   - `POST /orders/import` (tạo từ file Excel mẫu) ghi giống hệt, cho các dòng hợp lệ.
   - Ở `MaVanDon_PCS_DIM`: `TrongLuong` / `QuiDoi` / `ChargeWeight` là tổng của dòng kiện; chứng từ không ghi dòng kiện. In bill / invoice đọc 2 bảng chi tiết trước, không có thì lấy form nháp.
   - **Số vận đơn** của portal lấy từ dải riêng, bắt đầu từ **90.000.001** (sequence `shipments.LegacyOrderNumberSequence`), để không trùng số hệ thống cũ cấp (hiện khoảng 6 triệu).
-  - Giá trị ghi theo dữ liệu cũ đang có: `Service = 1`, `Status = 1`, `Dich_Vu` dạng `DHL|Singapore`, `ConsigneeEmail = ''` (cột NOT NULL). Chưa ghi `SenderCountryID` / `ConsigneeCountryID`, vì database chưa có bảng danh mục quốc gia.
+  - Giá trị ghi theo dữ liệu cũ đang có: `Service = 1`, `Status = 1`, `Dich_Vu` dạng `DHL|Singapore`, `ConsigneeEmail = ''` (cột NOT NULL). `SenderCountryID = 231` (Việt Nam); `ConsigneeCountryID` tra từ `dbo.Countries.CountryID` theo `CountryCode`, nháp cũ thiếu mã thì khớp `CountryName`. Đọc danh mục một lần cho mỗi lần cấp bill / lô import; không tìm thấy hoặc trùng danh mục thì giữ NULL. Bảng `Countries` chỉ đọc, không thuộc model / migration của portal.
 
 **Bảng cũ của portal đã bỏ:** các schema `identity`, `customers` và bảng `shipments.Shipments*` do phiên bản trước tự sinh (migration `DropShipmentsKeepDrafts` + `scripts/drop-portal-tables.sql`). Máy khác còn các bảng này: chạy `update-database.ps1` trước, rồi mới chạy script SQL.
 
 ## 7. Còn thiếu so với frontend (`web/docs/API_CONTRACT.md`)
 
 Các endpoint `/pickups`, `/pricing`, `/ecommerce`, `/troubles`, `/notifications`… chưa có vì database chưa có bảng tương ứng — frontend hiện trạng thái "đang cập nhật". Khi có bảng, làm tiếp theo đúng hợp đồng trong `web/docs/API_CONTRACT.md`.
+
+## MyTracking dùng bảng hệ thống cũ
+
+Cấu hình và ảnh lưu trong [dbo.TCustomer_MyTracking và dbo.TCustomer_MyTracking_Banner](docs/MYTRACKING_STORAGE.md). Migration chuyển dữ liệu giữ đường dẫn, trạng thái xuất bản và ảnh, rồi xóa bảng MyTrackingCauHinh. API giữ nguyên cấu trúc.
