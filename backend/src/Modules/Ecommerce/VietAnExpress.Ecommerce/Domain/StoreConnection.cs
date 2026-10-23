@@ -120,7 +120,7 @@ internal sealed class StoreConnection
 
     /// <summary>
     /// Chủ shop gỡ app trên Shopify (webhook app/uninstalled): token không còn dùng được → xóa, chuyển "revoked".
-    /// Vẫn hiện trong danh sách để khách biết và ủy quyền lại.
+    /// Ẩn khỏi tab Kết nối; cài lại app thì kết nối cũ được cập nhật và hiện lại.
     /// </summary>
     public void MarkUninstalled(DateTime now)
     {

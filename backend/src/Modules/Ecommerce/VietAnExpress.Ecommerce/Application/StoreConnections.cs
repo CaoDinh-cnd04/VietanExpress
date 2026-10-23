@@ -87,8 +87,9 @@ internal sealed class StoreConnectionHandlers(
     public async Task<IReadOnlyList<StoreConnectionDto>> Handle(GetStoreConnectionsQuery q, CancellationToken ct)
     {
         if (user.CustomerId is not { } customerId) return [];
+        // Shop đã gỡ app trên Shopify (revoked) không hiện nữa — cài lại app là kết nối hiện lại (cập nhật dòng cũ).
         var rows = await db.StoreConnections.AsNoTracking()
-            .Where(s => s.CustomerId == customerId && s.DisconnectedAt == null)
+            .Where(s => s.CustomerId == customerId && s.DisconnectedAt == null && s.Status != StoreConnection.Revoked)
             .OrderBy(s => s.ConnectedAt)
             .ToListAsync(ct);
         return [.. rows.Select(ToDto)];

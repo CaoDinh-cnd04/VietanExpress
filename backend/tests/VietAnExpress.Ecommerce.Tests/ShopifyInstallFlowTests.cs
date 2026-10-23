@@ -204,6 +204,20 @@ public class ShopifyInstallFlowTests
         Assert.Null((await f.Db.StoreConnections.SingleAsync(s => s.CustomerId == 8, Ct)).DisconnectedAt);
     }
 
+    [Fact]
+    public async Task Shop_da_go_app_an_khoi_tab_Ket_noi_cai_lai_thi_hien_lai()
+    {
+        using var f = new Fixture();
+        await f.Handler(customerId: 7).Handle(new ClaimShopifyInstallCommand(await InstallAsync(f)), Ct);
+        (await f.Db.StoreConnections.SingleAsync(Ct)).MarkUninstalled(DateTime.Now);
+        await f.Db.SaveChangesAsync(Ct);
+
+        Assert.Empty(await f.Handler(customerId: 7).Handle(new GetStoreConnectionsQuery(), Ct));
+
+        await f.Handler(customerId: 7).Handle(new ClaimShopifyInstallCommand(await InstallAsync(f)), Ct);
+        Assert.Single(await f.Handler(customerId: 7).Handle(new GetStoreConnectionsQuery(), Ct));
+    }
+
     [Theory]
     [InlineData("#1001", "vietan-store.myshopify.com", "VIETAN-STORE-1001")]
     [InlineData("#1001", "other-shop.myshopify.com", "OTHER-SHOP-1001")]
