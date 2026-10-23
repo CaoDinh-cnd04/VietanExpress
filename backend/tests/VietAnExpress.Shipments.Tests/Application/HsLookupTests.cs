@@ -53,10 +53,7 @@ public class HsLookupTests
         Row(1, "US", "080450", "0804.50.40.40", "Dried mango", "Xoài sấy", desc: "Guavas, mangoes: dried"),
         Row(2, "US", "080450", "0804504060", "Mango, fresh", "Xoài tươi", verified: false),
         Row(3, "UK", "080450", "0804500000", "Dried mango", "Xoài sấy"),
-        Row(4, "US", "610910", "6109100012", "Cotton T-shirt", "Áo thun cotton"),
-        Row(5, "AU", "0307.49", "? 0307.49.00.40", "Other"),
-        Row(6, "AU", "0307.42", "0307.42.00.10", "Live"),
-        Row(7, "AU", "0307.49", "&#160;0307.49.00.90", "Other")
+        Row(4, "US", "610910", "6109100012", "Cotton T-shirt", "Áo thun cotton")
     ];
 
     private static List<HsLookupItemDto> Run(string country, string q, string? mode = null) =>
@@ -68,8 +65,6 @@ public class HsLookupTests
         Assert.Equal(["0804.50.40.40"], Run("US", "0804").Select(x => x.NationalCode));
         Assert.Equal(["0804.50.40.40", "0804504060"], Run("US", "080450", "catalog").Select(x => x.NationalCode)); // đã xác minh lên trước
         Assert.Equal(["0804500000"], Run("GB", "0804").Select(x => x.NationalCode)); // GB khớp dữ liệu nạp là UK
-        // Mã AU lẫn "? " / &#160; vẫn tìm được theo số và đứng đúng thứ tự.
-        Assert.Equal(["0307.42.00.10", "? 0307.49.00.40", "&#160;0307.49.00.90"], Run("AU", "0307", "catalog").Select(x => x.NationalCode));
     }
 
     [Fact]
@@ -103,14 +98,6 @@ public class HsLookupTests
             "T-shirts, singlets, tank tops and similar garments, knitted or crocheted: > Of cotton > Men's or boys': > Other T-shirts: > Men's (338)"));
         Assert.Equal(["T-shirts, singlets, tank tops and similar garments, knitted or crocheted", "Of cotton", "Men's or boys'", "Other T-shirts"], x!.Path);
         Assert.Equal("Men's (338)", x!.NameEn);
-    }
-
-    [Fact]
-    public void Present_bo_gach_cap_bac_dau_dong_cua_AU()
-    {
-        var x = HsLookupRules.Present(Raw("‑‑Other", "ELECTRICAL WASTE: > ‑Other electrical assemblies: > ‑‑Other"));
-        Assert.Equal("Other", x!.NameEn);
-        Assert.Equal(["ELECTRICAL WASTE", "Other electrical assemblies"], x.Path);
     }
 
     [Fact]

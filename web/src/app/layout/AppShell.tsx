@@ -11,6 +11,10 @@ import { Topbar } from './Topbar';
 import styles from './AppShell.module.css';
 
 const MOBILE_QUERY = '(max-width: 1040px)';
+/** Trang bảng nhiều cột dùng hết chiều ngang màn hình (bỏ giới hạn 1560px); cả trang cuộn bình thường. */
+const FULL_SCREEN_PATHS = ['/orders'];
+/** Cuộn quá mốc này (px) thì thu gọn menu; cuộn lên lại không tự mở — rê chuột vào menu mới hiện. */
+const SCROLL_COLLAPSE_AT = 120;
 
 /** Khung trang: sidebar + topbar + nội dung route. */
 export function AppShell() {
@@ -31,6 +35,26 @@ export function AppShell() {
   useEffect(() => {
     setAutoCollapsed(false);
     setPeek(false);
+  }, [pathname]);
+
+  // Trang bảng (Đơn hàng của tôi): cuộn xuống → thu gọn tạm menu cho bảng rộng hơn. Cuộn lên không mở lại;
+  // rê chuột vào menu thì hiện đè lên nội dung, bấm nút menu / Ctrl+B thì mở hẳn.
+  useEffect(() => {
+    if (!FULL_SCREEN_PATHS.includes(pathname)) return;
+    let frame = 0;
+    const onScroll = () => {
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        if (window.matchMedia(MOBILE_QUERY).matches) return;
+        if (window.scrollY > SCROLL_COLLAPSE_AT) setAutoCollapsed(true);
+      });
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      cancelAnimationFrame(frame);
+    };
   }, [pathname]);
 
   const onContentInput = () => {
@@ -78,7 +102,7 @@ export function AppShell() {
       {mobileOpen && <div className={styles.scrim} onClick={() => setMobileOpen(false)} />}
       <div className={styles.main}>
         <Topbar onMenu={toggleMenu} menuCollapsed={menuCollapsed} onStartTour={tour.start} />
-        <main className={styles.content} onInput={onContentInput}>
+        <main className={cx(styles.content, FULL_SCREEN_PATHS.includes(pathname) && styles.fullScreen)} onInput={onContentInput}>
           <Suspense fallback={<p className={styles.loading}>{t('Đang tải…')}</p>}>
             <Outlet />
           </Suspense>

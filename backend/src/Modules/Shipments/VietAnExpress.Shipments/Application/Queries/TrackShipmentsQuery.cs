@@ -1,6 +1,7 @@
 using MediatR;
 using VietAnExpress.SharedKernel.Application;
 using VietAnExpress.Shipments.Application.Dtos;
+using VietAnExpress.Shipments.Infrastructure.Carriers.HubEz;
 using VietAnExpress.Shipments.Infrastructure.Legacy;
 
 namespace VietAnExpress.Shipments.Application.Queries;
@@ -18,7 +19,7 @@ internal sealed record TrackShipmentsQuery(IReadOnlyList<string> Bills) : IReque
             .ToList();
 }
 
-internal sealed class TrackShipmentsHandler(ILegacyBillReader legacyBills, TimeProvider clock)
+internal sealed class TrackShipmentsHandler(ILegacyBillReader legacyBills, TimeProvider clock, IHubEzTracking hubEz)
     : IRequestHandler<TrackShipmentsQuery, IReadOnlyList<PublicTrackResultDto>>
 {
     public async Task<IReadOnlyList<PublicTrackResultDto>> Handle(TrackShipmentsQuery q, CancellationToken ct)
@@ -26,10 +27,16 @@ internal sealed class TrackShipmentsHandler(ILegacyBillReader legacyBills, TimeP
         var bills = q.NormalizedBills;
         var rows = await legacyBills.FindAsync(bills, ct);
         var today = VietnamTime.ToVietnam(clock.GetUtcNow()).Date;
+        var matched = bills.Select(bill => (Bill: bill, Row: rows.FirstOrDefault(r => LegacyTrackingMapper.Matches(r, bill)))).ToList();
 
-        return bills.Select(bill => rows.FirstOrDefault(r => LegacyTrackingMapper.Matches(r, bill)) is { } row
-                ? LegacyTrackingMapper.ToResult(bill, row, today)
-                : new PublicTrackResultDto(bill, Found: false))
+        // Đơn đi HUB-EZ: lấy hành trình HUB-EZ 1 lần cho mọi mã hãng (HUB-EZ lỗi → chỉ hành trình cũ).
+        var hawbs = matched.Where(m => m.Row is not null && hubEz.Handles(m.Row.ServiceName, m.Row.BillConnect))
+            .Select(m => m.Row!.BillConnect!.Trim()).ToList();
+        var tracks = hawbs.Count == 0 ? new Dictionary<string, HubEzTrack>() : await hubEz.TrackAsync(hawbs, ct);
+
+        return matched.Select(m => m.Row is { } row
+                ? LegacyTrackingMapper.ToResult(m.Bill, row, today, row.BillConnect is { } connect ? tracks.GetValueOrDefault(connect.Trim()) : null)
+                : new PublicTrackResultDto(m.Bill, Found: false))
             .ToList();
     }
 }

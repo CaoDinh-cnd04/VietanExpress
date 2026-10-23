@@ -70,11 +70,26 @@ public class OrderDocumentRendererTests
         Assert.Contains("DHL-Sin", html);
         Assert.Contains("+44 20 7946 0000", html);
         Assert.Contains("40.00 USD", html);
-        Assert.Contains("2 × 50 × 40 × 30 cm", html);
-        Assert.Contains(">10<", html);  // G.W = 2 × 5
-        Assert.Contains(">24<", html);  // Vol.W = 2 × 50×40×30 / 5000
+        Assert.Contains("10.0 | 2*(50*40*30)=<b>24.0</b>", html); // TL thực | SL*(D*R*C)=TL quy đổi như hệ thống cũ
+        Assert.Contains(">10.0<", html);  // G.W = 2 × 5
+        Assert.Contains(">24.0<", html);  // Vol.W = 2 × 50×40×30 / 5000
         Assert.Contains("data:image/webp;base64,", html);
         Assert.Contains("viewBox", html); // QR tracking
+    }
+
+    [Fact]
+    public void Bill_A4_kich_thuoc_lam_tron_len_nua_kg_nhu_he_thong_cu()
+    {
+        // Mẫu hệ thống cũ: 19.5 | 1*(47*37*32)=11.5 · 13.5 | 1*(46*37*32)=11.0 → G.W 33.0, Vol.W 22.5.
+        var html = Render(PrintDocs.BillA4, new OrderPrintModel(Order(), [],
+            [new PrintPackage(1, 47, 37, 32, 19.5m), new PrintPackage(1, 46, 37, 32, 13.5m)]));
+
+        Assert.Contains("19.5 | 1*(47*37*32)=<b>11.5</b>", html);
+        Assert.Contains("13.5 | 1*(46*37*32)=<b>11.0</b>", html);
+        Assert.Contains(">33.0<", html);
+        Assert.Contains(">22.5<", html);
+        Assert.Equal(11.5m, BillA4.BillVolumeKg(new PrintPackage(1, 47, 37, 32, 0)));
+        Assert.Equal(19.5m, BillA4.BillVolumeKg(new PrintPackage(1, 60, 43, 37, 0))); // 19.09 → 19.5
     }
 
     [Theory]
@@ -268,6 +283,53 @@ public class OrderDocumentRendererTests
         Assert.Contains("6204", html);
         Assert.Contains("55.00", html); // 40 + 15
     }
+
+    [Fact]
+    public void Invoice_rieng_tung_kien_tach_hang_can_kich_thuoc_theo_kien()
+    {
+        var order = Order(pieces: 3);
+        order.ShippingFee = 10;
+        var items = new[]
+        {
+            new PrintItem("Dress", 2, "PCS", 20, null, "Vietnam", Package: 1),
+            new PrintItem("Shirt", 1, "PCS", 15, null, "Vietnam", Package: 2),
+            new PrintItem("Hat", 3, "PCS", 5, null, "Vietnam", Package: 3)
+        };
+        // 1 dòng kiện SL 2 (5 kg / kiện) + 1 dòng SL 1 (3 kg) → 3 kiện.
+        var model = new OrderPrintModel(order, items, [new PrintPackage(2, 50, 40, 30, 5), new PrintPackage(1, 20, 20, 20, 3)]);
+
+        var scopes = CommercialInvoice.InvoiceScope.PerPackage(model);
+
+        Assert.True(model.InvoicePerPackage);
+        Assert.Equal(3, scopes.Count);
+        Assert.Equal(["Dress"], scopes[0].Lines.Select(l => l.Description));
+        Assert.Equal(["Hat"], scopes[2].Lines.Select(l => l.Description));
+        Assert.Equal([5m, 5m, 3m], scopes.Select(s => s.GrossKg));
+        Assert.Equal(20m, scopes[2].Packages.Single().Length);
+        Assert.Equal([10m, 0m, 0m], scopes.Select(s => s.ShippingFee)); // phí ship của đơn chỉ in ở invoice kiện 1
+
+        var html = System.Net.WebUtility.HtmlDecode(Render(PrintDocs.Invoice, model));
+        Assert.Equal(3 * CommercialInvoice.Copies, html.Split("class=\"page a4 invoice\"").Length - 1);
+        Assert.Contains("1 (Package 2/3)", html);
+    }
+
+    [Fact]
+    public void Invoice_chung_khi_khong_dong_nao_mang_so_kien()
+    {
+        var model = new OrderPrintModel(Order(), [new PrintItem("Dress", 2, "PCS", 20, null, "Vietnam")]);
+        Assert.False(model.InvoicePerPackage);
+        var html = Render(PrintDocs.Invoice, model);
+        Assert.Equal(CommercialInvoice.Copies, html.Split("class=\"page a4 invoice\"").Length - 1);
+    }
+
+    [Theory]
+    [InlineData("2", 2)]
+    [InlineData(" 1 ", 1)]
+    [InlineData("", null)]
+    [InlineData("0", null)]
+    [InlineData("-1", null)]
+    [InlineData("1.5", null)]
+    public void So_kien_cua_dong_hang(string value, int? expected) => Assert.Equal(expected, LegacyOrderFactory.PackageNumber(value));
 }
 
 public class OrderSheetTests

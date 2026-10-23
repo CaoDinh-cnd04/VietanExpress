@@ -17,7 +17,7 @@ internal static class LegacyOrderProjections
         ConsigneeIossNo = o.ConsigneeIossNo, ConsigneeEoriNo = o.ConsigneeEoriNo,
         ServiceName = o.ServiceName, CreateDate = o.CreateDate, SentDate = o.SentDate,
         GoodsName = o.GoodsName, Pieces = o.Pieces, WeightKg = o.WeightKg, Pod = o.Pod, PodEstimate = o.PodEstimate,
-        RemoteAreaFedEx = o.RemoteAreaFedEx
+        RemoteAreaFedEx = o.RemoteAreaFedEx, RemoteAreaUps = o.RemoteAreaUps, RemoteArea = o.RemoteArea
     };
 
     public static readonly Expression<Func<LegacyOrder, LegacyOrder>> Tracking = o => new LegacyOrder
@@ -30,7 +30,7 @@ internal static class LegacyOrderProjections
 
     public static readonly Expression<Func<LegacyOrder, LegacyOrder>> Events = o => new LegacyOrder
     {
-        Id = o.Id, Pod = o.Pod, SentDate = o.SentDate, CreateDate = o.CreateDate
+        Id = o.Id, Pod = o.Pod, SentDate = o.SentDate, CreateDate = o.CreateDate, ServiceName = o.ServiceName, BillConnect = o.BillConnect
     };
 
     public static readonly Expression<Func<LegacyOrder, LegacyOrder>> InvoiceHeader = o => new LegacyOrder

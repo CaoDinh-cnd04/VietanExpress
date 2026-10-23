@@ -55,7 +55,7 @@ backend/
 │       ├── Shipments/  VietAnExpress.Shipments (+ .Contracts)   dbo.MaVanDon (+ 2 bảng chi tiết; đơn chưa in Status = 0)
 │       └── Ecommerce/  VietAnExpress.Ecommerce (+ .Contracts)   kênh bán, shop đã kết nối, đơn e-com: dbo.KenhTMDT, dbo.KetNoiTMDT, dbo.DonTMDT
 ├── tests/  Shipments.Tests, Identity.Tests, Architecture.Tests
-└── scripts/ add-migration.ps1, update-database.ps1, legacy-tables.sql, setup-portal-current.sql, install-service.ps1…
+└── scripts/ add-migration.ps1, update-database.ps1, publish-ftp.ps1, iis/, legacy-tables.sql, setup-portal-current.sql…
 ```
 
 Bên trong mỗi module: `Domain/`, `Application/` (`Commands/`, `Queries/`, `Dtos/`, `Validators/`, `EventHandlers/`), `Infrastructure/` (`<Module>DbContext`, `Configurations/`, `Migrations/`), `Api/` (controller), `<Module>Module.cs` (đăng ký DI).
@@ -87,8 +87,6 @@ Test truy vấn SQL Server: đặt `VIETAN_TEST_SQLSERVER` thành connection str
 
 Danh sách đơn dùng một truy vấn thống kê và một truy vấn trang (trang rỗng chỉ dùng thống kê), đọc đúng các cột giao diện cần. Test so sánh với kết quả và số đếm của truy vấn cũ, gồm lọc trạng thái, ngày, cân nặng, phân trang và phạm vi khách hàng. Invoice gần đây dùng hai truy vấn; tracking và hành trình chỉ đọc các cột cần trả về.
 
-Kiểm tra sau deploy từ thư mục `backend/`: `./scripts/test-published.ps1 -ExpectedRevision <commit-sha>`. Script kiểm tra `/health`, trang đăng nhập, proxy Vercel, phân quyền và validation tra cứu; không tạo/sửa dữ liệu. Render trả commit đang chạy qua header `X-Vietan-Revision` của `/health`. Luồng sau đăng nhập cần tài khoản kiểm thử riêng.
-
 **Thêm use case:** tạo file `Commands/XxxCommand.cs` (gồm record command và handler), thêm validator trong `Validators/`, rồi thêm 1 action trong controller.
 
 **Thêm module mới:** tạo 2 project `VietAnExpress.X` và `VietAnExpress.X.Contracts` (copy csproj từ module có sẵn). Viết `XModule.AddXModule()`, thêm vào `Program.cs` (1 dòng `AddXModule` và thêm assembly vào mảng `moduleAssemblies`), rồi bổ sung tên module vào `Architecture.Tests` và 2 script.
@@ -110,36 +108,16 @@ Kiểm tra sau deploy từ thư mục `backend/`: `./scripts/test-published.ps1 
 - Chống dò mật khẩu bằng giới hạn tần suất đăng nhập theo IP (10 lần/phút).
 - Frontend gặp 401 thì tự gọi `POST /auth/refresh` một lần rồi thử lại.
 
-## Deploy: Render (backend) + Vercel (frontend)
+## Deploy: hosting Windows IIS qua FTP
 
-Hướng dẫn và biến môi trường: [DEPLOYMENT.md](../DEPLOYMENT.md). Repository có `render.yaml` cấu hình Docker từ `backend/`, health check `/health`. Trên Vercel dùng Root Directory `web`, đặt `BACKEND_URL` thành URL HTTPS của dịch vụ Render và giữ API client ở `/api/v1` để cookie đăng nhập hoạt động qua proxy.
+Giao diện và API chạy chung một tên miền: site IIS trỏ vào thư mục `frontend` (React build tĩnh), thư mục `backend` là IIS Application `/api` — cookie đăng nhập `SameSite=Strict` hoạt động không cần proxy.
 
-SQL Server cần truy cập được từ Render và có sẵn bảng/dữ liệu của hệ thống cũ. Không dùng connection string Windows `Trusted_Connection=True` trên Linux Render. Không commit connection string hoặc JWT secret.
+1. Build: `powershell -File backend/scripts/publish-ftp.ps1` → `publish/frontend`, `publish/backend`, `publish/app_offline.htm`.
+2. Đẩy qua FTP: chép đè `frontend`; với `backend` chép `app_offline.htm` vào trước, chép đè file, xong thì xóa `app_offline.htm`. Không xóa `appsettings.Production.json` và `logs` trên máy chủ.
+3. Cấu hình máy chủ (1 lần, người quản trị): [scripts/iis/HUONG_DAN_IIS.md](scripts/iis/HUONG_DAN_IIS.md) — .NET 10 Hosting Bundle, URL Rewrite, SSL, `appsettings.Production.json` (connection string `vietanexpress`, `Jwt:Secret`).
+4. Database mới: nạp bảng hệ thống cũ, chạy `scripts/legacy-tables.sql` rồi `scripts/setup-portal-current.sql` ([cách chạy](docs/PORTAL_SETUP_SQL.md)).
 
-## Phương án máy chủ nội bộ (qua ngrok)
-
-```
-Trình duyệt ──► Vercel (web + hàm web/api/proxy.ts) ──► https://<tên-miền>.ngrok-free.app ──► ngrok (service) ──► http://localhost:5080 (VietAnExpressApi) ──► SQL Server
-```
-
-Trình duyệt chỉ làm việc với tên miền Vercel, nên cookie đăng nhập (`SameSite=Strict`) hoạt động bình thường. Hàm proxy trên Vercel làm 2 việc: thêm header `ngrok-skip-browser-warning` để ngrok gói miễn phí không chèn trang cảnh báo, và trả 503 kèm câu tiếng Việt khi máy chủ tắt.
-
-**Cài trên máy chủ (1 lần; mở "Windows PowerShell" bằng Run as administrator):**
-```powershell
-cd D:\Viet-An-Express\backend
-.\scripts\install-service.ps1                            # build → C:\VietAnExpress\api, tạo service VietAnExpressApi (cổng 5080)
-.\scripts\setup-ngrok.ps1 -Domain <tên-miền>.ngrok-free.app   # ngrok chạy dạng service
-```
-- `install-service.ps1` lấy connection string và `Jwt:Secret` từ User Secrets của máy, ghi vào `C:\VietAnExpress\api\appsettings.Production.json` (chỉ admin và service đọc được, **không** nằm trong repo). Service chạy bằng tài khoản `NT SERVICE\VietAnExpressApi`, được cấp `db_owner` trên database; tự chạy khi bật máy và tự khởi động lại khi lỗi. Log nằm ở `C:\VietAnExpress\api\logs\`.
-- **Cập nhật bản mới:** `git pull` rồi chạy lại `install-service.ps1`.
-- **Gỡ:** `uninstall-service.ps1` (thêm `-RemoveFiles` để xoá thư mục cài đặt).
-
-**Trên Vercel:**
-- Root Directory = `web`.
-- Environment Variable `BACKEND_URL = https://<tên-miền>.ngrok-free.app`, rồi Redeploy.
-- **Không** đặt `VITE_API_BASE_URL` (để mặc định `/api/v1`).
-
-Máy chủ phải luôn bật và có mạng. Khi máy tắt, portal báo "Máy chủ Việt An đang tạm dừng".
+Không commit connection string hoặc JWT secret.
 
 ## 6. Dữ liệu dùng chung với hệ thống cũ
 

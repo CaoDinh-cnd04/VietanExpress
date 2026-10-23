@@ -51,5 +51,9 @@ export const drafts: Record<string, string> = {
   'Số lượng': 'Quantity',
   '{n} kiện · cân thực {gross} kg · quy đổi {vol} kg': '{n} pcs · actual {gross} kg · volumetric {vol} kg',
   'cân tính cước {kg} kg': 'chargeable {kg} kg',
-  'Tổng giá trị invoice: {total} {currency}': 'Invoice total: {total} {currency}'
+  'Tổng giá trị invoice: {total} {currency}': 'Invoice total: {total} {currency}',
+  'Điều khoản dịch vụ': 'Terms of service',
+  'Tôi đã đọc và đồng ý với Điều khoản dịch vụ của Việt An Express': 'I have read and agree to the Viet An Express Terms of service',
+  'Đồng ý & in bill': 'Agree & print bill',
+  'Tạo đơn & in bill': 'Create & print bill'
 };

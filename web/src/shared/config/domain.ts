@@ -27,7 +27,8 @@ const HUB_NAMES: Record<string, readonly string[]> = {
   UPS: ['Dubai', 'Singapore', 'UK', 'VN Saver', 'TaiWan', 'VN Expedited'],
   'Chuyên tuyến': [
     'Sin (Đông Lạnh)', 'Singapore', 'UK', 'AU_AuPost', 'AU_Toll (T.Phẩm/M.Phẩm)', 'AU_Toll Vip (Hàng thường)', 'Canada', 'Dubai',
-    'Indonesia', 'Korea', 'Laos', 'Saudi', 'USA', 'USA - Sea', 'EU', 'Japan', 'Malaysia', 'China', 'India'
+    'Indonesia', 'Korea', 'Laos', 'Saudi', 'USA', 'USA - Sea', 'EU', 'Japan', 'Malaysia', 'China', 'India',
+    'Russia', 'Taiwan', 'Hong Kong', 'Thailand - AIR', 'Thailand - Truck', 'Cambodia', 'Philippines', 'VA'
   ],
   'Ủy quyền Việt An': ['Tự chọn'],
   Ecommerce: ['SING POST', 'Việt An'],
@@ -60,3 +61,23 @@ export function defaultHub(carrier: string): string {
 
 /** Dịch vụ mặc định của đơn mới. */
 export const DEFAULT_SERVICE = { carrier: 'Chuyên tuyến', hub: 'Chuyên tuyến - Singapore' } as const;
+
+/**
+ * Tuyến khai invoice riêng từng kiện (mỗi kiện 1 invoice, số invoice = tổng số kiện).
+ * Giá trị hub dạng "Hãng - Hub"; "Hãng - *" = mọi hub của hãng. Thêm tuyến mới: thêm 1 dòng ở đây —
+ * backend không cần sửa (đơn có dòng hàng mang số kiện thì in mỗi kiện 1 invoice).
+ */
+export const PER_PACKAGE_INVOICE_HUBS: readonly string[] = [
+  'Chuyên tuyến - AU_AuPost',
+  'Chuyên tuyến - AU_Toll (T.Phẩm/M.Phẩm)',
+  'Chuyên tuyến - AU_Toll Vip (Hàng thường)',
+  'Chuyên tuyến - EU',
+  'Chuyên tuyến - Canada'
+];
+
+/** Hub có khai invoice riêng từng kiện không (khớp cả dạng "Hãng - *"). */
+export function isPerPackageInvoice(hub: string | undefined, rules: readonly string[] = PER_PACKAGE_INVOICE_HUBS): boolean {
+  const value = hub?.trim() ?? '';
+  if (!value) return false;
+  return rules.some(rule => (rule.endsWith(' - *') ? value.startsWith(rule.slice(0, -1)) : rule === value));
+}

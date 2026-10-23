@@ -64,11 +64,10 @@ internal static partial class HsLookupRules
         if (f.VerifiedOnly) rows = rows.Where(x => x.IsVerified);
         if (f.Digits is { } d)
         {
-            // Mã nạp dạng có dấu chấm (0804.50.00.10); vẫn nhận dữ liệu nạp không dấu và mã AU lẫn "?", khoảng trắng, &#160;
-            // (?0805.40.00.26, "? 0307.49.00.40", "&#160;8703.80.11.52").
+            // Mã nạp dạng có dấu chấm (0804.50.00.10); vẫn nhận dữ liệu nạp không dấu và mã AU lẫn "?" (?0805.40.00.26).
             var dotted = DottedPrefix(d);
             rows = rows.Where(x => x.NationalCode.StartsWith(dotted) || x.NationalCode.StartsWith(d)
-                || x.NationalCode.Replace("?", "").Replace("&#160;", "").Replace(" ", "").StartsWith(dotted));
+                || x.NationalCode.Replace("?", "").StartsWith(dotted));
         }
         foreach (var term in f.Terms)
         {
@@ -78,8 +77,8 @@ internal static partial class HsLookupRules
                 || (x.NationalDescription != null && EF.Functions.Collate(x.NationalDescription, SearchCollation).Contains(term)));
         }
         return rows
-            // Bỏ "?", &#160;, khoảng trắng (lỗi dữ liệu AU) khi sắp xếp để mã đứng đúng chỗ theo số.
-            .OrderByDescending(x => x.IsVerified).ThenBy(x => x.NationalCode.Replace("?", "").Replace("&#160;", "").Replace(" ", ""))
+            // Bỏ "?" (lỗi dữ liệu AU) khi sắp xếp để mã đứng đúng chỗ theo số.
+            .OrderByDescending(x => x.IsVerified).ThenBy(x => x.NationalCode.Replace("?", ""))
             .Take(MaxResults)
             .Select(x => new HsLookupItemDto(x.NameVi ?? "", x.NameEn, x.Hs6, x.NationalCode, x.NationalDescription, x.Unit, x.Note, x.IsVerified, Array.Empty<string>()));
     }
@@ -101,13 +100,12 @@ internal static partial class HsLookupRules
     public static HsLookupItemDto? Present(HsLookupItemDto x)
     {
         if (CleanCode(x.NationalCode) is not { } code) return null;
-        var name = Label(Text(x.NameEn));
+        var name = Text(x.NameEn)?.TrimEnd(':').TrimEnd() ?? "";
         var description = Text(x.NationalDescription);
-        // Mô tả không có cấp cha (UK) thì không có đường dẫn; có thì bỏ cấp cuối nếu chính là tên dòng.
-        var path = description is not null && description.Contains(" > ")
-            ? description.Split(" > ").Select(Label).Where(p => p.Length > 0).ToList()
-            : [];
+        var path = description?.Split(" > ", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList() ?? [];
+        // Bỏ cấp cuối nếu chính là tên dòng; mô tả không có cấp cha (UK) thì không có đường dẫn.
         if (path.Count > 0 && string.Equals(path[^1], name, StringComparison.OrdinalIgnoreCase)) path.RemoveAt(path.Count - 1);
+        if (path.Count == 1 && string.Equals(path[0], description, StringComparison.OrdinalIgnoreCase)) path.Clear();
         return x with
         {
             NameVi = Text(x.NameVi) ?? "",
@@ -117,13 +115,9 @@ internal static partial class HsLookupRules
             NationalDescription = description,
             Unit = Text(x.Unit) is { } unit && unit.Any(char.IsLetterOrDigit) ? unit : null,
             Note = Text(x.Note),
-            Path = path
+            Path = [.. path.Select(p => p.TrimEnd(':'))]
         };
     }
-
-    /// <summary>Tên / cấp biểu thuế cho khách xem: bỏ gạch cấp bậc đầu dòng của AU ("‑‑Other" → "Other") và dấu ":" cuối.</summary>
-    private static string Label(string? text) =>
-        (text ?? "").Trim().TrimStart('-', '‐', '‑', '–', '—').TrimEnd(':').Trim();
 
     /// <summary>
     /// Sửa lỗi lấy dữ liệu của mã AU: bỏ "?", "*", khoảng trắng / &amp;#160; ("? 0307.49.00.40", "2711.12.90**.02");

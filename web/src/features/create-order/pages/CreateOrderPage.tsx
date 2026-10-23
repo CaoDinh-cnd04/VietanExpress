@@ -5,7 +5,8 @@ import { getErrorMessage } from '@/shared/api/http';
 import { useI18n } from '@/shared/i18n';
 import { orderUsage } from '@/shared/lib/usage';
 import { Button, Card, LinkButton, Notice, PageHeader, SegmentedControl, useToast } from '@/shared/ui';
-import { DraftsTable, useSaveDraft, useUpdateDraft } from '@/features/drafts';
+import { DraftsTable, useIssueAndPrint, useSaveDraft, useUpdateDraft } from '@/features/drafts';
+import { TermsDialog } from '@/features/terms';
 import { useSession } from '@/features/auth';
 import { useQuote, type ServiceQuote } from '@/features/pricing';
 import { AddonsSection } from '../components/AddonsSection';
@@ -26,6 +27,7 @@ import { useShipmentSync } from '../hooks/useShipmentSync';
 import { evaluatePackages, hasCritical, type PackageWarning } from '../lib/carrier-limits';
 import { buildDraftPayload, summarizePackages, toNumber } from '../lib/shipment';
 import { stepProgress } from '../lib/step-progress';
+import { listFormErrors } from '../lib/form-errors';
 import { STEP_FIELDS, type CreateOrderValues } from '../schema';
 import styles from './CreateOrderPage.module.css';
 
@@ -87,13 +89,13 @@ function useActiveSection(ids: readonly string[]) {
   return active;
 }
 
-/** Cuộn tới ô lỗi đầu tiên sau khi kiểm tra không đạt. */
+/** Cuộn tới ô lỗi đầu tiên sau khi kiểm tra không đạt — đợi khung đang thu gọn (vd người gửi) tự mở ra trước. */
 const focusFirstError = () =>
-  requestAnimationFrame(() => {
-    const el = document.querySelector<HTMLElement>('[aria-invalid="true"]');
+  window.setTimeout(() => {
+    const el = [...document.querySelectorAll<HTMLElement>('[aria-invalid="true"]')].find(e => e.offsetParent !== null);
     el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     el?.focus({ preventScroll: true });
-  });
+  }, 120);
 
 /**
  * Trang tạo đơn. Hai chế độ dùng chung một form và các khối con:
@@ -123,6 +125,9 @@ export default function CreateOrderPage({ mode }: { mode: CreateMode }) {
   const quote = useQuote();
   const [step, setStep] = useState(0);
   const [confirm, setConfirm] = useState<{ quote: ServiceQuote | null; warnings: PackageWarning[] } | null>(null);
+  // Đơn đang chờ khách đồng ý Điều khoản dịch vụ (Tạo đơn & in bill).
+  const [termsFor, setTermsFor] = useState<CreateOrderValues | null>(null);
+  const issueAndPrint = useIssueAndPrint();
 
   const isWizard = mode === 'wizard';
   // Chứng từ (DOC): chỉ khai nội dung — ẩn bảng kiện và Invoice, wizard còn 2 bước. Hàng hoá (PACK): đủ 3 bước.
@@ -185,6 +190,45 @@ export default function CreateOrderPage({ mode }: { mode: CreateMode }) {
     else saveDraft.mutate(payload, { onSuccess, onError, onSettled });
   };
 
+  /**
+   * Khách đồng ý điều khoản: mở tab in ngay (cú bấm còn hiệu lực, không bị chặn pop-up) → lưu đơn → cấp bill → in A4,
+   * rồi sang Đơn hàng của tôi. Lưu được mà cấp bill lỗi thì đơn nằm ở Đơn nháp & chưa in.
+   */
+  const createAndPrint = (values: CreateOrderValues) => {
+    if (persisting.current) return;
+    persisting.current = true;
+    const payload = buildDraftPayload(values, 'ready');
+    let saved = false;
+    issueAndPrint.run(
+      async () => {
+        try {
+          const res = draftId ? await updateDraft.mutateAsync({ id: draftId, draft: payload }) : await saveDraft.mutateAsync(payload);
+          saved = true;
+          recordUsage('order_complete');
+          finishAutosave(undefined);
+          return res.id;
+        } catch (e) {
+          toast.show(getErrorMessage(e, 'Không lưu được đơn, vui lòng thử lại'), 'error');
+          throw e;
+        }
+      },
+      () => {
+        persisting.current = false;
+        navigate('/orders');
+      },
+      () => {
+        persisting.current = false;
+        if (saved) navigate('/drafts');
+      }
+    );
+  };
+
+  /** Đã qua kiểm tra (và xác nhận phụ phí nếu có): hỏi Điều khoản dịch vụ trước khi tạo & in. */
+  const proceed = (values: CreateOrderValues) => {
+    setConfirm(null);
+    setTermsFor(values);
+  };
+
   /** Trước khi tạo: chặn kiện hãng không nhận; hỏi xác nhận nếu có phụ phí / cảnh báo. */
   const onValid = async (values: CreateOrderValues) => {
     const isPack = values.shipment.type === 'PACK';
@@ -216,7 +260,7 @@ export default function CreateOrderPage({ mode }: { mode: CreateMode }) {
 
     const notable = warnings.filter(w => w.level === 'warning');
     if (matched?.hasSurcharge || notable.length) setConfirm({ quote: matched, warnings: notable });
-    else persist(values, 'ready');
+    else proceed(values);
   };
 
   const onInvalid = (errors: FieldErrors<CreateOrderValues>) => {
@@ -224,7 +268,10 @@ export default function CreateOrderPage({ mode }: { mode: CreateMode }) {
       const firstBad = STEP_FIELDS.findIndex(fields => fields.some(f => errors[f]));
       if (firstBad >= 0) setStep(firstBad);
     }
-    toast.show('Còn ô bắt buộc chưa điền — đã tô đỏ giúp bạn', 'error');
+    // Nói rõ ô nào sai — ô có thể nằm ở phần khách không đang nhìn (vd dữ liệu cũ của đơn nháp: email "=", SĐT lẫn chữ).
+    const list = listFormErrors(errors);
+    const shown = list.slice(0, 3).map(e => `${t(e.label)}: ${t(e.message)}`).join(' · ');
+    toast.show(list.length ? `${t('Còn ô chưa đúng')} — ${shown}${list.length > 3 ? ' …' : ''}` : 'Còn ô bắt buộc chưa điền — đã tô đỏ giúp bạn', 'error');
     focusFirstError();
   };
 
@@ -298,8 +345,8 @@ export default function CreateOrderPage({ mode }: { mode: CreateMode }) {
               {t('Tiếp tục: {step}', { step: t(steps[current + 1]!.title) })}
             </Button>
           ) : (
-            <Button variant="primary" type="submit" disabled={busy}>
-              {t(quote.isPending ? 'Đang kiểm tra phụ phí…' : saving ? 'Đang lưu…' : draftId ? 'Lưu & sẵn sàng in' : 'Tạo đơn hàng')}
+            <Button variant="primary" type="submit" disabled={busy || issueAndPrint.isPending}>
+              {t(quote.isPending ? 'Đang kiểm tra phụ phí…' : saving ? 'Đang lưu…' : issueAndPrint.isPending ? 'Đang in…' : 'Tạo đơn & in bill')}
             </Button>
           )}
         </footer>
@@ -318,7 +365,20 @@ export default function CreateOrderPage({ mode }: { mode: CreateMode }) {
         warnings={confirm?.warnings ?? []}
         busy={saving}
         onCancel={() => setConfirm(null)}
-        onConfirm={() => persist(form.getValues(), 'ready')}
+        onConfirm={() => proceed(form.getValues())}
+      />
+
+      {/* Tạo đơn & in bill: đồng ý → lưu + cấp bill + in; không đồng ý (Hủy / đóng) → vẫn lưu, đơn nằm ở Đơn nháp & chưa in. */}
+      <TermsDialog
+        open={!!termsFor}
+        onClose={() => {
+          if (termsFor) persist(termsFor, 'ready');
+          setTermsFor(null);
+        }}
+        onAccept={() => {
+          if (termsFor) createAndPrint(termsFor);
+          setTermsFor(null);
+        }}
       />
     </FormProvider>
   );
