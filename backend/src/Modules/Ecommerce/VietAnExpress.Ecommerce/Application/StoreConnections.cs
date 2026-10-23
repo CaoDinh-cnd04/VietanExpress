@@ -115,13 +115,38 @@ internal sealed class StoreConnectionHandlers(
         var shop = ShopifyOAuth.NormalizeShop(c.Query.FirstOrDefault(p => p.Key == "shop").Value);
         if (shop is null || !ShopifyOAuth.IsValidLaunch(c.Query, shop, shopify.Value.ClientSecret)) return StoreErrors.InvalidLaunch;
 
-        var connected = await db.StoreConnections.AnyAsync(s => s.ChannelCode == SalesChannelCodes.Shopify && s.ShopId == shop
-            && s.DisconnectedAt == null && s.Status == StoreConnection.Active && s.AccessTokenEncrypted != null, ct);
-        // Shop đã kết nối: vào trang Shopify của portal (chưa đăng nhập thì đăng nhập tại chỗ, không về trang chủ).
-        if (connected) return new ShopifyLaunch(PortalHosts.Url(c.PortalHost, "/shopify"), null);
+        var stored = await db.StoreConnections.AsNoTracking()
+            .Where(s => s.ChannelCode == SalesChannelCodes.Shopify && s.ShopId == shop
+                && s.DisconnectedAt == null && s.Status == StoreConnection.Active && s.AccessTokenEncrypted != null)
+            .Select(s => s.AccessTokenEncrypted)
+            .FirstOrDefaultAsync(ct);
+        // Shop đã kết nối và token còn dùng được: vào trang Shopify của portal (chưa đăng nhập thì đăng nhập tại chỗ).
+        // Token bị Shopify thu hồi (gỡ rồi cài lại app mà lỡ webhook app/uninstalled) → OAuth lại để lấy token mới.
+        if (stored is not null && await TokenWorksAsync(shop, stored, ct))
+            return new ShopifyLaunch(PortalHosts.Url(c.PortalHost, "/shopify"), null);
 
         var started = Authorize(OAuthState.InstallFlow, shop, c.PortalHost);
         return new ShopifyLaunch(started.AuthorizeUrl, started.Nonce);
+    }
+
+    /// <summary>Gọi thử Shopify bằng token đã lưu (tối đa 5 giây) — lỗi / hết giờ coi như token không dùng được.</summary>
+    private async Task<bool> TokenWorksAsync(string shop, string encryptedToken, CancellationToken ct)
+    {
+        try
+        {
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            timeout.CancelAfter(TimeSpan.FromSeconds(5));
+            return await client.GetShopAsync(shop, tokens.Unprotect(encryptedToken), timeout.Token) is not null;
+        }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+        {
+            return false;
+        }
+        catch (Exception e) when (e is HttpRequestException or CryptographicException or FormatException or JsonException)
+        {
+            logger.LogWarning("Không kiểm tra được token Shopify của {Shop}: {Reason}", shop, e.Message);
+            return false;
+        }
     }
 
     private StartedConnection Authorize(long customerId, string shop, string portalHost)

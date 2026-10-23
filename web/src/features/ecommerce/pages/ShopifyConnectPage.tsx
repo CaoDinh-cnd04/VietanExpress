@@ -60,8 +60,12 @@ export default function ShopifyConnectPage() {
         </header>
 
         <Card>
-          {session.isPending ? (
+          {session.isPending || (session.isError && session.isFetching) ? (
             <p className={styles.muted}>{t('Đang kiểm tra đăng nhập…')}</p>
+          ) : session.isError ? (
+            <EmptyState title="Máy chủ đang khởi động"
+              description="Máy chủ Việt An phản hồi chậm. Vui lòng bấm Thử lại sau vài giây."
+              action={<Button variant="primary" onClick={() => void session.refetch()}>{t('Thử lại')}</Button>} />
           ) : signedIn ? (
             claim.isError && !(claim.error instanceof ApiError && claim.error.code === 'ECOM_INSTALL_NOT_FOUND') ? (
               <EmptyState title="Chưa kết nối được cửa hàng Shopify"

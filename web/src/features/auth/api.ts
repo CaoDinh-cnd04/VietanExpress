@@ -1,16 +1,20 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ApiError, getErrorMessage, http, isNotImplemented, waitForPendingRefresh } from '@/shared/api/http';
+import { withTimeout } from '@/shared/lib/timeout';
 import { useToast } from '@/shared/ui';
 import { can } from './lib/permissions';
 import type { LoginRequest, Session, SessionUser } from './types';
 
 export const sessionKey = ['session'] as const;
 
+/** Máy chủ đang khởi động / DB không phản hồi → không chờ mãi ở "Đang kiểm tra đăng nhập…", trang hiện lỗi kèm nút Thử lại. */
+const SESSION_TIMEOUT_MS = 30_000;
 
 /** Phiên hiện tại: GET /auth/session luôn trả 200 (data null = chưa đăng nhập) nên mở trang khi chưa đăng nhập không sinh lỗi 401. */
 async function fetchSession(): Promise<Session> {
   try {
-    const res = await http.get<{ data: SessionUser | null }>('/auth/session');
+    const res = await withTimeout(http.get<{ data: SessionUser | null }>('/auth/session'), SESSION_TIMEOUT_MS,
+      () => new ApiError('Máy chủ phản hồi chậm, vui lòng thử lại', 504, 'SESSION_TIMEOUT'));
     return res.data ? { status: 'authenticated', user: res.data } : { status: 'anonymous' };
   } catch (e) {
     if (e instanceof ApiError && e.status === 401) return { status: 'anonymous' };

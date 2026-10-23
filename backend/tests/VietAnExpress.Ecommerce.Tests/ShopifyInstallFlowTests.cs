@@ -26,11 +26,14 @@ public class ShopifyInstallFlowTests
     private const string Host = "portal.example.com";
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
-    private sealed class FakeShopify : HttpMessageHandler
+    /// <param name="revoked">Token bị Shopify thu hồi: gọi API shop trả 401.</param>
+    private sealed class FakeShopify(bool revoked) : HttpMessageHandler
     {
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            var json = request.RequestUri!.AbsolutePath.EndsWith("/oauth/access_token", StringComparison.Ordinal)
+            var exchange = request.RequestUri!.AbsolutePath.EndsWith("/oauth/access_token", StringComparison.Ordinal);
+            if (!exchange && revoked) return Task.FromResult(new HttpResponseMessage(HttpStatusCode.Unauthorized));
+            var json = exchange
                 ? """{"access_token":"shpat_new","scope":"read_orders"}"""
                 : """{"data":{"shop":{"name":"Demo Store","currencyCode":"USD","primaryDomain":{"host":"demo.com"}}}}""";
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(json, Encoding.UTF8, "application/json") });
@@ -43,11 +46,11 @@ public class ShopifyInstallFlowTests
         public TokenProtector Tokens { get; } = new(Options.Create(new EcommerceOptions { TokenEncryptionKey = Convert.ToBase64String(new byte[32]) }));
         private readonly IOptions<ShopifyOptions> _shopify = Options.Create(new ShopifyOptions { ClientId = "client-id", ClientSecret = Secret, Scopes = "read_orders" });
 
-        public StoreConnectionHandlers Handler(long? customerId = null)
+        public StoreConnectionHandlers Handler(long? customerId = null, bool tokenRevoked = false)
         {
             var user = new Mock<ICurrentUser>();
             user.Setup(u => u.CustomerId).Returns(customerId);
-            var client = new ShopifyClient(new HttpClient(new FakeShopify()), _shopify, NullLogger<ShopifyClient>.Instance);
+            var client = new ShopifyClient(new HttpClient(new FakeShopify(tokenRevoked)), _shopify, NullLogger<ShopifyClient>.Instance);
             return new StoreConnectionHandlers(Db, user.Object, TimeProvider.System, _shopify, Tokens, client, NullLogger<StoreConnectionHandlers>.Instance);
         }
 
@@ -111,6 +114,21 @@ public class ShopifyInstallFlowTests
         var result = await f.Handler().Handle(new StartShopifyInstallCommand(Signed(("shop", Shop), ("timestamp", "1")), Host), Ct);
 
         Assert.Equal(($"https://{Host}/shopify", (string?)null), (result.Value.RedirectUrl, result.Value.Nonce));
+    }
+
+    [Fact]
+    public async Task Cai_lai_ma_token_cu_bi_thu_hoi_thi_OAuth_lai()
+    {
+        using var f = new Fixture();
+        var s = StoreConnection.Create(7, SalesChannelCodes.Shopify, Shop, "Demo", DateTime.Now);
+        s.Authorize(new StoreAuthorization("Demo", Shop, "USD", "read_orders", f.Tokens.Protect("shpat_old"), null, null, null), DateTime.Now);
+        f.Db.StoreConnections.Add(s);
+        await f.Db.SaveChangesAsync(Ct);
+
+        var result = await f.Handler(tokenRevoked: true).Handle(new StartShopifyInstallCommand(Signed(("shop", Shop), ("timestamp", "1")), Host), Ct);
+
+        Assert.StartsWith($"https://{Shop}/admin/oauth/authorize?client_id=client-id", result.Value.RedirectUrl);
+        Assert.NotNull(result.Value.Nonce);
     }
 
     [Fact]
