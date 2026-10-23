@@ -144,6 +144,18 @@ internal sealed class MarketplaceOrder
     }
 
     /// <summary>
+    /// Kết nối lại shop: đơn đồng bộ cũ chưa xác nhận gửi, chưa có bill bị bỏ để danh sách thay bằng đơn đang mở trên sàn
+    /// (đồng bộ ngay sau đó — đơn còn mở thì hiện lại với dữ liệu mới, đơn đã giao / đã hủy trên sàn không hiện nữa).
+    /// </summary>
+    public bool DiscardForResync(DateTime now)
+    {
+        if (!IsSynced || Bill is not null || ConfirmedAt is not null || DeletedAt is not null) return false;
+        DeletedAt = now;
+        ModifyDate = now;
+        return true;
+    }
+
+    /// <summary>
     /// Đơn đã xóa hiện lại với dữ liệu mới (bỏ cả dữ liệu đã sửa trước khi xóa): khách nhập lại file có đơn đó,
     /// hoặc đồng bộ gặp lại đơn của shop đã kết nối (đơn đồng bộ bị xóa trước khi có quy tắc không xóa đơn đồng bộ).
     /// </summary>

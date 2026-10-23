@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { EcomOrder } from '../types';
-import { buildPrintHtml, type PrintContext } from './print-docs';
+import { buildPrintHtml, printCode, type PrintContext } from './print-docs';
 
 const ctx: PrintContext = {
   sender: { companyName: 'Shop A', customerCode: 'PTA1', phone: '0909' },
@@ -44,5 +44,20 @@ describe('buildPrintHtml', () => {
     expect(html).toContain('Tổng 2 đơn');
     expect(html).toContain('<strong>4</strong>');
     expect(html).toContain('<strong>1.75</strong>');
+  });
+});
+
+describe('printCode', () => {
+  it('đơn đồng bộ dùng mã kèm shop — 2 shop cùng có #1001 vẫn ra 2 mã khác nhau trên nhãn', () => {
+    const a = order('1', { ref: '#1001', code: 'SHOP-A-1001' });
+    const b = order('2', { ref: '#1001', code: 'SHOP-B-1001' });
+    expect(printCode(a)).not.toBe(printCode(b));
+    const html = buildPrintHtml('label', [a, b], ctx);
+    expect(html).toContain('SHOP-A-1001');
+    expect(html).toContain('SHOP-B-1001');
+  });
+
+  it('chưa có mã riêng (đơn nhập tay) thì in mã đơn', () => {
+    expect(printCode({ ref: 'REF-9' })).toBe('REF-9');
   });
 });

@@ -47,6 +47,10 @@ export interface EcomOrder {
   confirmed?: boolean;
   /** "dd/MM/yyyy HH:mm" */
   confirmedAt?: string | null;
+  /** Tên shop đã kết nối mà đơn đồng bộ về — null với đơn nhập tay / nhập file. */
+  shop?: string | null;
+  /** Mã in nhãn / mã vạch, không trùng giữa các shop (vd VIETAN-STORE-1001); đơn nhập tay = ref. */
+  code?: string;
 }
 
 /** PUT /ecom/orders/:id — khách sửa đơn trước khi tạo bill. */

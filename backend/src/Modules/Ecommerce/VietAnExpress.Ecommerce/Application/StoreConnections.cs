@@ -73,6 +73,7 @@ internal sealed class StoreConnectionHandlers(
     IOptions<ShopifyOptions> shopify,
     TokenProtector tokens,
     ShopifyClient client,
+    ShopifySyncQueue syncQueue,
     ILogger<StoreConnectionHandlers> logger) :
     IRequestHandler<GetStoreConnectionsQuery, IReadOnlyList<StoreConnectionDto>>,
     IRequestHandler<StartStoreConnectionCommand, Result<StartedConnection>>,
@@ -224,7 +225,11 @@ internal sealed class StoreConnectionHandlers(
         }
     }
 
-    /// <summary>Kết nối mới hoặc ủy quyền lại / cài lại (shop đã có thì cập nhật token, không tạo trùng — App Store 2.3.4).</summary>
+    /// <summary>
+    /// Kết nối mới hoặc ủy quyền lại / cài lại (shop đã có thì cập nhật token, không tạo trùng — App Store 2.3.4).
+    /// Kết nối lại: đơn cũ chưa gửi của shop được thay bằng đơn đang mở trên Shopify (không cộng dồn).
+    /// 1 shop chỉ thuộc 1 tài khoản: gắn vào tài khoản này thì ngắt ở tài khoản khác (tránh shop / đơn lặp ở nhiều nơi).
+    /// </summary>
     private async Task<StoreConnection> SaveConnectionAsync(long customerId, PendingShopifyInstall p, CancellationToken ct)
     {
         var now = Now;
@@ -234,6 +239,20 @@ internal sealed class StoreConnectionHandlers(
         {
             connection = StoreConnection.Create(customerId, SalesChannelCodes.Shopify, p.Shop, p.ShopName, now);
             db.StoreConnections.Add(connection);
+        }
+        else
+        {
+            var stale = await db.MarketplaceOrders.Where(o => o.StoreConnectionId == connection.Id && o.DeletedAt == null).ToListAsync(ct);
+            var discarded = stale.Count(o => o.DiscardForResync(now));
+            if (discarded > 0) logger.LogInformation("Kết nối lại Shopify {Shop}: bỏ {Count} đơn cũ chưa gửi, đồng bộ lại từ sàn", p.Shop, discarded);
+        }
+
+        var elsewhere = await db.StoreConnections.Where(s => s.ChannelCode == SalesChannelCodes.Shopify && s.ShopId == p.Shop
+            && s.CustomerId != customerId && s.DisconnectedAt == null).ToListAsync(ct);
+        foreach (var other in elsewhere)
+        {
+            other.Disconnect(now);
+            logger.LogInformation("Shopify {Shop} chuyển sang khách {CustomerId} — ngắt kết nối ở khách {Previous}", p.Shop, customerId, other.CustomerId);
         }
         connection.Authorize(new StoreAuthorization(
             Truncate(p.ShopName, StoreConnection.ShopNameMaxLength),
@@ -245,6 +264,7 @@ internal sealed class StoreConnectionHandlers(
             p.RefreshToken is { } refresh ? tokens.Protect(refresh) : null,
             p.RefreshTokenExpiresAt), now);
         await db.SaveChangesAsync(ct);
+        syncQueue.Enqueue(p.Shop);
 
         logger.LogInformation("Khách {CustomerId} đã kết nối Shopify {Shop}", customerId, p.Shop);
         return connection;

@@ -22,6 +22,9 @@ export interface PrintContext {
   sourceLabel: (src: string) => string;
 }
 
+/** Mã in trên nhãn / mã vạch: không trùng giữa các shop (mỗi shop Shopify đều có đơn #1001). */
+export const printCode = (o: Pick<EcomOrder, 'ref' | 'code'>): string => o.code || o.ref;
+
 const esc = (s: unknown): string =>
   String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 
@@ -48,7 +51,7 @@ function labelPage(o: EcomOrder, c: PrintContext): string {
   const country = r?.country ?? o.ct;
   return `<section class="page label">
     <div class="lhead"><strong>VIET AN EXPRESS</strong><span>${esc(c.sourceLabel(o.src))} · ${esc(o.createdAt)}</span></div>
-    <div class="code">${code128Svg(o.ref)}<div class="ref">${esc(o.ref)}</div></div>
+    <div class="code">${code128Svg(printCode(o))}<div class="ref">${esc(printCode(o))}</div></div>
     <div class="box to">
       <div class="cap">Ship to</div>
       <div class="name">${esc(r?.name || o.cnee)}</div>
@@ -110,7 +113,7 @@ function packingPage(o: EcomOrder, c: PrintContext): string {
   return `<section class="page">
     <div class="phead">
       <div><h1>${L.k0}</h1><div class="muted">${esc(c.sender.companyName)} · ${L.k1}</div></div>
-      <div class="pcode">${code128Svg(o.ref)}<div><strong>${esc(o.ref)}</strong></div></div>
+      <div class="pcode">${code128Svg(printCode(o))}<div><strong>${esc(printCode(o))}</strong></div></div>
     </div>
     <table class="meta"><tr>
       <td><span class="muted">${L.k2}</span><br><strong>${esc(o.receiver?.name || o.cnee)}</strong><br>${receiverLines(o.receiver, o.ct).map(esc).join('<br>')}${o.receiver?.phone ? `<br>${esc(o.receiver.phone)}` : ''}</td>
@@ -163,7 +166,7 @@ function manifestPage(orders: ReadonlyArray<EcomOrder>, c: PrintContext): string
     <div class="muted">${L.k1}: <strong>${esc(c.sender.companyName)}</strong> (${esc(c.sender.customerCode)})${c.sender.phone ? ` · ${esc(c.sender.phone)}` : ''} · ${L.k2}</div>
     <table class="items" style="margin-top:4mm">
       <thead><tr><th class="num">${L.k3}</th><th>${L.k4}</th><th>${L.k5}</th><th>${L.k6}</th><th class="num">${L.k7}</th><th class="num">${L.k8}</th><th class="num">${L.k9}</th><th>VA Bill</th></tr></thead>
-      <tbody>${orders.map((o, i) => `<tr><td class="num">${i + 1}</td><td>${esc(o.ref)}</td><td>${esc(o.receiver?.name || o.cnee)}</td><td>${esc(o.receiver?.country ?? o.ct)}</td><td class="num">${o.items}</td><td class="num">${o.kg ? c.formatNumber(o.kg) : '—'}</td><td class="num">${money(o.value, o.currency, c.formatNumber)}</td><td>${esc(o.bill || '—')}</td></tr>`).join('')}</tbody>
+      <tbody>${orders.map((o, i) => `<tr><td class="num">${i + 1}</td><td>${esc(printCode(o))}</td><td>${esc(o.receiver?.name || o.cnee)}</td><td>${esc(o.receiver?.country ?? o.ct)}</td><td class="num">${o.items}</td><td class="num">${o.kg ? c.formatNumber(o.kg) : '—'}</td><td class="num">${money(o.value, o.currency, c.formatNumber)}</td><td>${esc(o.bill || '—')}</td></tr>`).join('')}</tbody>
       <tfoot><tr><td colspan="4"><strong>${L.k10}</strong></td><td class="num"><strong>${items}</strong></td><td class="num"><strong>${kg ? c.formatNumber(kg) : '—'}</strong></td><td colspan="2"></td></tr></tfoot>
     </table>
     <div class="signs"><div>${L.k11}</div><div>${L.k12}</div></div>

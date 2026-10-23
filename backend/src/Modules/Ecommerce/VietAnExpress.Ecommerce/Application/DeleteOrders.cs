@@ -38,3 +38,4 @@ internal sealed class DeleteEcomOrdersHandler(EcommerceDbContext db, ICurrentUse
         return new DeleteOrdersResult(message, deleted);
     }
 }
+  

@@ -68,7 +68,7 @@ export function EcomOrderDrawer({ order, onClose, onDelete, onConfirm, confirmin
       <aside className={styles.drawer} role="dialog" aria-modal="true" aria-labelledby="ecom-drawer-title">
         <header className={styles.header}>
           <div className={styles.headMain}>
-            <p className={styles.kicker}>{t('Đơn {source}', { source: t(ECOM_SOURCES[o.src]?.label ?? o.src) })} · {o.createdAt}</p>
+            <p className={styles.kicker}>{t('Đơn {source}', { source: t(ECOM_SOURCES[o.src]?.label ?? o.src) })}{o.shop ? ` · ${o.shop}` : ''} · {o.createdAt}</p>
             <h2 id="ecom-drawer-title" className={styles.title}>
               {o.ref}
               <button type="button" className={styles.iconBtn} onClick={() => void copy(o.ref, t('Đã sao chép mã đơn'))} aria-label={t('Sao chép mã đơn')} title={t('Sao chép mã đơn')}>

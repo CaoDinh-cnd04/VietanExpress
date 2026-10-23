@@ -17,7 +17,8 @@ internal sealed record EcomOrderDto(
     string Id, string Src, string Ref, string Bill, string Cnee, string Ct, int Items, decimal Kg, string St,
     string? Note, IReadOnlyList<EcomProductDto>? Products, string CreatedAt,
     decimal? Value, string? Currency, EcomReceiverDto Receiver, string? Service, string? Hub, string? Branch,
-    IReadOnlyList<string> Issues, bool Editable, bool Confirmed, string? ConfirmedAt, bool Deletable = false);
+    IReadOnlyList<string> Issues, bool Editable, bool Confirmed, string? ConfirmedAt, bool Deletable = false,
+    string? Shop = null, string? Code = null);
 
 /// <summary>Người nhận đầy đủ cho ngăn chi tiết đơn.</summary>
 internal sealed record EcomReceiverDto(
@@ -57,7 +58,8 @@ internal sealed class EcomOrderHandlers(EcommerceDbContext db, ICurrentUser user
             orders = orders.Where(o => o.OrderName.Contains(s) || (o.Bill != null && o.Bill.Contains(s)) || (o.Recipient.Name != null && o.Recipient.Name.Contains(s)));
 
         var rows = await orders.OrderByDescending(o => o.PlacedAt ?? o.CreateDate).Take(MaxListed).ToListAsync(ct);
-        return [.. rows.Select(ToDto)];
+        var stores = await db.StoreConnections.AsNoTracking().Where(s => s.CustomerId == customerId).ToDictionaryAsync(s => s.Id, ct);
+        return [.. rows.Select(o => ToDto(o, o.StoreConnectionId is { } id ? stores.GetValueOrDefault(id) : null))];
     }
 
     public async Task<Result<SyncResult>> Handle(SyncStoreCommand c, CancellationToken ct)
@@ -75,7 +77,20 @@ internal sealed class EcomOrderHandlers(EcommerceDbContext db, ICurrentUser user
         return new SyncResult(message, added);
     }
 
-    public static EcomOrderDto ToDto(MarketplaceOrder o)
+    /// <summary>
+    /// Mã in nhãn / mã vạch không trùng giữa các shop: mỗi shop Shopify đều đánh số từ #1001, nên đơn đồng bộ gắn thêm tên shop
+    /// ("vietan-store.myshopify.com" + "#1001" → "VIETAN-STORE-1001"). Đơn nhập tay / nhập file giữ nguyên mã đơn.
+    /// </summary>
+    public static string OrderCode(string orderName, string? shopId)
+    {
+        if (string.IsNullOrEmpty(shopId)) return orderName;
+        var dot = shopId.IndexOf('.', StringComparison.Ordinal);
+        var handle = (dot > 0 ? shopId[..dot] : shopId).ToUpperInvariant();
+        return $"{handle}-{orderName.TrimStart('#').Trim()}";
+    }
+
+    /// <param name="store">Shop đã kết nối mà đơn được đồng bộ về — null với đơn nhập tay / nhập file.</param>
+    public static EcomOrderDto ToDto(MarketplaceOrder o, StoreConnection? store = null)
     {
         var products = OrderData.Products(o);
         return new(
@@ -90,6 +105,8 @@ internal sealed class EcomOrderHandlers(EcommerceDbContext db, ICurrentUser user
             o.Service, o.Hub, o.Branch,
             OrderData.Issues(o, products), o.Bill is null,
             o.ConfirmedAt is not null, o.ConfirmedAt?.ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture),
-            Deletable: o.CanDelete);
+            Deletable: o.CanDelete,
+            Shop: store?.ShopName,
+            Code: OrderCode(o.OrderName, store?.ShopId));
     }
 }

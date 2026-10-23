@@ -51,8 +51,10 @@ public class ShopifyInstallFlowTests
             var user = new Mock<ICurrentUser>();
             user.Setup(u => u.CustomerId).Returns(customerId);
             var client = new ShopifyClient(new HttpClient(new FakeShopify(tokenRevoked)), _shopify, NullLogger<ShopifyClient>.Instance);
-            return new StoreConnectionHandlers(Db, user.Object, TimeProvider.System, _shopify, Tokens, client, NullLogger<StoreConnectionHandlers>.Instance);
+            return new StoreConnectionHandlers(Db, user.Object, TimeProvider.System, _shopify, Tokens, client, SyncQueue, NullLogger<StoreConnectionHandlers>.Instance);
         }
+
+        public ShopifySyncQueue SyncQueue { get; } = new();
 
         public void Dispose() => Db.Dispose();
     }
@@ -159,6 +161,55 @@ public class ShopifyInstallFlowTests
         Assert.Equal("active", again.Value.Status);
         Assert.Single(f.Db.StoreConnections);
     }
+
+    private static ImportedOrder Order(string id, string name) => new(id, name,
+        new MarketplaceRecipient("Jane Roe", null, "+19175550100", null, "1 Main St", null, "Glen Ridge", "NJ", "07028", "US", "United States"),
+        1, null, "USD", 10, null, null, null);
+
+    [Fact]
+    public async Task Ket_noi_lai_thay_don_cu_chua_gui_bang_don_dang_mo_tren_Shopify()
+    {
+        using var f = new Fixture();
+        await f.Handler(customerId: 7).Handle(new ClaimShopifyInstallCommand(await InstallAsync(f)), Ct);
+        var store = await f.Db.StoreConnections.SingleAsync(Ct);
+        var pending = MarketplaceOrder.Import(7, store.Id, SalesChannelCodes.Shopify, Order("1", "#1001"), DateTime.Now);
+        var confirmed = MarketplaceOrder.Import(7, store.Id, SalesChannelCodes.Shopify, Order("2", "#1002"), DateTime.Now);
+        confirmed.Confirm(DateTime.Now);
+        f.Db.MarketplaceOrders.AddRange(pending, confirmed);
+        store.MarkUninstalled(DateTime.Now); // gỡ app rồi cài lại
+        await f.Db.SaveChangesAsync(Ct);
+        while (f.SyncQueue.Reader.TryRead(out _)) { }
+
+        await f.Handler(customerId: 7).Handle(new ClaimShopifyInstallCommand(await InstallAsync(f)), Ct);
+
+        Assert.NotNull(pending.DeletedAt); // đồng bộ lại sẽ đưa đơn còn mở trở lại với dữ liệu mới
+        Assert.Null(confirmed.DeletedAt); // đơn đã xác nhận gửi giữ nguyên
+        Assert.True(f.SyncQueue.Reader.TryRead(out var queued));
+        Assert.Equal(Shop, queued);
+    }
+
+    [Fact]
+    public async Task Shop_gan_vao_tai_khoan_khac_thi_ngat_o_tai_khoan_cu()
+    {
+        using var f = new Fixture();
+        await f.Handler(customerId: 7).Handle(new ClaimShopifyInstallCommand(await InstallAsync(f)), Ct);
+        (await f.Db.StoreConnections.SingleAsync(Ct)).MarkUninstalled(DateTime.Now);
+        await f.Db.SaveChangesAsync(Ct);
+
+        // Cài lại, đăng nhập bằng tài khoản Việt An khác.
+        await f.Handler(customerId: 8).Handle(new ClaimShopifyInstallCommand(await InstallAsync(f)), Ct);
+
+        var previous = await f.Db.StoreConnections.SingleAsync(s => s.CustomerId == 7, Ct);
+        Assert.NotNull(previous.DisconnectedAt); // ẩn khỏi tab Kết nối của tài khoản cũ
+        Assert.Null((await f.Db.StoreConnections.SingleAsync(s => s.CustomerId == 8, Ct)).DisconnectedAt);
+    }
+
+    [Theory]
+    [InlineData("#1001", "vietan-store.myshopify.com", "VIETAN-STORE-1001")]
+    [InlineData("#1001", "other-shop.myshopify.com", "OTHER-SHOP-1001")]
+    [InlineData("REF-9", null, "REF-9")]
+    public void Ma_in_khong_trung_giua_cac_shop(string orderName, string? shopId, string expected) =>
+        Assert.Equal(expected, EcomOrderHandlers.OrderCode(orderName, shopId));
 
     [Theory]
     [InlineData(null)]

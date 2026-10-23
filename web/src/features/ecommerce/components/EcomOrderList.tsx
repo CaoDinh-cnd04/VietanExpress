@@ -82,7 +82,7 @@ export function EcomOrderList({ scope }: { scope: OrderScope }) {
       render: o => (
         <>
           <div className={cx(styles.strong, 'mono')}>{o.ref}</div>
-          <div className={styles.sub}>{t(ECOM_SOURCES[o.src]?.label ?? o.src)} · {o.createdAt}</div>
+          <div className={styles.sub}>{o.shop || t(ECOM_SOURCES[o.src]?.label ?? o.src)} · {o.createdAt}</div>
         </>
       )
     },

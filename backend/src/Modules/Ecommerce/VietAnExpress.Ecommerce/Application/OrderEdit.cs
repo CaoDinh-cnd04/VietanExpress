@@ -87,7 +87,8 @@ internal sealed class OrderEditHandlers(EcommerceDbContext db, ICurrentUser user
             Trim(i.Service, MarketplaceOrder.ServiceMaxLength), Trim(i.Hub, MarketplaceOrder.HubMaxLength),
             Trim(i.Branch, MarketplaceOrder.BranchMaxLength), Trim(i.Note, MarketplaceOrder.NoteMaxLength), Now);
         await db.SaveChangesAsync(ct);
-        return EcomOrderHandlers.ToDto(order);
+        var store = order.StoreConnectionId is { } storeId ? await db.StoreConnections.AsNoTracking().FirstOrDefaultAsync(s => s.Id == storeId, ct) : null;
+        return EcomOrderHandlers.ToDto(order, store);
     }
 
     private static string? Trim(string? s, int max) => s?.Trim() is { Length: > 0 } t ? (t.Length <= max ? t : t[..max]) : null;
